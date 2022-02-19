@@ -14,13 +14,13 @@ on:
       WF_NPM_TOKEN:
         required: true
       WF_NPM_USER:
-	required: true
+        required: true
       WF_GITHUB_TOKEN:
         required: true
       WF_AWS_ACCESS_KEY_ID:
-	required: true
+        required: true
       WF_AWS_SECRET_ACCESS_KEY:
-	required: true
+        required: true
         
   push:
     branches: [ main ]
