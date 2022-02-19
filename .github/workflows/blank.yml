@@ -11,9 +11,9 @@ on:
         required: false
         type: string
     secrets:
-      NPM_TOKEN:
+      WF_NPM_TOKEN:
         required: true
-      GITHUB_TOKEN:
+      WF_GITHUB_TOKEN:
         required: true
         
   push:
@@ -61,7 +61,7 @@ jobs:
       
       - name: install packages using yarn.lock
         env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.WF_NPM_TOKEN }}
         run: |
           echo "@querodelivery:registry=https://npm.pkg.github.com" >>  .npmrc
           echo "//npm.pkg.github.com/:_authToken=${{ env.NPM_TOKEN }}" >>  .npmrc
@@ -76,5 +76,5 @@ jobs:
         run: |
           echo Add other actions to build,
           echo test, and deploy your project.
-          echo ${{ secrets.NPM_TOKEN }}
+          echo ${{ secrets.WF_NPM_TOKEN }}
           echo ${{ inputs.username }}
