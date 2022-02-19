@@ -1,0 +1,12 @@
+{
+  "name": "release",
+  "version": "1.0.0",
+  "description": "action to semantic-release",
+  "main": "index.js",
+  "author": "almerindo.rehem@gmail.com",
+  "license": "MIT",
+  "dependencies": {
+    "@actions/core": "^1.6.0",
+    "@actions/github": "^5.0.0"
+  }
+}
