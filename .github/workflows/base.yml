@@ -13,8 +13,14 @@ on:
     secrets:
       WF_NPM_TOKEN:
         required: true
+      WF_NPM_USER:
+	required: true
       WF_GITHUB_TOKEN:
         required: true
+      WF_AWS_ACCESS_KEY_ID:
+	required: true
+      WF_AWS_SECRET_ACCESS_KEY:
+	required: true
         
   push:
     branches: [ main ]
@@ -60,33 +66,51 @@ jobs:
             ${{ runner.os }}-yarn-  
       
       - name: install packages using yarn.lock
-        env:
-          NPM_TOKEN: ${{ secrets.WF_NPM_TOKEN }}
         run: |
-          echo "@querodelivery:registry=https://npm.pkg.github.com" >>  .npmrc
-          echo "//npm.pkg.github.com/:_authToken=${{ env.NPM_TOKEN }}" >>  .npmrc
+          echo "{{secrets.WF_NPM_USER}}:registry=https://npm.pkg.github.com" >>  .npmrc
+          echo "//npm.pkg.github.com/:_authToken=${{ secretes.WF_NPM_TOKEN }}" >>  .npmrc
           yarn --frozen-lockfile
           
-      # Runs a single command using the runners shell
-      - name: Run a one-line script
-        run: echo Hello, world!
-
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Hello world action step
-        uses: ./.github/actions/release/
-        id: hello
-        with:
-          who-to-greet: 'Mona the Octocat'
-      # Use the output from the `hello` step
-      - name: Get the output time
-        run: echo "The time was ${{ steps.hello.outputs.time }}"
-          
-      # Runs a set of commands using the runners shell
-      - name: Run a multi-line script
+      # Running an local action
+      #- name: Checkout
+      #  uses: actions/checkout@v2
+      #- name: Hello world action step
+      #  uses: ./.github/actions/release/
+      #  id: hello
+      #  with:
+      #    who-to-greet: 'Mona the Octocat'
+      ## Use the output from the `hello` step
+      #- name: Get the output time
+      #  run: echo "The time was ${{ steps.hello.outputs.time }}"
+      
+      - name: testing
         run: |
-          echo Add other actions to build,
-          echo test, and deploy your project.
-          echo ${{ secrets.WF_NPM_TOKEN }}
-          echo ${{ inputs.username }}
+          yarn test:unit
+
+       - name: Release
+        env:
+          NPM_TOKEN: ${{ secrets.WF_NPM_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.WF_GH_TOKEN_CI }}
+        run: |
+          yarn release    
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.WF_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.WF_AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      # Runs a set of commands using the runners shell
+      #- name: Run a multi-line script
+      #  run: |
+      #    echo Add other actions to build,
+      #    echo test, and deploy your project.
+      #    echo ${{ secrets.WF_NPM_TOKEN }}
+      #    echo ${{ inputs.username }}
+
+     
