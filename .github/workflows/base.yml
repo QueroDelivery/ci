@@ -64,3 +64,10 @@ jobs:
       - name: testing
         run: |
           yarn test:unit
+
+      - name: Release
+        env:
+          NPM_TOKEN: ${{ secrets.WF_NPM_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
+        run: |
+          yarn release
