@@ -71,6 +71,9 @@ jobs:
       - name: Run a one-line script
         run: echo Hello, world!
 
+      - name: Checkout
+        uses: actions/checkout@v2
+
       - name: Hello world action step
         uses: ./actions/release/
         id: hello
