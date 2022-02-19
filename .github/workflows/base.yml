@@ -1,7 +1,5 @@
 # This is a basic workflow to help you get started with Actions
-
 name: CI
-
 on:
   workflow_call:
     inputs:
@@ -13,13 +11,7 @@ on:
     secrets:
       WF_NPM_TOKEN:
         required: true
-      WF_NPM_USER:
-        required: true
       WF_GITHUB_TOKEN:
-        required: true
-      WF_AWS_ACCESS_KEY_ID:
-        required: true
-      WF_AWS_SECRET_ACCESS_KEY:
         required: true
         
   push:
@@ -28,7 +20,6 @@ on:
     branches: [ main ]
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
-
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   setup:
@@ -39,77 +30,11 @@ jobs:
     strategy:
       matrix:
         node-version: [16.13.0]
-
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - name: Checkout
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
           persist-credentials: false
-      
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v1
-        with:
-          node-version: ${{ matrix.node-version }}
-           
-      - name: Get yarn cache directory path
-        id: yarn-cache-dir-path
-        run: echo "::set-output name=dir::$(yarn cache dir)"    
-      - uses: actions/cache@v1
-        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
-        with:
-          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-yarn-  
-      
-      - name: install packages using yarn.lock
-        run: |
-          echo "{{secrets.WF_NPM_USER}}:registry=https://npm.pkg.github.com" >>  .npmrc
-          echo "//npm.pkg.github.com/:_authToken=${{ secretes.WF_NPM_TOKEN }}" >>  .npmrc
-          yarn --frozen-lockfile
-          
-      # Running an local action
-      #- name: Checkout
-      #  uses: actions/checkout@v2
-      #- name: Hello world action step
-      #  uses: ./.github/actions/release/
-      #  id: hello
-      #  with:
-      #    who-to-greet: 'Mona the Octocat'
-      ## Use the output from the `hello` step
-      #- name: Get the output time
-      #  run: echo "The time was ${{ steps.hello.outputs.time }}"
-      
-      - name: testing
-        run: |
-          yarn test:unit
-
-       - name: Release
-        env:
-          NPM_TOKEN: ${{ secrets.WF_NPM_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.WF_GH_TOKEN_CI }}
-        run: |
-          yarn release    
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.WF_AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.WF_AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
-
-      # Runs a set of commands using the runners shell
-      #- name: Run a multi-line script
-      #  run: |
-      #    echo Add other actions to build,
-      #    echo test, and deploy your project.
-      #    echo ${{ secrets.WF_NPM_TOKEN }}
-      #    echo ${{ inputs.username }}
-
-     
