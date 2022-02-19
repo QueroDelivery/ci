@@ -64,5 +64,5 @@ jobs:
       - name: install packages using yarn.lock
         run: |
           echo "{{secrets.WF_NPM_USER}}:registry=https://npm.pkg.github.com" >>  .npmrc
-          echo "//npm.pkg.github.com/:_authToken=${{ secretes.WF_NPM_TOKEN }}" >>  .npmrc
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.WF_NPM_TOKEN }}" >>  .npmrc
           yarn --frozen-lockfile
