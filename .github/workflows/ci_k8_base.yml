@@ -69,7 +69,7 @@ jobs:
       - name: Kubernetes Deploy
         env:
           KUBECONFIG: .kube/config-${{secrets.WF_KUBE_TYPE}}.yaml
-          ECR_REGISTRY: ${{ secrets.WF_ECR_REGISTRY }}
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: '${{ secrets.WF_KUBE_NAME }}_${{ inputs.WF_ENV_TYPE}}_repo'
           VERSION_TAG: ${{ github.sha }}
         run: |
