@@ -68,6 +68,8 @@ jobs:
           chmod u+x aws-iam-authenticator
       - name: Kubernetes Deploy
         env:
+          KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
+          KUBE_DOMAIN: ${{ secrets.WF_KUBE_DOMAIN }}
           KUBECONFIG: .kube/config-${{secrets.WF_KUBE_TYPE}}.yaml
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: '${{ secrets.WF_KUBE_NAME }}_${{ inputs.WF_ENV_TYPE}}_repo'
@@ -85,12 +87,12 @@ jobs:
           echo "Applying deployment"
           kubectl apply -f deployment.yaml
           echo "Applying rollout"
-          kubectl rollout restart deployment/${{ secrets.WF_KUBE_NAME }} -n ${{ secrets.WF_KUBE_NAME }}
-          kubectl rollout status deployment/${{ secrets.WF_KUBE_NAME }} -n ${{ secrets.WF_KUBE_NAME }}
+          kubectl rollout restart deployment/${KUBE_NAME} -n ${KUBE_NAME}
+          kubectl rollout status deployment/${KUBE_NAME} -n ${KUBE_NAME}
           echo "Applying hpa"
           kubectl apply -f hpa.yaml
           echo "Applying service"
           kubectl apply -f service.yaml
           echo "Applying ingress"
           kubectl apply -f ingress.yaml
-          echo "URL: https://${{ secrets.WF_KUBE_NAME }}${{ secrets.WF_KUBE_DOMAIN }}"
+          echo "URL: https://${KUBE_NAME}${KUBE_DOMAIN}"
