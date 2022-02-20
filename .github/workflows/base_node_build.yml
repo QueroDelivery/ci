@@ -2,7 +2,7 @@
 name: CI
 on:
   workflow_call:
-    with:
+    inputs:
       WF_ENV_TYPE_STAGE:
         required: true
         type: string
