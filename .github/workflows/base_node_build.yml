@@ -12,10 +12,7 @@ on:
     outputs:
       servicename:
         description: "The service name"
-        value: ${{ jobs.example_job.outputs.output1 }}
-      envtype:
-        description: "The env type"
-        value: ${{ jobs.setup.outputs.output2 }} || ${{ jobs.setup.outputs.output3 }}
+        value: ${{ jobs.setup.outputs.output1 }}
 
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
@@ -29,8 +26,6 @@ jobs:
         node-version: [16.13.0]
     outputs:
       output1: ${{ steps.serviceName.outputs.servicename }}
-      output2: ${{ steps.envsStage.outputs.envtype }}
-      output3: ${{ steps.envsProd.outputs.envtype }}
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
