@@ -1,0 +1,69 @@
+# This is a basic workflow to help you get started with Actions
+name: CI-K8-BASE
+on:
+  workflow_call:
+    inputs:
+      WF_ENV_TYPE:
+        type: string
+        required: true
+    secrets:
+      WF_KUBE_TYPE:
+        required: true
+      WF_ECR_REGISTRY:
+        required: true
+      WF_KUBE_NAME:
+        required: true
+      WF_KUBE_DOMAIN:
+        required: true
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  setup:
+    name: preparing
+    runs-on: ubuntu-latest
+    environment: production
+    continue-on-error: false
+    strategy:
+      matrix:
+        node-version: [16.13.0]
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      - name: Install gettext-base
+        run: |
+          sudo apt-get update
+          sudo apt-get install gettext-base -y
+          sudo apt-get clean
+      - name: Setup kubectl
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod u+x kubectl
+          curl -o aws-iam-authenticator https://amazon-eks.s3.us-west-2.amazonaws.com/1.19.6/2021-01-05/bin/linux/amd64/aws-iam-authenticator
+          chmod u+x aws-iam-authenticator
+      - name: Kubernetes Deploy
+        env:
+          KUBECONFIG: .kube/config-${{secrets.WF_KUBE_TYPE}}.yaml
+          ECR_REGISTRY: ${{ secrets.WF_ECR_REGISTRY }}
+          ECR_REPOSITORY: '${{ secrets.WF_KUBE_NAME }}_${{ inputs.WF_ENV_TYPE}}_repo'
+          VERSION_TAG: ${{ github.sha }}
+        run: |
+          export PATH=$PATH:$PWD
+          echo "Replacing envs from kube manifests"
+          cat .kube/namespace.yaml | envsubst > namespace.yaml
+          cat .kube/deployment.yaml | envsubst > deployment.yaml
+          cat .kube/service.yaml | envsubst > service.yaml
+          cat .kube/ingress.yaml | envsubst > ingress.yaml
+          cat .kube/hpa.yaml | envsubst > hpa.yaml
+          echo "Applying namespace"
+          kubectl apply -f namespace.yaml
+          echo "Applying deployment"
+          kubectl apply -f deployment.yaml
+          echo "Applying rollout"
+          kubectl rollout restart deployment/${{ secrets.WF_KUBE_NAME }} -n ${{ secrets.WF_KUBE_NAME }}
+          kubectl rollout status deployment/${{ secrets.WF_KUBE_NAME }} -n ${{ secrets.WF_KUBE_NAME }}
+          echo "Applying hpa"
+          kubectl apply -f hpa.yaml
+          echo "Applying service"
+          kubectl apply -f service.yaml
+          echo "Applying ingress"
+          kubectl apply -f ingress.yaml
+          echo "URL: https://${{ secrets.WF_KUBE_NAME }}${{ secrets.WF_KUBE_DOMAIN }}"
