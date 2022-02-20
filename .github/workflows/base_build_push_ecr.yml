@@ -8,14 +8,16 @@ on:
         default: 'john-doe'
         required: false
         type: string
+      WF_SERVICE_NAME:
+        type: string
+        required: true
+      WF_ENV_TYPE:
+        type: string
+        required: true
     secrets:
       WF_NPM_TOKEN:
         required: true
       WF_NPM_USER:
-        required: true
-      WF_SERVICE_NAME:
-        required: true
-      WF_ENV_TYPE:
         required: true
       WF_GITHUB_TOKEN:
         required: true
@@ -46,6 +48,10 @@ jobs:
           aws-secret-access-key: ${{ secrets.WF_AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.WF_AWS_REGION }}
 
+      - name: print
+        run: |
+          echo '${{inputs.WF_SERVICE_NAME}}_${{inputs.WF_ENV_TYPE}}_repo'
+
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
@@ -54,10 +60,10 @@ jobs:
         id: build-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: '${{secrets.WF_SERVICE_NAME}}_${{secrets.WF_ENV_TYPE}}_repo'
+          ECR_REPOSITORY: '${{inputs.WF_SERVICE_NAME}}_${{inputs.WF_ENV_TYPE}}_repo'
           IMAGE_TAG: latest
           VERSION_TAG: ${{ github.sha }}
-          SERVICE_NAME: ${{ secrets.WF_SERVICE_NAME }}
+          SERVICE_NAME: ${{ inputs.WF_SERVICE_NAME }}
 
         run: |
           # Build a docker container and
