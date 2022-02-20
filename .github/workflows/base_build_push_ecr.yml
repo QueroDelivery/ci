@@ -67,7 +67,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.WF_AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.WF_AWS_REGION }}
           role-to-assume: ${{ secrets.WF_AWS_ROLE_TO_ASSUME }}
-          role-session-name: ${{ WF_SERVICE_NAME }}_GitHubActions
+          role-session-name: ${{ secrets.WF_SERVICE_NAME }}_GitHubActions
 
       - name: print
         run: |
