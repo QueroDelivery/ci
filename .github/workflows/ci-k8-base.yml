@@ -28,6 +28,12 @@ jobs:
         node-version: [16.13.0]
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
+    
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+      
       - name: Install gettext-base
         run: |
           sudo apt-get update
