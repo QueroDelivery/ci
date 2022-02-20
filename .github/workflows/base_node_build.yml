@@ -61,3 +61,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
         run: |
           yarn release
+
+      - name: Getting SERVICE_NAME
+        id: serviceName
+        run: |
+          export SERVICE_NAME=`node -p -e "require('./package.json').name"`
+          echo "::set-output name=servicename::$SERVICE_NAME"
+
