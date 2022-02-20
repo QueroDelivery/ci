@@ -17,6 +17,8 @@ on:
         required: true
       WF_ENV_TYPE:
         required: true
+      WF_GITHUB_TOKEN:
+        required: true
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
