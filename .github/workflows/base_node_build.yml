@@ -23,7 +23,6 @@ jobs:
   setup:
     name: preparing
     runs-on: ubuntu-latest
-    environment: production
     continue-on-error: false
     strategy:
       matrix:
