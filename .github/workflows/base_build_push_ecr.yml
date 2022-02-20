@@ -1,0 +1,57 @@
+# This is a basic workflow to help you get started with Actions
+name: CI
+on:
+  workflow_call:
+    inputs:
+      username:
+        description: 'A username passed from the caller workflow'
+        default: 'john-doe'
+        required: false
+        type: string
+    secrets:
+      WF_NPM_TOKEN:
+        required: true
+      WF_NPM_USER:
+        required: true
+      WF_SERVICE_NAME:
+        required: true
+      WF_ENV_TYPE:
+        required: true
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  setup:
+    name: preparing
+    runs-on: ubuntu-latest
+    environment: production
+    continue-on-error: false
+    strategy:
+      matrix:
+        node-version: [16.13.0]
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: '${{secrets.WF_SERVICE_NAME}}_${{secrets.WF_ENV_TYPE}}_repo'
+          IMAGE_TAG: latest
+          VERSION_TAG: ${{ github.sha }}
+          SERVICE_NAME: ${{ secrets.WF_SERVICE_NAME }}
+
+        run: |
+          # Build a docker container and
+          # push it to ECR so that it can
+          # be deployed to ECS.
+          echo "registry=http://registry.npmjs.org/" > .npmrc && echo "${{ secrets.WF_NPM_USER }}:registry=https://npm.pkg.github.com" >> .npmrc && echo "//npm.pkg.github.com/:_authToken=${{ secrets.WF_NPM_TOKEN }}" >> .npmrc
+          docker build --build-arg SERVICE_NAME=$SERVICE_NAME -t $ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REPOSITORY:$VERSION_TAG .
+          docker tag $ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker tag $ECR_REPOSITORY:$VERSION_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION_TAG
+          echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$VERSION_TAG"
+      
