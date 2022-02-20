@@ -58,9 +58,9 @@ jobs:
           echo "//npm.pkg.github.com/:_authToken=${{ secrets.WF_NPM_TOKEN }}" >>  .npmrc
           yarn --frozen-lockfile
 
-          #      - name: testing
-          #run: |
-          #yarn test:unit
+      - name: testing
+        run: |
+          yarn test:unit
 
       - name: Release
         env:
