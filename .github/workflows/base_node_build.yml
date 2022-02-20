@@ -24,6 +24,11 @@ jobs:
     strategy:
       matrix:
         node-version: [16.13.0]
+    outputs:
+      output1: ${{ steps.serviceName.outputs.servicename }}
+      output2: ${{ steps.envsStage.outputs.envtype }}
+      output3: ${{ steps.envsProd.outputs.envtype }}
+
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
@@ -73,13 +78,13 @@ jobs:
           echo "::set-output name=servicename::$SERVICE_NAME"
 
       - name: Getting ENV STAGE
-        id: envs-stage
+        id: envsStage
         if: ${{ github.ref == 'refs/heads/stage' }}
         run: |
           echo "::set-output name=envtype::${{secrets.WF_ENV_TYPE_STAGE}}"
 
       - name: Getting ENV PROD
-        id: envs-prod
+        id: envsProd
         if: ${{ github.ref == 'refs/heads/main' }}
         run: |
           echo "::set-output name=envtype::${{secrets.WF_ENV_TYPE_PROD}}"
