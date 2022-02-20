@@ -22,6 +22,10 @@ on:
         required: true
       WF_AWS_REGION:
         required: true
+    outputs:
+      ecrregistry:
+        description: "The ecr registry name"
+        value: ${{ jobs.setup.outputs.ecrregistry }}
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -33,6 +37,8 @@ jobs:
     strategy:
       matrix:
         node-version: [16.13.0]
+    outputs:
+      ecrregistry: ${{ steps.login-ecr.outputs.registry }}
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       - name: Checkout
@@ -73,11 +79,6 @@ jobs:
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
-      
-      - name: Print ECR
-        id: print-ecr
-        run: |
-          echo ${{ steps.login-ecr.outputs.registry }}
 
       - name: Build, tag, and push image to Amazon ECR
         id: build-image
