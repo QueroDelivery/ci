@@ -6,6 +6,28 @@ on:
       WF_ENV_TYPE:
         type: string
         required: true
+      WF_KUBE_MIN_REPLICAS:
+        type: string
+        required: true
+      WF_KUBE_MAX_REPLICAS:
+        type: string
+        required: true
+      WF_KUBE_MEMORY_LIMIT:
+        type: string
+        required: true
+      WF_KUBE_MEMORY_REQUEST:  
+        type: string
+        required: true
+      WF_KUBE_CPU_LIMIT:  
+        type: string
+        required: true
+      WF_KUBE_CPU_REQUEST:  
+        type: string
+        required: true
+      WF_KUBE_NODE_GROUP:  
+        type: string
+        required: true
+        
     secrets:
       WF_KUBE_TYPE:
         required: true
@@ -23,20 +45,7 @@ on:
         required: true
       WF_KUBE_DOMAIN:
         required: true
-      WF_KUBE_MIN_REPLICAS: 
-        required: true
-      WF_KUBE_MAX_REPLICAS: 
-        required: true
-      WF_KUBE_MEMORY_LIMIT:  
-        required: true
-      WF_KUBE_MEMORY_REQUEST:  
-        required: true
-      WF_KUBE_CPU_LIMIT:  
-        required: true
-      WF_KUBE_CPU_REQUEST:  
-        required: true
-      WF_KUBE_NODE_GROUP:  
-        required: true
+      
       
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
@@ -88,13 +97,13 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: '${{ secrets.WF_KUBE_NAME }}_${{ inputs.WF_ENV_TYPE}}_repo'
           VERSION_TAG: ${{ github.sha }}
-          KUBE_MIN_REPLICAS: ${{ secrets.WF_KUBE_MIN_REPLICAS }}
-          KUBE_MAX_REPLICAS: ${{ secrets.WF_KUBE_MAX_REPLICAS }}
-          KUBE_MEMORY_LIMIT: ${{ secrets.WF_KUBE_MEMORY_LIMIT }}
-          KUBE_MEMORY_REQUEST: ${{ secrets.WF_KUBE_MEMORY_REQUEST }}
-          KUBE_CPU_LIMIT: ${{ secrets.WF_KUBE_CPU_LIMIT }}
-          KUBE_CPU_REQUEST: ${{ secrets.WF_KUBE_CPU_REQUEST }}
-          KUBE_NODE_GROUP: ${{ secrets.WF_KUBE_NODE_GROUP }}
+          KUBE_MIN_REPLICAS: ${{ inputs.WF_KUBE_MIN_REPLICAS }}
+          KUBE_MAX_REPLICAS: ${{ inputs.WF_KUBE_MAX_REPLICAS }}
+          KUBE_MEMORY_LIMIT: ${{ inputs.WF_KUBE_MEMORY_LIMIT }}
+          KUBE_MEMORY_REQUEST: ${{ inputs.WF_KUBE_MEMORY_REQUEST }}
+          KUBE_CPU_LIMIT: ${{ inputs.WF_KUBE_CPU_LIMIT }}
+          KUBE_CPU_REQUEST: ${{ inputs.WF_KUBE_CPU_REQUEST }}
+          KUBE_NODE_GROUP: ${{ inputs.WF_KUBE_NODE_GROUP }}
         run: |
           export PATH=$PATH:$PWD
           echo "Replacing envs from kube manifests"
