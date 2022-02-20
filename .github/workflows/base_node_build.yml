@@ -2,16 +2,19 @@
 name: CI
 on:
   workflow_call:
+    with:
+      WF_ENV_TYPE_STAGE:
+        required: true
+        type: string
+      WF_ENV_TYPE_PROD:
+        required: true
+        type: string
     secrets:
       WF_NPM_TOKEN:
         required: true
       WF_NPM_USER:
         required: true
       WF_GITHUB_TOKEN:
-        required: true
-      WF_ENV_TYPE_STAGE:
-        required: true
-      WF_ENV_TYPE_PROD:
         required: true
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
@@ -81,10 +84,10 @@ jobs:
         id: envsStage
         if: ${{ github.ref == 'refs/heads/stage' }}
         run: |
-          echo "::set-output name=envtype::${{secrets.WF_ENV_TYPE_STAGE}}"
+          echo "::set-output name=envtype::${{inputs.WF_ENV_TYPE_STAGE}}"
 
       - name: Getting ENV PROD
         id: envsProd
         if: ${{ github.ref == 'refs/heads/main' }}
         run: |
-          echo "::set-output name=envtype::${{secrets.WF_ENV_TYPE_PROD}}"
+          echo "::set-output name=envtype::${{inputs.WF_ENV_TYPE_PROD}}"
