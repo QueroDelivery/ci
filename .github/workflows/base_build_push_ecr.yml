@@ -72,10 +72,6 @@ jobs:
           aws-region: ${{ secrets.WF_AWS_REGION }}
           role-session-name: ${{ secrets.WF_SERVICE_NAME }}_GitHubActions
 
-      - name: print
-        run: |
-          echo '${{inputs.WF_SERVICE_NAME}}_${{inputs.WF_ENV_TYPE}}_repo'
-
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
