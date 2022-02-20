@@ -16,6 +16,14 @@ on:
         required: true
       WF_GITHUB_TOKEN:
         required: true
+    outputs:
+      servicename:
+        description: "The service name"
+        value: ${{ jobs.example_job.outputs.output1 }}
+      envtype:
+        description: "The env type"
+        value: ${{ jobs.setup.outputs.output2 }} || ${{ jobs.setup.outputs.output3 }}
+
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -59,7 +67,7 @@ jobs:
 
       - name: install packages using yarn.lock
         run: |
-          echo "{{secrets.WF_NPM_USER}}:registry=https://npm.pkg.github.com" >>  .npmrc
+          echo "${{ secrets.WF_NPM_USER }}:registry=https://npm.pkg.github.com" >>  .npmrc
           echo "//npm.pkg.github.com/:_authToken=${{ secrets.WF_NPM_TOKEN }}" >>  .npmrc
           yarn --frozen-lockfile
 
