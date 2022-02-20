@@ -19,6 +19,12 @@ on:
         required: true
       WF_GITHUB_TOKEN:
         required: true
+      WF_AWS_ACCESS_KEY_ID:
+        required: true
+      WF_AWS_SECRET_ACCESS_KEY:
+        required: true
+      WF_AWS_REGION:
+        required: true
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -33,6 +39,13 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.WF_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.WF_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.WF_AWS_REGION }}
+
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
