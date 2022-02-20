@@ -26,7 +26,13 @@ on:
       ecrregistry:
         description: "The ecr registry name"
         value: ${{ jobs.setup.outputs.ecrregistry }}
-
+      image:
+        description: "The ecr image name"
+        value: ${{ jobs.setup.outputs.image }}
+      servicename:
+        description: "The service name"
+        value: ${{ jobs.setup.outputs.servicename }}
+        
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   setup:
@@ -38,7 +44,10 @@ jobs:
       matrix:
         node-version: [16.13.0]
     outputs:
-      ecrregistry: ${{ steps.login-ecr.outputs.registry }}
+      ecrregistry: ${{ steps.ecr-registry-name.outputs.registry }}
+      image: ${{ steps.build-image.outputs.image }}
+      servicename: ${{ steps.service-name.outputs.servicename }}
+      
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       - name: Checkout
@@ -75,7 +84,7 @@ jobs:
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
-
+          
       - name: Build, tag, and push image to Amazon ECR
         id: build-image
         env:
@@ -96,3 +105,14 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION_TAG
           echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$VERSION_TAG"
       
+      - name: Setting ECR outputs
+        id: ecr-registry-name
+        run: |
+          export ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}
+          echo "::set-output name=registry::$ECR_REGISTRY"
+
+      - name: Setting service name outputs
+        id: service-name
+        run: |
+          export SERVICE_NAME=${{inputs.WF_SERVICE_NAME}}
+          echo "::set-output name=servicename::$SERVICE_NAME"
