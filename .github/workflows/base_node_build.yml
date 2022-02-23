@@ -9,6 +9,8 @@ on:
         required: true
       WF_GITHUB_TOKEN:
         required: true
+      WF_REGISTRY:
+        required: true
     outputs:
       servicename:
         description: "The service name"
@@ -54,13 +56,13 @@ jobs:
 
       - name: install packages using yarn.lock
         run: |
-          echo "${{ secrets.WF_NPM_USER }}:registry=https://npm.pkg.github.com" >>  .npmrc
-          echo "//npm.pkg.github.com/:_authToken=${{ secrets.WF_NPM_TOKEN }}" >>  .npmrc
+          echo "${{ secrets.WF_NPM_USER }}:registry=https://${{secrets.WF_REGISTRY}}" >>  .npmrc
+          echo "//${{secrets.WF_REGISTRY}}/:_authToken=${{ secrets.WF_NPM_TOKEN }}" >>  .npmrc
           yarn --frozen-lockfile
 
       - name: testing
         run: |
-          yarn test:unit
+          yarn test:ci
 
       - name: Release
         env:
