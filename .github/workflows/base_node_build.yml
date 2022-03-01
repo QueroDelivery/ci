@@ -5,7 +5,11 @@ on:
     inputs:
       WF_NODE_VERSION:
         type: string
-        required: true  
+        required: true
+      WF_NEW_CI:
+        type: boolean
+        required: true
+
     secrets:
       WF_NPM_TOKEN:
         required: true
@@ -34,8 +38,6 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
-        with:
-          persist-credentials: false
       - uses: actions/setup-node@v2
         with:
           node-version: ${{ inputs.WF_NODE_VERSION }}
@@ -52,8 +54,9 @@ jobs:
           yarn test:ci
 
       - name: Release
+        if: ${{ inputs.WF_NEW_CI }} == true #It Must runs only once
         env:
-          NPM_TOKEN: ${{ secrets.WF_NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.WF_NPM_TOKEN }} 
           GITHUB_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
         run: |
           yarn release
