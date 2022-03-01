@@ -58,9 +58,6 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     continue-on-error: false
-    strategy:
-      matrix:
-        node-version: [16.13.0]
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
     
@@ -87,7 +84,7 @@ jobs:
           chmod u+x kubectl
           curl -o aws-iam-authenticator https://amazon-eks.s3.us-west-2.amazonaws.com/1.19.6/2021-01-05/bin/linux/amd64/aws-iam-authenticator
           chmod u+x aws-iam-authenticator
-          
+
       - name: Kubernetes Deploy
         env:
           KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}

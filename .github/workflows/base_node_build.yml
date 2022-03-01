@@ -27,9 +27,6 @@ jobs:
     name: preparing
     runs-on: ubuntu-latest
     continue-on-error: false
-    strategy:
-      matrix:
-        node-version: [ ${{inputs.WF_NODE_VERSION}}} ]
     outputs:
       output1: ${{ steps.serviceName.outputs.servicename }}
 
@@ -41,10 +38,10 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Use Node.js ${{ matrix.node-version }}
+      - name: Use Node.js ${{ inputs.WF_NODE_VERSION }}
         uses: actions/setup-node@v1
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: ${{ inputs.WF_NODE_VERSION }}
 
       - name: Get yarn cache directory path
         id: yarn-cache-dir-path

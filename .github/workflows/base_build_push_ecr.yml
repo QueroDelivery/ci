@@ -12,6 +12,9 @@ on:
       WF_NEW_CI:
         type: boolean
         required: true
+      WF_NODE_VERSION:
+        type: string
+        required: true
     secrets:
       WF_NPM_TOKEN:
         required: true
@@ -43,9 +46,6 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     continue-on-error: false
-    strategy:
-      matrix:
-        node-version: [16.13.0]
     outputs:
       ecrregistry: ${{ steps.ecr-registry-name.outputs.registry }}
       image: ${{ steps.build-image.outputs.image }}
@@ -59,10 +59,10 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Use Node.js ${{ matrix.node-version }}
+      - name: Use Node.js ${{ inputs.WF_NODE_VERSION }}
         uses: actions/setup-node@v1
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: ${{ inputs.WF_NODE_VERSION }}
 
       - name: Get yarn cache directory path
         id: yarn-cache-dir-path
