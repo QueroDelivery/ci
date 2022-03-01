@@ -9,6 +9,9 @@ on:
       WF_ENV_TYPE:
         type: string
         required: true
+      WF_WITH_ROLE:
+        type: boolean
+        required: true
     secrets:
       WF_NPM_TOKEN:
         required: true
@@ -73,13 +76,22 @@ jobs:
             ${{ runner.os }}-yarn-
 
 
-      - name: Configure AWS credentials
+      - name: Configure AWS credentials with role
+        if: ${{ inputs.WF_WITH_ROLE }} == true
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.WF_AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.WF_AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.WF_AWS_REGION }}
           role-session-name: ${{ secrets.WF_SERVICE_NAME }}_GitHubActions
+      
+      - name: Configure AWS credentials without role
+        if: ${{ inputs.WF_WITH_ROLE }} == false
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.WF_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.WF_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.WF_AWS_REGION }}
 
       - name: Login to Amazon ECR
         id: login-ecr
