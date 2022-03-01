@@ -2,6 +2,10 @@
 name: CI-BASE
 on:
   workflow_call:
+    inputs:
+      WF_NODE_VERSION:
+        type: string
+        required: true  
     secrets:
       WF_NPM_TOKEN:
         required: true
@@ -25,7 +29,7 @@ jobs:
     continue-on-error: false
     strategy:
       matrix:
-        node-version: [16.13.0]
+        node-version: [ ${{inputs.WF_NODE_VERSION}}} ]
     outputs:
       output1: ${{ steps.serviceName.outputs.servicename }}
 
@@ -35,7 +39,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
         with:
-          fetch-depth: 0
           persist-credentials: false
 
       - name: Use Node.js ${{ matrix.node-version }}
