@@ -33,32 +33,16 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          persist-credentials: false
-
-      - name: Use Node.js ${{ inputs.WF_NODE_VERSION }}
-        uses: actions/setup-node@v1
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
         with:
           node-version: ${{ inputs.WF_NODE_VERSION }}
-
-      - name: Get yarn cache directory path
-        id: yarn-cache-dir-path
-        run: echo "::set-output name=dir::$(yarn cache dir)"
-
-      - uses: actions/cache@v2
-        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
-        with:
-          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-yarn-
-
+          cache: 'yarn'
+          registry-url: ${{secrets.WF_REGISTRY}}
       - name: install packages using yarn.lock
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.WF_NPM_TOKEN }} 
         run: |
-          echo "${{ secrets.WF_NPM_USER }}:registry=https://${{secrets.WF_REGISTRY}}" >>  .npmrc
-          echo "//${{secrets.WF_REGISTRY}}/:_authToken=${{ secrets.WF_NPM_TOKEN }}" >>  .npmrc
           yarn --frozen-lockfile
 
       - name: testing
