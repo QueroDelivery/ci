@@ -70,16 +70,6 @@ jobs:
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
-      
-      - name: SETTING GIT_HEAD_HASH
-        id: git-hash
-        run: |
-          git pull origin main
-          export GIT_HEAD_HASH=$(git rev-parse HEAD); 
-          echo GIT_HEAD_HASH=$GIT_HEAD_HASH >> $GITHUB_ENV
-          echo 'COMMIT-HASH --> ${{ github.sha }}'
-          echo $GIT_HEAD_HASH
-          echo ${{ env.GIT_HEAD_HASH }}
           
       - name: Build, tag, and push image to Amazon ECR
         id: build-image
@@ -87,9 +77,11 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: '${{inputs.WF_SERVICE_NAME}}_${{inputs.WF_ENV_TYPE}}_repo'
           IMAGE_TAG: latest
-          VERSION_TAG: ${{ env.GIT_HEAD_HASH }}
+          VERSION_TAG: ${{ github.sha }}
           SERVICE_NAME: ${{ inputs.WF_SERVICE_NAME }}
         run: |
+          echo  "Updating the code with released version"
+          git pull origin main
           # Build a docker container and
           # push it to ECR so that it can
           # be deployed to ECS.
