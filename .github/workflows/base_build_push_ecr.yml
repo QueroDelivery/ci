@@ -9,9 +9,6 @@ on:
       WF_ENV_TYPE:
         type: string
         required: true
-      WF_NEW_CI:
-        type: boolean
-        required: true
       WF_NODE_VERSION:
         type: string
         required: true
@@ -53,39 +50,14 @@ jobs:
       
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - name: Use Node.js ${{ inputs.WF_NODE_VERSION }}
-        uses: actions/setup-node@v1
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
         with:
           node-version: ${{ inputs.WF_NODE_VERSION }}
-
-      - name: Get yarn cache directory path
-        id: yarn-cache-dir-path
-        run: echo "::set-output name=dir::$(yarn cache dir)"
-
-      - uses: actions/cache@v2
-        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
-        with:
-          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-yarn-
-
-      - name: Configure AWS credentials with role
-        if: ${{ inputs.WF_NEW_CI }} == true
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.WF_AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.WF_AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.WF_AWS_REGION }}
+          cache: 'yarn'
+          registry-url: ${{secrets.WF_REGISTRY}}
       
       - name: Configure AWS credentials without role
-        if: ${{ inputs.WF_NEW_CI }} == false
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.WF_AWS_ACCESS_KEY_ID }}
