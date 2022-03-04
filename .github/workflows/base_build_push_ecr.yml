@@ -42,10 +42,7 @@ jobs:
       
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 2
-      - run: git checkout HEAD^
+      - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
           node-version: ${{ inputs.WF_NODE_VERSION }}
@@ -74,13 +71,15 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
       
-      - name: getting last commit and hash
+      - name: SETTING GIT_HEAD_HASH
         id: git-hash
         run: |
-          echo 'COMMIT-HASH --> ${{ github.sha }}'
           git pull origin main
-          hash=$(git rev-parse HEAD)
-          echo $hash
+          export GIT_HEAD_HASH=$(git rev-parse HEAD); 
+          echo GIT_HEAD_HASH=$GIT_HEAD_HASH >> $GITHUB_ENV
+          echo 'COMMIT-HASH --> ${{ github.sha }}'
+          echo $GIT_HEAD_HASH
+          echo ${{ env.GIT_HEAD_HASH }}
           
       - name: Build, tag, and push image to Amazon ECR
         id: build-image
@@ -88,7 +87,7 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: '${{inputs.WF_SERVICE_NAME}}_${{inputs.WF_ENV_TYPE}}_repo'
           IMAGE_TAG: latest
-          VERSION_TAG: ${{ github.sha }}
+          VERSION_TAG: ${{ env.GIT_HEAD_HASH }}
           SERVICE_NAME: ${{ inputs.WF_SERVICE_NAME }}
         run: |
           # Build a docker container and
