@@ -70,6 +70,14 @@ jobs:
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
+      
+      - name: getting last commit and hash
+        id: git-hash
+        run: |
+          echo 'COMMIT-HASH --> ${{ github.sha }}'
+          git pull origin main
+          hash=$(git rev-parse HEAD)
+          echo 'NEW HASH $hash'
           
       - name: Build, tag, and push image to Amazon ECR
         id: build-image
