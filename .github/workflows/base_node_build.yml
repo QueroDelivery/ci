@@ -6,9 +6,6 @@ on:
       WF_NODE_VERSION:
         type: string
         required: true
-      WF_NEW_CI:
-        type: boolean
-        required: true
 
     secrets:
       WF_NPM_TOKEN:
@@ -54,7 +51,6 @@ jobs:
           yarn test:ci
 
       - name: Release
-        if: ${{ inputs.WF_NEW_CI }} == true #It Must runs only once
         env:
           NPM_TOKEN: ${{ secrets.WF_NPM_TOKEN }} 
           GITHUB_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
