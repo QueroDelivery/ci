@@ -90,7 +90,9 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION_TAG
           echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$VERSION_TAG"
           echo "COMMIT-HASH --> $VERSION_TAG"
-          
+          hash=$(git rev-parse HEAD)
+          echo $hash
+           
       - name: Setting service name outputs
         id: service-name
         run: |
