@@ -34,8 +34,6 @@ on:
     secrets:
       WF_KUBE_TYPE:
         required: true
-      WF_ECR_REGISTRY:
-        required: true
       
       WF_AWS_ACCESS_KEY_ID:
         required: true
