@@ -70,7 +70,7 @@ jobs:
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
-          
+
       - name: Build, tag, and push image to Amazon ECR
         id: build-image
         env:
@@ -80,8 +80,11 @@ jobs:
           VERSION_TAG: ${{ github.sha }}
           SERVICE_NAME: ${{ inputs.WF_SERVICE_NAME }}
         run: |
+          echo "getting branch"
+          echo ${GITHUB_REF#refs/heads/}
           echo  "Updating the code with released version"
-          git pull origin main
+          git pull origin ${GITHUB_REF#refs/heads/}
+          
           # Build a docker container and
           # push it to ECR so that it can
           # be deployed to ECS.
