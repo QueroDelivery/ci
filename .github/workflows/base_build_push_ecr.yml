@@ -79,8 +79,9 @@ jobs:
         
           BRANCH=${GITHUB_REF#refs/heads/}
           
-          if [ "$BRANCH" = "stage" || "$BRANCH" = "main" ]; then
+          if [[ "$BRANCH" = "stage" || "$BRANCH" = "main" ]]; then
             git pull origin $BRANCH
+            echo "Branch updated with the last version"
           else
             echo "Branch does not needs to be updated. Semantic-release had not run yet"
           fi
