@@ -18,12 +18,6 @@ on:
       WF_AWS_REGION:
         required: true
       
-      WF_SERVICE_NAME:
-        required: true
-      
-      WF_KUBE_DOMAIN:
-        required: true
-      
       WF_GITHUB_TOKEN:
         required: true
       
