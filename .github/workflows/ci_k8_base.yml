@@ -32,7 +32,7 @@ on:
         required: true
       WF_SHOW_COMMENT:
         type: boolean
-        required: true
+        required: false
         
     secrets:
       WF_KUBE_TYPE:
