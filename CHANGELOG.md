@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/QueroDelivery/ci/compare/v1.0.0...v1.0.1) (2022-03-07)
+
+
+### Bug Fixes
+
+* return the ci files to the top level directory .workflow ([405d258](https://github.com/QueroDelivery/ci/commit/405d2584076c5020c27f50de532741f6e250589c))
+
 # 1.0.0 (2022-03-07)
 
 
