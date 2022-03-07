@@ -139,9 +139,12 @@ jobs:
       - name: Create comment
         if: ${{ inputs.WF_SHOW_COMMENT }}
         uses: peter-evans/create-or-update-comment@v1
+        env:
+          KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
+          KUBE_DOMAIN: ${{ secrets.WF_KUBE_DOMAIN }}
         with:
           issue-number: ${{ github.event.pull_request.number }}
           body: |
             Segura o link dessa app review aí ó o/
-            -   URL: https://${KUBE_NAME}${KUBE_DOMAIN}
+            -   URL: https://${{KUBE_NAME}}${{KUBE_DOMAIN}}
           reactions: '+1'
