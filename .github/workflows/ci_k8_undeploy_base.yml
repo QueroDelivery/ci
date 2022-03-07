@@ -1,0 +1,85 @@
+# This is a basic workflow to help you get started with Actions
+name: CI-K8-BASE
+on:
+  workflow_call:
+    inputs:
+      WF_ENV_TYPE:
+        type: string
+        required: true
+        
+    secrets:
+      WF_KUBE_TYPE:
+        required: true
+      
+      WF_AWS_ACCESS_KEY_ID:
+        required: true
+      WF_AWS_SECRET_ACCESS_KEY:
+        required: true
+      WF_AWS_REGION:
+        required: true
+      
+      WF_SERVICE_NAME:
+        required: true
+      
+      WF_KUBE_DOMAIN:
+        required: true
+      
+      WF_GITHUB_TOKEN:
+        required: true
+      
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  setup:
+    name: preparing
+    runs-on: ubuntu-latest
+    environment: production
+    continue-on-error: false
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+    
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: false
+      
+      - name: Checkout tools repo
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.WF_GITHUB_TOKEN }} 
+          repository: QueroDelivery/kube
+          path: .kube
+          persist-credentials: false
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.WF_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.WF_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.WF_AWS_REGION }}
+          role-session-name: ${{ secrets.WF_SERVICE_NAME }}_GitHubActions
+      
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+        
+      - name: Setup kubectl
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod u+x kubectl
+          curl -o aws-iam-authenticator https://amazon-eks.s3.us-west-2.amazonaws.com/1.19.6/2021-01-05/bin/linux/amd64/aws-iam-authenticator
+          chmod u+x aws-iam-authenticator
+
+      - name: Kubernetes Undeploy
+        env:
+          KUBECONFIG: .kube/config-${{secrets.WF_KUBE_TYPE}}.yaml
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: '${{ secrets.WF_SERVICE_NAME }}_${{ inputs.WF_ENV_TYPE}}_repo'
+          VERSION_TAG: ${{ github.sha }}
+  
+        run: |
+          export PATH=$PATH:$PWD
+          echo "Replacing envs from kube manifests"
+          cat .kube/namespace.yaml | envsubst > namespace.yaml
+          echo "Deleting namespace"
+          kubectl delete -f namespace.yaml
+          
