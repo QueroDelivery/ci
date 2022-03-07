@@ -49,7 +49,12 @@ jobs:
           repository: QueroDelivery/kube
           path: .kube
           persist-credentials: false
-      
+
+      - name: Getting SERVICE_NAME from package.json
+        id: getting_serviceName
+        run: |
+          export SERVICE_NAME=`node -p -e "require('./package.json').name"`; echo SERVICE_NAME=$SERVICE_NAME >> $GITHUB_ENV
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -73,9 +78,9 @@ jobs:
         env:
           KUBECONFIG: .kube/config-${{secrets.WF_KUBE_TYPE}}.yaml
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: '${{ secrets.WF_SERVICE_NAME }}_${{ inputs.WF_ENV_TYPE}}_repo'
+          ECR_REPOSITORY: '${{ ${SERVICE_NAME }}_${{ inputs.WF_ENV_TYPE}}_repo'
           VERSION_TAG: ${{ github.sha }}
-          KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
+          KUBE_NAME: ${SERVICE_NAME}-pr-${PR_NUMBER}
   
         run: |
           export PATH=$PATH:$PWD
