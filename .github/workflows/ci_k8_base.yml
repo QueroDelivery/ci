@@ -81,6 +81,7 @@ jobs:
         run: |
           ls -la
           pwd
+          ls -la .kube/*
       
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
