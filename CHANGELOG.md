@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/QueroDelivery/ci/compare/v1.0.1...v1.1.0) (2022-03-07)
+
+
+### Features
+
+* add doc example ([0f169e6](https://github.com/QueroDelivery/ci/commit/0f169e6f30dbde3a72cc3dcaf0b77875241b0c8d))
+
 ## [1.0.1](https://github.com/QueroDelivery/ci/compare/v1.0.0...v1.0.1) (2022-03-07)
 
 
