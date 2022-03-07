@@ -52,8 +52,6 @@ on:
       WF_GITHUB_TOKEN:
         required: true
       
-      
-
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   setup:
@@ -76,12 +74,6 @@ jobs:
           repository: QueroDelivery/kube
           path: .kube
           persist-credentials: false
-      
-      - name: Listing checkout V3
-        run: |
-          ls -la
-          pwd
-          ls -la .kube/*
       
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
