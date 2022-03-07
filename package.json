@@ -1,0 +1,17 @@
+{
+  "name": "ci",
+  "version": "1.0.0",
+  "description": "Example CI",
+  "main": "index.js",
+  "repository": "git@github.com:QueroDelivery/ci",
+  "author": "almerindo <almerindo.rehem@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "@semantic-release/changelog": "^6.0.1",
+    "@semantic-release/commit-analyzer": "^9.0.2",
+    "@semantic-release/exec": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/release-notes-generator": "^10.0.3",
+    "semantic-release": "^19.0.2"
+  }
+}
