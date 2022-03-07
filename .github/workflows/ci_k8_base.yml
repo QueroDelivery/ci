@@ -49,6 +49,9 @@ on:
       WF_KUBE_DOMAIN:
         required: true
       
+      WF_GITHUB_TOKEN:
+        required: true
+      
       
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
@@ -69,6 +72,7 @@ jobs:
       - name: Checkout tools repo
         uses: actions/checkout@v3
         with:
+          token: ${{ secrets.WF_GITHUB_TOKEN }} 
           repository: QueroDelivery/kube
           path: .kube
           persist-credentials: false
