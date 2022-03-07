@@ -71,7 +71,7 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Update code with
+      - name: Update with new version
         run: |
           echo "getting branch"
           echo ${GITHUB_REF#refs/heads/}
@@ -82,7 +82,7 @@ jobs:
           if [ "$BRANCH" = "stage" || "$BRANCH" = "main" ]; then
             git pull origin $BRANCH
           else
-            echo "Strings are not equal."
+            echo "Branch does not needs to be updated. Semantic-release had not run yet"
           fi
 
       - name: Build, tag, and push image to Amazon ECR
