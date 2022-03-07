@@ -30,6 +30,9 @@ on:
       WF_KUBE_DEPLOYMENT:
         type: string
         required: true
+      WF_SHOW_COMMENT:
+        type: boolean
+        required: true
         
     secrets:
       WF_KUBE_TYPE:
@@ -132,3 +135,13 @@ jobs:
           echo "Applying ingress"
           kubectl apply -f ingress.yaml
           echo "URL: https://${KUBE_NAME}${KUBE_DOMAIN}"
+      
+      - name: Create comment
+        if: ${{ inputs.WF_SHOW_COMMENT }}
+        uses: peter-evans/create-or-update-comment@v1
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            Segura o link dessa app review aí ó o/
+            -   URL: https://${{env.KUBE_NAME}}${{env.KUBE_DOMAIN}}
+          reactions: '+1'
