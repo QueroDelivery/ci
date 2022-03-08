@@ -1,3 +1,10 @@
+## [1.1.2](https://github.com/QueroDelivery/ci/compare/v1.1.1...v1.1.2) (2022-03-08)
+
+
+### Bug Fixes
+
+* setting the PR_NUMBER ([73ecfec](https://github.com/QueroDelivery/ci/commit/73ecfec73855155a981b553bcd43734f8d4865ff))
+
 ## [1.1.1](https://github.com/QueroDelivery/ci/compare/v1.1.0...v1.1.1) (2022-03-08)
 
 
