@@ -86,7 +86,9 @@ jobs:
           echo $KUBE_NAME
           echo "Replacing envs from kube manifests"
           cat .kube/namespace.yaml | envsubst > namespace.yaml
-          cat .kube/namespace.yaml
+          echo "CAT NAMESPACE"
+          cat namespace.yaml
+          echo "fim NAMESPACE"
           echo "Deleting namespace"
           kubectl delete -f namespace.yaml
           
