@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/QueroDelivery/ci/compare/v1.1.7...v1.2.0) (2022-03-08)
+
+
+### Features
+
+* add right k8 configuration ([f5f4463](https://github.com/QueroDelivery/ci/commit/f5f4463254ddd034e885cfaaaed67798209e3d2b))
+
 ## [1.1.7](https://github.com/QueroDelivery/ci/compare/v1.1.6...v1.1.7) (2022-03-08)
 
 
