@@ -1,3 +1,10 @@
+## [1.1.7](https://github.com/QueroDelivery/ci/compare/v1.1.6...v1.1.7) (2022-03-08)
+
+
+### Bug Fixes
+
+* cat namespace.yml to test4 ([e0503c2](https://github.com/QueroDelivery/ci/commit/e0503c2ed76ae8499408570dbcc5c2e47ff5e062))
+
 ## [1.1.6](https://github.com/QueroDelivery/ci/compare/v1.1.5...v1.1.6) (2022-03-08)
 
 
