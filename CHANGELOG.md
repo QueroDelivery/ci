@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/QueroDelivery/ci/compare/v1.1.0...v1.1.1) (2022-03-08)
+
+
+### Bug Fixes
+
+* add WF_KUBE_TYPE in the undeploy step ([4ac9633](https://github.com/QueroDelivery/ci/commit/4ac96331cac9dec9b56dd3dda7c05cc6614aafd3))
+
 # [1.1.0](https://github.com/QueroDelivery/ci/compare/v1.0.1...v1.1.0) (2022-03-07)
 
 
