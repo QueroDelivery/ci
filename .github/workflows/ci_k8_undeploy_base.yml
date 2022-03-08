@@ -71,6 +71,7 @@ jobs:
       - name: Kubernetes Undeploy
         env:
           KUBE_NAME: ${SERVICE_NAME}-pr-${PR_NUMBER}
+          KUBECONFIG: .kube/config-${{secrets.WF_KUBE_TYPE}}.yaml
   
         run: |
           export PATH=$PATH:$PWD
