@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/QueroDelivery/ci/compare/v1.2.0...v1.3.0) (2022-03-08)
+
+
+### Features
+
+* add the checkout with attribute ref: main ([1059f22](https://github.com/QueroDelivery/ci/commit/1059f229e10ba95449e961aa66111fe9c514c918))
+
 # [1.2.0](https://github.com/QueroDelivery/ci/compare/v1.1.7...v1.2.0) (2022-03-08)
 
 
