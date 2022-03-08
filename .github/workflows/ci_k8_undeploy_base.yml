@@ -47,13 +47,13 @@ jobs:
       - name: Setting SERVICE_NAME
         id: getting_serviceName
         run: |
-          export SERVICE_NAME=`node -p -e "require('./package.json').name" 
+          export SERVICE_NAME=`node -p -e "require('./package.json').name"` 
           echo SERVICE_NAME=$SERVICE_NAME >> $GITHUB_ENV
           echo $SERVICE_NAME
       - name: Setting PR_NUMBER
         id: pr_number
         run: |
-          export PR_NUMBER= ${{ github.event.pull_request.number }}
+          export PR_NUMBER=${{ github.event.pull_request.number }}
           echo PR_NUMBER=$PR_NUMBER >> $GITHUB_ENV
           echo $PR_NUMBER
           
