@@ -1,3 +1,10 @@
+## [1.3.1](https://github.com/QueroDelivery/ci/compare/v1.3.0...v1.3.1) (2022-03-14)
+
+
+### Bug Fixes
+
+* add persist-credentials false to work with protected branches ([1adad4d](https://github.com/QueroDelivery/ci/commit/1adad4d6d4ddf019c443607c0f4d20a04a339e9d))
+
 # [1.3.0](https://github.com/QueroDelivery/ci/compare/v1.2.0...v1.3.0) (2022-03-08)
 
 
