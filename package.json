@@ -1,6 +1,6 @@
 {
   "name": "ci",
-  "version": "1.7.3",
+  "version": "1.7.4",
   "description": "Example CI",
   "main": "index.js",
   "repository": "git@github.com:QueroDelivery/ci",

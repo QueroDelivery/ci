@@ -1,3 +1,10 @@
+## [1.7.4](https://github.com/QueroDelivery/ci/compare/v1.7.3...v1.7.4) (2022-03-25)
+
+
+### Bug Fixes
+
+* try copy *.yml in directory ([c0c701f](https://github.com/QueroDelivery/ci/commit/c0c701ffcbf6631b33e818f2de5aff301589493a))
+
 ## [1.7.3](https://github.com/QueroDelivery/ci/compare/v1.7.2...v1.7.3) (2022-03-25)
 
 
