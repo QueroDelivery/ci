@@ -1,3 +1,10 @@
+## [1.9.1](https://github.com/QueroDelivery/ci/compare/v1.9.0...v1.9.1) (2022-03-25)
+
+
+### Bug Fixes
+
+* override kube files ([8338598](https://github.com/QueroDelivery/ci/commit/833859881de20be894d835b627893414461346fa))
+
 # [1.9.0](https://github.com/QueroDelivery/ci/compare/v1.8.0...v1.9.0) (2022-03-25)
 
 
