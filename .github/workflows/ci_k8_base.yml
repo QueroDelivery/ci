@@ -85,14 +85,9 @@ jobs:
       - name: Override kubefiles
         run: |
           
-          FILE=setup/.kube
-          if [[ -d "$FILE" ]]; then
-            echo "------------------------- $FILE exists."
-            echo "------------------------- listing .kube/*"
-            ls .kube/*
-            echo "------------------------- $FILE/*"
-            ls "$FILE/*"
-            echo "------------------------- copiando os arquivos"
+          FILE=setup/.kube/myNEWyml.yml
+          if [[ -f "$FILE" ]]; then
+            echo "-------------------------- $FILE   EXIST!!! " 
             cp -avf "$FILE/*" .kube/
           fi
           echo "Override FINISHED" 
