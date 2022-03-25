@@ -89,6 +89,8 @@ jobs:
           if [[ -f "$FILE" ]]; then
             echo "-------------------------- $FILE   EXIST!!! " 
             cp -avf "$FILE" .kube/
+            echo "-------------------------- cp -avf setup/.kube/*.yml .kube/ !!! " 
+            cp -avf setup/.kube/*.yml .kube/
           fi
           echo "Override FINISHED" 
       
