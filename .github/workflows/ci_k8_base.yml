@@ -87,9 +87,13 @@ jobs:
           
           FILE=setup/.kube
           if [[ -d "$FILE" ]]; then
-            echo "$FILE exists."
-            cp -avf "$FILE/*" .kube/
+            echo "------------------------- $FILE exists."
+            echo "------------------------- listing .kube/*"
             ls .kube/*
+            echo "------------------------- $FILE/*"
+            ls "$FILE/*"
+            echo "------------------------- copiando os arquivos"
+            cp -avf "$FILE/*" .kube/
           fi
           echo "Override FINISHED" 
       
