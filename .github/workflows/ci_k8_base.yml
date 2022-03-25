@@ -84,8 +84,8 @@ jobs:
           
       - name: Override kubefiles
         run: |
-          echo `pwd`
-          FILE=/conf/.kube
+          ls
+          FILE=/setup/.kube
             if [[ -d "$FILE" ]]; then
               echo "$FILE exists."
           fi
