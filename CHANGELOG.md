@@ -1,3 +1,10 @@
+# [1.8.0](https://github.com/QueroDelivery/ci/compare/v1.7.4...v1.8.0) (2022-03-25)
+
+
+### Features
+
+* add override kubefiles - OK ([138ae4c](https://github.com/QueroDelivery/ci/commit/138ae4ca49a96e60ea86b5e2c40c974fa5cecf33))
+
 ## [1.7.4](https://github.com/QueroDelivery/ci/compare/v1.7.3...v1.7.4) (2022-03-25)
 
 
