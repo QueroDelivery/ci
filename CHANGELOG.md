@@ -1,3 +1,10 @@
+## [1.7.3](https://github.com/QueroDelivery/ci/compare/v1.7.2...v1.7.3) (2022-03-25)
+
+
+### Bug Fixes
+
+* testing copying files ([461f64f](https://github.com/QueroDelivery/ci/commit/461f64f3d7a02ecd5662794234b9eb11733b0b33))
+
 ## [1.7.2](https://github.com/QueroDelivery/ci/compare/v1.7.1...v1.7.2) (2022-03-25)
 
 
