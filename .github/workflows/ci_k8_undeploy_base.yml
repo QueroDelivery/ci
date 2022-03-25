@@ -1,5 +1,5 @@
 # This is a basic workflow to help you get started with Actions
-name: CI-K8-BASE
+name: CI-K8-BASE-UNDEPLOY
 on:
   workflow_call:
     inputs:
@@ -44,6 +44,14 @@ jobs:
           repository: QueroDelivery/kube
           path: .kube
           persist-credentials: false
+
+      - name: Override kubefiles
+        run: |
+          FILE=setup/.kube
+          if [[ -d "$FILE" ]]; then
+            cp -avf setup/.kube/*.yml .kube/
+            echo "Kubefiles Override FINISHED" 
+          fi
 
       - name: Setting SERVICE_NAME
         id: getting_serviceName
