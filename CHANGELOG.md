@@ -1,3 +1,10 @@
+## [1.7.1](https://github.com/QueroDelivery/ci/compare/v1.7.0...v1.7.1) (2022-03-25)
+
+
+### Bug Fixes
+
+* add comments on step Override kubefiles ([4caed18](https://github.com/QueroDelivery/ci/commit/4caed1834b08246b35867b4ad4388b9bce3c8ac6))
+
 # [1.7.0](https://github.com/QueroDelivery/ci/compare/v1.6.0...v1.7.0) (2022-03-25)
 
 
