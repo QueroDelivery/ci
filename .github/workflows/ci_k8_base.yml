@@ -81,6 +81,15 @@ jobs:
           repository: QueroDelivery/kube
           path: .kube
           persist-credentials: false
+          
+      - name: Override kubefiles
+        run: |
+          echo `pwd`
+          FILE=/conf/.kube
+            if [[ -d "$FILE" ]]; then
+              echo "$FILE exists."
+          fi
+          echo "Override FINISHED" 
       
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
