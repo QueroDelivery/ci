@@ -84,10 +84,11 @@ jobs:
           
       - name: Override kubefiles
         run: |
-          ls
-          FILE=/setup/.kube
-            if [[ -d "$FILE" ]]; then
-              echo "$FILE exists."
+          
+          FILE=setup/.kube
+          if [[ -d "$FILE" ]]; then
+            echo "$FILE exists."
+            ls .kube/*
           fi
           echo "Override FINISHED" 
       
