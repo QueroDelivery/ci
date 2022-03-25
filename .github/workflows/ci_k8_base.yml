@@ -86,7 +86,8 @@ jobs:
         run: |
           FILE=setup/.kube
           if [[ -d "$FILE" ]]; then
-            cp -avf setup/.kube/*.yml .kube/
+            echo "$FILE EXIST!" 
+            cp -avf setup/.kube/*.yaml .kube/
             echo "Kubefiles Override FINISHED" 
           fi
           
