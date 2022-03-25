@@ -1,3 +1,10 @@
+## [1.7.2](https://github.com/QueroDelivery/ci/compare/v1.7.1...v1.7.2) (2022-03-25)
+
+
+### Bug Fixes
+
+* testing file exist in Override kubefiles steps ([8ad5808](https://github.com/QueroDelivery/ci/commit/8ad580813f4f7730cc35d9fcf1cf15cb753bfbf4))
+
 ## [1.7.1](https://github.com/QueroDelivery/ci/compare/v1.7.0...v1.7.1) (2022-03-25)
 
 
