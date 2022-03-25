@@ -84,16 +84,12 @@ jobs:
           
       - name: Override kubefiles
         run: |
-          
-          FILE=setup/.kube/myNEWyml.yml
-          if [[ -f "$FILE" ]]; then
-            echo "-------------------------- $FILE   EXIST!!! " 
-            cp -avf "$FILE" .kube/
-            echo "-------------------------- cp -avf setup/.kube/*.yml .kube/ !!! " 
+          FILE=setup/.kube
+          if [[ -d "$FILE" ]]; then
             cp -avf setup/.kube/*.yml .kube/
+            echo "Kubefiles Override FINISHED" 
           fi
-          echo "Override FINISHED" 
-      
+          
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
