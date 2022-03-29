@@ -1,3 +1,10 @@
+# [1.10.0](https://github.com/QueroDelivery/ci/compare/v1.9.2...v1.10.0) (2022-03-29)
+
+
+### Features
+
+* add public host to k8s ([ef97d3e](https://github.com/QueroDelivery/ci/commit/ef97d3e350008afab88bf2bb78167fc774eb3e63))
+
 ## [1.9.2](https://github.com/QueroDelivery/ci/compare/v1.9.1...v1.9.2) (2022-03-25)
 
 
