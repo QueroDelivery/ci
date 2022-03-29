@@ -6,6 +6,9 @@ on:
       WF_ENV_TYPE:
         type: string
         required: true
+     WF_PUBLIC_HOST:
+        type: string
+        required: false
       WF_KUBE_MIN_REPLICAS:
         type: string
         required: true
@@ -120,6 +123,7 @@ jobs:
           ECR_REPOSITORY: '${{ secrets.WF_SERVICE_NAME }}_${{ inputs.WF_ENV_TYPE}}_repo'
           VERSION_TAG: ${{ github.sha }}
           KUBE_MIN_REPLICAS: ${{ inputs.WF_KUBE_MIN_REPLICAS }}
+          PUBLIC_HOST: ${{ inputs.WF_PUBLIC_HOST }}
           KUBE_MAX_REPLICAS: ${{ inputs.WF_KUBE_MAX_REPLICAS }}
           KUBE_MEMORY_LIMIT: ${{ inputs.WF_KUBE_MEMORY_LIMIT }}
           KUBE_MEMORY_REQUEST: ${{ inputs.WF_KUBE_MEMORY_REQUEST }}
