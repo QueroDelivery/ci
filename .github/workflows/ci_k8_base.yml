@@ -6,7 +6,7 @@ on:
       WF_ENV_TYPE:
         type: string
         required: true
-     WF_PUBLIC_HOST:
+      WF_PUBLIC_HOST:
         type: string
         required: false
       WF_KUBE_MIN_REPLICAS:
