@@ -69,8 +69,19 @@ jobs:
 
       - name: Testing the YAML
         run: |
-          echo "getting branch"
+          echo "Showing the yaml"
           cat ./environments/.env
+          
+          echo 'apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: ${KUBE_NAME}
+            namespace: ${KUBE_NAME}-env-cm
+          data:' > myyaml
+          cat ./environments/.env >> myyaml
+
+          echo "RESULTADO FINAL"
+          cat myyaml
 
       - name: Login to Amazon ECR
         id: login-ecr
