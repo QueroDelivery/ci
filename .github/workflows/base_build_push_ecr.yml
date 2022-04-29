@@ -59,9 +59,9 @@ jobs:
       - name: Creating .env from aws parameter store
         uses: almerindo/action-env-from-aws-ssm@next
         with:
-          output: ./environments/.env
+          output: ./environments/.env.yaml
           ssm-path: '/${{ inputs.WF_ENV_TYPE }}/${{ inputs.WF_SERVICE_NAME }}'
-          format: yaml
+          format: configmap
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.WF_AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.WF_AWS_SECRET_ACCESS_KEY }}
@@ -70,18 +70,7 @@ jobs:
       - name: Testing the YAML
         run: |
           echo "Showing the yaml"
-          cat ./environments/.env
-          
-          echo 'apiVersion: v1
-          kind: ConfigMap
-          metadata:
-            name: ${KUBE_NAME}
-            namespace: ${KUBE_NAME}-env-cm
-          data:' > myyaml
-          cat ./environments/.env >> myyaml
-
-          echo "RESULTADO FINAL"
-          cat myyaml
+          cat ./environments/.env.yaml
 
       - name: Login to Amazon ECR
         id: login-ecr
