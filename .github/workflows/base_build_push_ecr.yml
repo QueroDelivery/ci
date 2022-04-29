@@ -62,7 +62,7 @@ jobs:
           output: ./environments/.env
           ssm-path: '/${{ inputs.WF_ENV_TYPE }}/${{ inputs.WF_SERVICE_NAME }}'
           format: yaml
-          prefix: ' XXX '
+          prefix: '  '
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.WF_AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.WF_AWS_SECRET_ACCESS_KEY }}
