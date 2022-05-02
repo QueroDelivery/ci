@@ -79,7 +79,7 @@ jobs:
       - name: Checkout tools repo
         uses: actions/checkout@v3
         with:
-          ref: main
+          ref: staging
           token: ${{ secrets.WF_GITHUB_TOKEN }} 
           repository: QueroDelivery/kube
           path: .kube
@@ -116,6 +116,11 @@ jobs:
             cp -avf setup/.kube/*.yaml .kube/
             echo "Kubefiles Override FINISHED" 
           fi
+          
+      - name: Testing Configmap
+        run: |
+          echo "Testing the configmap"
+          cat .kube/${{ secrets.WF_KUBE_NAME }}-env-cm.yaml
 
       - name: Setup kubectl
         run: |
