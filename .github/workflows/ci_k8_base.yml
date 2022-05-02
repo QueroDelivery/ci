@@ -97,7 +97,7 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Creating .env from aws parameter store
+      - name: Creating configmap.yaml from aws parameter store
         uses: almerindo/action-env-from-aws-ssm@next
         with:
           output: .kube/${{ secrets.WF_KUBE_NAME }}-env-cm.yaml
