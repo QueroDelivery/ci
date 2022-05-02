@@ -85,15 +85,6 @@ jobs:
           path: .kube
           persist-credentials: false
           
-      - name: Override kubefiles
-        run: |
-          FILE=setup/.kube
-          if [[ -d "$FILE" ]]; then
-            echo "$FILE EXIST!" 
-            cp -avf setup/.kube/*.yaml .kube/
-            echo "Kubefiles Override FINISHED" 
-          fi
-          
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -105,7 +96,27 @@ jobs:
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Creating .env from aws parameter store
+        uses: almerindo/action-env-from-aws-ssm@next
+        with:
+          output: .kube/${{ secrets.WF_KUBE_NAME }}-env-cm.yaml
+          ssm-path: '/${{ inputs.WF_ENV_TYPE }}/${{ inputs.WF_SERVICE_NAME }}'
+          format: configmap
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.WF_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.WF_AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.WF_AWS_REGION }}
         
+      - name: Override kubefiles
+        run: |
+          FILE=setup/.kube
+          if [[ -d "$FILE" ]]; then
+            echo "$FILE EXIST!" 
+            cp -avf setup/.kube/*.yaml .kube/
+            echo "Kubefiles Override FINISHED" 
+          fi
+
       - name: Setup kubectl
         run: |
           curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
