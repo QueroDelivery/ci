@@ -147,6 +147,7 @@ jobs:
           echo "public host ${PUBLIC_HOST}"
           cat .kube/namespace.yaml | envsubst > namespace.yaml
           cat .kube/${KUBE_NAME}-env-cm.yaml | envsubst > ${KUBE_NAME}-env-cm.yaml
+          cat ${KUBE_NAME}-env-cm.yaml
           cat ${KUBEDEPLOYMENT} | envsubst > deployment.yaml
           cat .kube/service.yaml | envsubst > service.yaml
           cat .kube/ingress.yaml | envsubst > ingress.yaml
