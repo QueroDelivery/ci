@@ -116,11 +116,6 @@ jobs:
             cp -avf setup/.kube/*.yaml .kube/
             echo "Kubefiles Override FINISHED" 
           fi
-          
-      - name: Testing Configmap
-        run: |
-          echo "Testing the configmap"
-          cat .kube/${{ secrets.WF_KUBE_NAME }}-env-cm.yaml
 
       - name: Setup kubectl
         run: |
@@ -151,12 +146,15 @@ jobs:
           echo "Replacing envs from kube manifests"
           echo "public host ${PUBLIC_HOST}"
           cat .kube/namespace.yaml | envsubst > namespace.yaml
+          cat .kube/${KUBE_NAME}-env-cm.yaml | envsubst > ${KUBE_NAME}-env-cm.yaml
           cat ${KUBEDEPLOYMENT} | envsubst > deployment.yaml
           cat .kube/service.yaml | envsubst > service.yaml
           cat .kube/ingress.yaml | envsubst > ingress.yaml
           cat .kube/hpa.yaml | envsubst > hpa.yaml
           echo "Applying namespace"
           kubectl apply -f namespace.yaml
+          echo "Applying configmap"
+          kubectl apply -f ${KUBE_NAME}-env-cm.yaml
           echo "Applying deployment"
           kubectl apply -f deployment.yaml
           echo "Applying rollout"
