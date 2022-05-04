@@ -79,7 +79,7 @@ jobs:
       - name: Checkout tools repo
         uses: actions/checkout@v3
         with:
-          ref: staging
+          ref: main
           token: ${{ secrets.WF_GITHUB_TOKEN }} 
           repository: QueroDelivery/kube
           path: .kube
@@ -98,7 +98,7 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v1
 
       - name: Creating configmap.yaml from aws parameter store
-        uses: almerindo/action-env-from-aws-ssm@next
+        uses: almerindo/action-env-from-aws-ssm@main
         with:
           output: .kube/${{ secrets.WF_KUBE_NAME }}-env-cm.yaml
           ssm-path: '/${{ inputs.WF_ENV_TYPE }}/${{ secrets.WF_SERVICE_NAME }}'
@@ -148,7 +148,6 @@ jobs:
           echo "public host ${PUBLIC_HOST}"
           cat .kube/namespace.yaml | envsubst > namespace.yaml
           cat .kube/${KUBE_NAME}-env-cm.yaml | envsubst > ${KUBE_NAME}-env-cm.yaml
-          cat ${KUBE_NAME}-env-cm.yaml
           cat ${KUBEDEPLOYMENT} | envsubst > deployment.yaml
           cat .kube/service.yaml | envsubst > service.yaml
           cat .kube/ingress.yaml | envsubst > ingress.yaml
