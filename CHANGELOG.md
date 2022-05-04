@@ -1,3 +1,30 @@
+# [1.11.0](https://github.com/QueroDelivery/ci/compare/v1.10.0...v1.11.0) (2022-05-04)
+
+
+### Bug Fixes
+
+* add the right ssm-path param ([b22ddb1](https://github.com/QueroDelivery/ci/commit/b22ddb18b15fe46e9986fd4ea4f6a18a073060f6))
+* empty commit ([1c485e0](https://github.com/QueroDelivery/ci/commit/1c485e0012db0e22ade7ae84ebda00602ba13339))
+
+
+### Features
+
+* add configmap file ([21a545d](https://github.com/QueroDelivery/ci/commit/21a545d201fdfa81662713ff1946c9b10ea39ddc))
+* add configmap file as .kube/secrets.WF_KUBE_NAME-env-cm.yaml ([2ee3acf](https://github.com/QueroDelivery/ci/commit/2ee3acfa60d8fd9b5d3edc900307746a5175f0d2))
+* add configmap reference and test step ([b27b7f9](https://github.com/QueroDelivery/ci/commit/b27b7f9b18b179f6fb31fa7bf3724795109521de))
+* add empty prefix ([36c10c1](https://github.com/QueroDelivery/ci/commit/36c10c1da3f50758ae5a2759860e8a0410b06b1d))
+* add kubectl apply configmap before the deployment ([432d746](https://github.com/QueroDelivery/ci/commit/432d746d1c0c28de734a6c0fa069df47d2815ac9))
+* add prefix on yaml ([036a86c](https://github.com/QueroDelivery/ci/commit/036a86c74287e8ac88677d34381a63050c91855d))
+* add prefix XXX ([199d4e2](https://github.com/QueroDelivery/ci/commit/199d4e23dfa7e0a248b2ad3f5008070d280838ba))
+* add yaml formater ([3852915](https://github.com/QueroDelivery/ci/commit/385291548b29c69454a63c65affb226a49530ebb))
+* add yaml formater 2 ([507a179](https://github.com/QueroDelivery/ci/commit/507a1796b817ae2b4690a18472c316923536778e))
+* change library action-env-from-aws-ssm ([eb97ce3](https://github.com/QueroDelivery/ci/commit/eb97ce31eaab00d760a4e300e82b8b4f5f3063f0))
+* change the formatter to configmap ([870623e](https://github.com/QueroDelivery/ci/commit/870623e476622b5cfadb6086dfbe8ba539b7a1a0))
+* returning to properties ([fc6a990](https://github.com/QueroDelivery/ci/commit/fc6a990ce705fc6da304b4b56a4c1ba6977a0d72))
+* setting kube and actionlib to main and removing logs ([ed3d1dd](https://github.com/QueroDelivery/ci/commit/ed3d1dd156c5137576480bab504063bc2846ea91))
+* test ([627672e](https://github.com/QueroDelivery/ci/commit/627672ea142df5b72fccdba7271923e54acff448))
+* testing changing to yaml format ([c337089](https://github.com/QueroDelivery/ci/commit/c3370891f56c461b38a2ff13c0488cc1dfd8f143))
+
 # [1.10.0](https://github.com/QueroDelivery/ci/compare/v1.9.2...v1.10.0) (2022-03-29)
 
 
