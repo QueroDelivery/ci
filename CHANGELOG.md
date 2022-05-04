@@ -1,3 +1,10 @@
+# [1.12.0](https://github.com/QueroDelivery/ci/compare/v1.11.0...v1.12.0) (2022-05-04)
+
+
+### Features
+
+* add a specific version on kube project checkout ([eb0b721](https://github.com/QueroDelivery/ci/commit/eb0b721258675d63bf6d31fb1faa9a4c37f7e7de))
+
 # [1.11.0](https://github.com/QueroDelivery/ci/compare/v1.10.0...v1.11.0) (2022-05-04)
 
 
