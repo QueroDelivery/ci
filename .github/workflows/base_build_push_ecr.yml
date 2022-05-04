@@ -55,18 +55,7 @@ jobs:
           aws-access-key-id: ${{ secrets.WF_AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.WF_AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.WF_AWS_REGION }}
-      
-      - name: Creating .env from aws parameter store
-        uses: almerindo/action-env-from-aws-ssm@v1.2.0
-        with:
-          output: ./environments/.env
-          ssm-path: '/${{ inputs.WF_ENV_TYPE }}/${{ inputs.WF_SERVICE_NAME }}'
-          format: dotenv
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.WF_AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.WF_AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: ${{ secrets.WF_AWS_REGION }}
-          
+
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
