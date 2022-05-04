@@ -152,6 +152,8 @@ jobs:
           cat .kube/service.yaml | envsubst > service.yaml
           cat .kube/ingress.yaml | envsubst > ingress.yaml
           cat .kube/hpa.yaml | envsubst > hpa.yaml
+          cat namespace.yaml
+          cat ${KUBE_NAME}-env-cm.yaml
           echo "Applying namespace"
           kubectl apply -f namespace.yaml
           echo "Applying configmap"
