@@ -1,3 +1,10 @@
+# [1.14.0](https://github.com/QueroDelivery/ci/compare/v1.13.0...v1.14.0) (2022-05-05)
+
+
+### Features
+
+* set version on kubectl ([5482df1](https://github.com/QueroDelivery/ci/commit/5482df1729a76212790fd4942802f034c4b3bf94))
+
 # [1.13.0](https://github.com/QueroDelivery/ci/compare/v1.12.0...v1.13.0) (2022-05-05)
 
 
