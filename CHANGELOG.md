@@ -1,3 +1,10 @@
+## [1.17.2](https://github.com/QueroDelivery/ci/compare/v1.17.1...v1.17.2) (2022-05-05)
+
+
+### Bug Fixes
+
+* order on export path ([3d3c7d1](https://github.com/QueroDelivery/ci/commit/3d3c7d1c6c7595154a2a2a3c77d477f91230f2a0))
+
 ## [1.17.1](https://github.com/QueroDelivery/ci/compare/v1.17.0...v1.17.1) (2022-05-05)
 
 
