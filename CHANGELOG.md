@@ -1,3 +1,10 @@
+# [1.13.0](https://github.com/QueroDelivery/ci/compare/v1.12.0...v1.13.0) (2022-05-05)
+
+
+### Features
+
+* update version to kube ([ddf4b61](https://github.com/QueroDelivery/ci/commit/ddf4b6196b8c8f7b9762f84001f9f69c82ba268f))
+
 # [1.12.0](https://github.com/QueroDelivery/ci/compare/v1.11.0...v1.12.0) (2022-05-04)
 
 
