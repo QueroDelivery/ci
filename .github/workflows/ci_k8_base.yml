@@ -120,10 +120,12 @@ jobs:
 
       - name: Setup kubectl
         run: |
-          
+          kubectl version --client
           curl -LO "https://dl.k8s.io/release/v1.21.0/bin/linux/amd64/kubectl"
           chmod u+x kubectl
-          cp -avf ./kubectl /usr/bin/local
+          sudo uninstall kubectl -y
+          sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+          kubectl version --client
           curl -o aws-iam-authenticator https://amazon-eks.s3.us-west-2.amazonaws.com/1.19.6/2021-01-05/bin/linux/amd64/aws-iam-authenticator
           chmod u+x aws-iam-authenticator
 
@@ -146,9 +148,8 @@ jobs:
           KUBE_NODE_GROUP: ${{ inputs.WF_KUBE_NODE_GROUP }}
         run: |
           whereis kubectl
-          ls -lah $(whereis kubectl)
           pwd
-          ./kubectl version
+          kubectl version --client
           export PATH=$PATH:$PWD
           echo "Replacing envs from kube manifests"
           echo "public host ${PUBLIC_HOST}"
