@@ -79,7 +79,7 @@ jobs:
       - name: Checkout tools repo
         uses: actions/checkout@v3
         with:
-          ref: v1.0.1
+          ref: v1.0.0
           token: ${{ secrets.WF_GITHUB_TOKEN }} 
           repository: QueroDelivery/kube
           path: .kube
@@ -120,7 +120,7 @@ jobs:
 
       - name: Setup kubectl
         run: |
-          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          curl -LO "https://dl.k8s.io/release/v1.23.0/bin/linux/amd64/kubectl"
           chmod u+x kubectl
           curl -o aws-iam-authenticator https://amazon-eks.s3.us-west-2.amazonaws.com/1.19.6/2021-01-05/bin/linux/amd64/aws-iam-authenticator
           chmod u+x aws-iam-authenticator
