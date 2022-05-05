@@ -143,6 +143,7 @@ jobs:
           KUBE_CPU_REQUEST: ${{ inputs.WF_KUBE_CPU_REQUEST }}
           KUBE_NODE_GROUP: ${{ inputs.WF_KUBE_NODE_GROUP }}
         run: |
+          kubectl version
           export PATH=$PATH:$PWD
           echo "Replacing envs from kube manifests"
           echo "public host ${PUBLIC_HOST}"
