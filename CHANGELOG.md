@@ -1,3 +1,10 @@
+## [1.17.1](https://github.com/QueroDelivery/ci/compare/v1.17.0...v1.17.1) (2022-05-05)
+
+
+### Bug Fixes
+
+* install kubectl version that we downloaded ([25a9c7a](https://github.com/QueroDelivery/ci/commit/25a9c7a96c5987f4e3bae7083aff5184c6631583))
+
 # [1.17.0](https://github.com/QueroDelivery/ci/compare/v1.16.0...v1.17.0) (2022-05-05)
 
 
