@@ -1,3 +1,10 @@
+# [1.17.0](https://github.com/QueroDelivery/ci/compare/v1.16.0...v1.17.0) (2022-05-05)
+
+
+### Features
+
+* set kubectl version 1.21.0 ([853a4d6](https://github.com/QueroDelivery/ci/commit/853a4d65324cabfd397a48700260ca8342d96630))
+
 # [1.16.0](https://github.com/QueroDelivery/ci/compare/v1.15.0...v1.16.0) (2022-05-05)
 
 
