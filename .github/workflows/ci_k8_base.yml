@@ -120,7 +120,7 @@ jobs:
 
       - name: Setup kubectl
         run: |
-          curl -LO "https://dl.k8s.io/release/v1.23.6/bin/linux/amd64/kubectl"
+          curl -LO "https://dl.k8s.io/release/v1.22.9/bin/linux/amd64/kubectl"
           chmod u+x kubectl
           curl -o aws-iam-authenticator https://amazon-eks.s3.us-west-2.amazonaws.com/1.19.6/2021-01-05/bin/linux/amd64/aws-iam-authenticator
           chmod u+x aws-iam-authenticator
@@ -152,8 +152,6 @@ jobs:
           cat .kube/service.yaml | envsubst > service.yaml
           cat .kube/ingress.yaml | envsubst > ingress.yaml
           cat .kube/hpa.yaml | envsubst > hpa.yaml
-          cat namespace.yaml
-          cat ${KUBE_NAME}-env-cm.yaml
           echo "Applying namespace"
           kubectl apply -f namespace.yaml
           echo "Applying configmap"
