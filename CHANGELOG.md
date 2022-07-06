@@ -1,3 +1,10 @@
+# [1.18.0](https://github.com/QueroDelivery/ci/compare/v1.17.2...v1.18.0) (2022-07-06)
+
+
+### Features
+
+* add visibility step ([73b223c](https://github.com/QueroDelivery/ci/commit/73b223c425db1cccfbebdb9b56034015f7442e8e))
+
 ## [1.17.2](https://github.com/QueroDelivery/ci/compare/v1.17.1...v1.17.2) (2022-05-05)
 
 
