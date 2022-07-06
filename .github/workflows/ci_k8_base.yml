@@ -39,6 +39,9 @@ on:
       WF_CREATE_PR_IN_MAIN:
         type: boolean
         required: false
+      WF_IS_INTERNAL:
+        type: boolean
+        required: false
         
     secrets:
       WF_KUBE_TYPE:
@@ -60,6 +63,9 @@ on:
       
       WF_GITHUB_TOKEN:
         required: true
+      
+      WF_WHITELIST_SOURCE_RANGE:
+        required: false
       
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -173,6 +179,16 @@ jobs:
           kubectl apply -f ingress.yaml
           echo "URL: https://${KUBE_NAME}${KUBE_DOMAIN}"
       
+      - name: Setting the service visibility
+        if: ${{ inputs.WF_IS_INTERNAL }}
+        id: 'set-visibility'
+        env: 
+          KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
+          WHITELIST_SOURCE_RANGE: ${{ secrets.WF_WHITELIST_SOURCE_RANGE}}
+        run: |
+          kubectl -n ${KUBE_NAME} annotate ingress ${KUBE_NAME} ingress.kubernetes.io/whitelist-source-range=${WHITELIST_SOURCE_RANGE}
+          kubectl -n ${KUBE_NAME} annotate ingress ${KUBE_NAME} kubernetes.io/whitelist-source-range=${WHITELIST_SOURCE_RANGE} 
+
       - name: Create comment
         if: ${{ inputs.WF_SHOW_COMMENT }}
         uses: peter-evans/create-or-update-comment@v1
