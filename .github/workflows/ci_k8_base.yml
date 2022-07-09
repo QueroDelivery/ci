@@ -182,7 +182,8 @@ jobs:
       - name: Setting the service visibility
         if: ${{ inputs.WF_IS_INTERNAL }}
         id: 'set-visibility'
-        env: 
+        env:
+          KUBECONFIG: .kube/config-${{secrets.WF_KUBE_TYPE}}.yaml
           KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
           WHITELIST_SOURCE_RANGE: ${{ secrets.WF_WHITELIST_SOURCE_RANGE}}
         run: |
