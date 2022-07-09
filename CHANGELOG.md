@@ -1,3 +1,10 @@
+# [1.19.0](https://github.com/QueroDelivery/ci/compare/v1.18.0...v1.19.0) (2022-07-09)
+
+
+### Features
+
+* add visibility aand fix kubectl config ([fad1cf5](https://github.com/QueroDelivery/ci/commit/fad1cf5a5ccbae78745e14f4447e1c8667cbfb2f))
+
 # [1.18.0](https://github.com/QueroDelivery/ci/compare/v1.17.2...v1.18.0) (2022-07-06)
 
 
