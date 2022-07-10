@@ -1,3 +1,10 @@
+## [1.19.1](https://github.com/QueroDelivery/ci/compare/v1.19.0...v1.19.1) (2022-07-10)
+
+
+### Bug Fixes
+
+* set thee path ([08761b1](https://github.com/QueroDelivery/ci/commit/08761b1cf47d9b76ccdb95f4b19dab86e3cb0f51))
+
 # [1.19.0](https://github.com/QueroDelivery/ci/compare/v1.18.0...v1.19.0) (2022-07-09)
 
 
