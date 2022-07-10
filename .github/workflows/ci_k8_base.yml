@@ -189,8 +189,8 @@ jobs:
         run: |
           echo "Setting thee path"
           export PATH=$PATH:$PWD
-          kubectl -n ${KUBE_NAME} annotate ingress ${KUBE_NAME} ingress.kubernetes.io/whitelist-source-range=${WHITELIST_SOURCE_RANGE}
-          kubectl -n ${KUBE_NAME} annotate ingress ${KUBE_NAME} kubernetes.io/whitelist-source-range=${WHITELIST_SOURCE_RANGE} 
+          kubectl -n ${KUBE_NAME} annotate --overwrite ingress ${KUBE_NAME} ingress.kubernetes.io/whitelist-source-range=${WHITELIST_SOURCE_RANGE}
+          kubectl -n ${KUBE_NAME} annotate --overwrite ingress ${KUBE_NAME} kubernetes.io/whitelist-source-range=${WHITELIST_SOURCE_RANGE} 
 
       - name: Create comment
         if: ${{ inputs.WF_SHOW_COMMENT }}
