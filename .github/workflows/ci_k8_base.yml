@@ -187,6 +187,8 @@ jobs:
           KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
           WHITELIST_SOURCE_RANGE: ${{ secrets.WF_WHITELIST_SOURCE_RANGE}}
         run: |
+          echo "Export must be a first line"
+          export PATH=$PATH:$PWD
           kubectl -n ${KUBE_NAME} annotate ingress ${KUBE_NAME} ingress.kubernetes.io/whitelist-source-range=${WHITELIST_SOURCE_RANGE}
           kubectl -n ${KUBE_NAME} annotate ingress ${KUBE_NAME} kubernetes.io/whitelist-source-range=${WHITELIST_SOURCE_RANGE} 
 
