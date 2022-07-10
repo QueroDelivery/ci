@@ -1,3 +1,10 @@
+## [1.19.2](https://github.com/QueroDelivery/ci/compare/v1.19.1...v1.19.2) (2022-07-10)
+
+
+### Bug Fixes
+
+* add override annotate to visibility ([91bd8d1](https://github.com/QueroDelivery/ci/commit/91bd8d1fa5e2824ebfec6c357c32e2e485f23a9f))
+
 ## [1.19.1](https://github.com/QueroDelivery/ci/compare/v1.19.0...v1.19.1) (2022-07-10)
 
 
