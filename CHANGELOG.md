@@ -1,3 +1,10 @@
+# [1.23.0](https://github.com/QueroDelivery/ci/compare/v1.22.0...v1.23.0) (2022-07-19)
+
+
+### Features
+
+* Changing KUBECONFIG debug ([73c2178](https://github.com/QueroDelivery/ci/commit/73c2178b5705915c8083ccb6801fa2da0113e714))
+
 # [1.22.0](https://github.com/QueroDelivery/ci/compare/v1.21.0...v1.22.0) (2022-07-19)
 
 
