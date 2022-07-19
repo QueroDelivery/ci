@@ -158,6 +158,12 @@ jobs:
         run: |
           echo "Export must be a first line"
           export PATH=$PATH:$PWD
+          echo "Show PWD"
+          pwd
+          echo "Show .kube folder"
+          ls -lah .kube
+          echo "Show KUBECONFIG file"
+          cat .kube/config-prod.yaml
           kubectl version --client
           kubectl version
           echo "Replacing envs from kube manifests"
