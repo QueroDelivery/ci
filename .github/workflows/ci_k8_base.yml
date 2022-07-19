@@ -163,7 +163,9 @@ jobs:
           echo "Show .kube folder"
           ls -lah .kube
           echo "Show KUBECONFIG file"
-          cat .kube/config-prod.yaml
+          cat ${KUBECONFIG}
+          echo "Setting KUBECONFIG env"
+          export KUBECONFIG=.kube/config-stg.yaml
           kubectl version --client
           kubectl version
           echo "Replacing envs from kube manifests"
