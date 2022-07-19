@@ -1,3 +1,10 @@
+# [1.22.0](https://github.com/QueroDelivery/ci/compare/v1.21.0...v1.22.0) (2022-07-19)
+
+
+### Features
+
+* Setting KUBECONFIG env ([1ef822e](https://github.com/QueroDelivery/ci/commit/1ef822e96de2838423e87360cea8a714911da29a))
+
 # [1.21.0](https://github.com/QueroDelivery/ci/compare/v1.20.0...v1.21.0) (2022-07-19)
 
 
