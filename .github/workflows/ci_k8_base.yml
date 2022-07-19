@@ -123,6 +123,12 @@ jobs:
             cp -avf setup/.kube/*.yaml .kube/
             echo "Kubefiles Override FINISHED" 
           fi
+          echo "Export must be a first line"
+          export PATH=$PATH:$PWD
+          echo "Show .kube folder"
+          ls -lah .kube
+          echo "Show PWD"
+          pwd
 
       - name: Setup kubectl
         run: |
