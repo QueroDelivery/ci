@@ -1,3 +1,10 @@
+# [1.20.0](https://github.com/QueroDelivery/ci/compare/v1.19.2...v1.20.0) (2022-07-19)
+
+
+### Features
+
+* Adding debug .kube ([bcbd213](https://github.com/QueroDelivery/ci/commit/bcbd21344539ef83f0baaffc211ca9d5c124b16a))
+
 ## [1.19.2](https://github.com/QueroDelivery/ci/compare/v1.19.1...v1.19.2) (2022-07-10)
 
 
