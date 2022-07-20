@@ -123,12 +123,6 @@ jobs:
             cp -avf setup/.kube/*.yaml .kube/
             echo "Kubefiles Override FINISHED" 
           fi
-          echo "Export must be a first line"
-          export PATH=$PATH:$PWD
-          echo "Show .kube folder"
-          ls -lah .kube
-          echo "Show PWD"
-          pwd
 
       - name: Setup kubectl
         run: |
@@ -158,14 +152,6 @@ jobs:
         run: |
           echo "Export must be a first line"
           export PATH=$PATH:$PWD
-          echo "Show PWD"
-          pwd
-          echo "Show .kube folder"
-          ls -lah .kube
-          echo "Show KUBECONFIG file"
-          cat .kube/config-stg.yaml
-          echo "Setting KUBECONFIG env"
-          export KUBECONFIG=.kube/config-stg.yaml
           kubectl version --client
           kubectl version
           echo "Replacing envs from kube manifests"
