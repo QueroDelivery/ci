@@ -1,3 +1,10 @@
+## [1.23.1](https://github.com/QueroDelivery/ci/compare/v1.23.0...v1.23.1) (2022-07-20)
+
+
+### Bug Fixes
+
+* fixed version of kubectl on undeploy ([187f542](https://github.com/QueroDelivery/ci/commit/187f5427933934515bd17d1aa71de443df3e19f4))
+
 # [1.23.0](https://github.com/QueroDelivery/ci/compare/v1.22.0...v1.23.0) (2022-07-19)
 
 
