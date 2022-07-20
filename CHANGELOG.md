@@ -1,3 +1,10 @@
+## [1.23.2](https://github.com/QueroDelivery/ci/compare/v1.23.1...v1.23.2) (2022-07-20)
+
+
+### Bug Fixes
+
+* removing debugs on k8 CI ([4fe24ad](https://github.com/QueroDelivery/ci/commit/4fe24add30194a83887b0e90c5845a7c83c2bedf))
+
 ## [1.23.1](https://github.com/QueroDelivery/ci/compare/v1.23.0...v1.23.1) (2022-07-20)
 
 
