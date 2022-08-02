@@ -1,3 +1,10 @@
+## [1.23.3](https://github.com/QueroDelivery/ci/compare/v1.23.2...v1.23.3) (2022-08-02)
+
+
+### Bug Fixes
+
+* pr close action ([19b4bb6](https://github.com/QueroDelivery/ci/commit/19b4bb67c6d2afe33037be028fe2a977b8cb6b60))
+
 ## [1.23.2](https://github.com/QueroDelivery/ci/compare/v1.23.1...v1.23.2) (2022-07-20)
 
 
