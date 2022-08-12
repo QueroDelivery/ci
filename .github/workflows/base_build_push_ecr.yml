@@ -56,24 +56,29 @@ jobs:
           aws-secret-access-key: ${{ secrets.WF_AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.WF_AWS_REGION }}
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
-      - name: Check initial commit
+      - name: Create ECR repo if is initial commit
         if: ${{ github.event.head_commit.message }} === "initial commit"
         env:
           REPO_PROD_NAME: ${{inputs.WF_SERVICE_NAME}}_prod_repo
           REPO_STAGE_NAME: ${{inputs.WF_SERVICE_NAME}}_stage_repo
         run:
+          echo "Creating the ecr policy file"
           echo '{"rules":[{"rulePriority":1,"description":"Expire count images more then 2 ","selection":{"tagStatus":"any","countType":"imageCountMoreThan","countNumber":2},"action":{"type":"expire"}}]}' > ecr_policy.json
-          
-          echo ${REPO_PROD_NAME}
-          aws ecr describe-repositories --repository-names ${REPO_PROD_NAME} --no-cli-pager || aws ecr create-repository --repository-name ${REPO_PROD_NAME} --no-cli-pager            
-          echo ${REPO_STAGE_NAME}
-          aws ecr describe-repositories --repository-names ${REPO_STAGE_NAME} --no-cli-pager || aws ecr create-repository --repository-name ${REPO_STAGE_NAME} --no-cli-pager
-          aws ecr get-lifecycle-policy --repository-name ${REPO_PROD_NAME}  --no-cli-pager || aws ecr put-lifecycle-policy --repository-name ${REPO_PROD_NAME} --lifecycle-policy-text file://ecr_policy.json --no-cli-pager
-          aws ecr get-lifecycle-policy --repository-name ${REPO_STAGE_NAME}  --no-cli-pager || aws ecr put-lifecycle-policy --repository-name ${REPO_STAGE_NAME} --lifecycle-policy-text file://ecr_policy.json --no-cli-pager
+          cat ecr_policy.json
 
+          echo ${REPO_PROD_NAME}
+          aws ecr describe-repositories --repository-names ${REPO_PROD_NAME} --no-cli-pager || aws ecr  create-repository --repository-name ${REPO_PROD_NAME} --no-cli-pager
+            
+          echo ${REPO_STAGE_NAME}
+          aws ecr  describe-repositories --repository-names ${REPO_STAGE_NAME} --no-cli-pager || aws ecr  create-repository --repository-name ${REPO_STAGE_NAME} --no-cli-pager
+
+          aws ecr  get-lifecycle-policy --repository-name ${REPO_PROD_NAME} --no-cli-pager || aws ecr  put-lifecycle-policy --repository-name ${REPO_PROD_NAME} --lifecycle-policy-text file://ecr_policy.json --no-cli-pager
+          aws ecr  get-lifecycle-policy --repository-name ${REPO_STAGE_NAME} --no-cli-pager  || aws ecr --profile querodelivery-infra  put-lifecycle-policy --repository-name ${REPO_STAGE_NAME} --lifecycle-policy-text file://ecr_policy.json --no-cli-pager
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+      
       - name: Update with new version
         run: |
           echo "getting branch"
