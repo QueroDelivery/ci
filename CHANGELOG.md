@@ -1,3 +1,19 @@
+# [1.24.0](https://github.com/QueroDelivery/ci/compare/v1.23.3...v1.24.0) (2022-08-12)
+
+
+### Bug Fixes
+
+* add ecr policy ([ab96e43](https://github.com/QueroDelivery/ci/commit/ab96e435ecab006e6409696505a1076133502c47))
+* generate json in execution ([3875657](https://github.com/QueroDelivery/ci/commit/3875657fe80a7392bd5e54593eb7845a797d2927))
+* generate policy in execution ([e765fee](https://github.com/QueroDelivery/ci/commit/e765feebfb399ec0ba37102c99da09e293e9c500))
+* path file ([0702f0b](https://github.com/QueroDelivery/ci/commit/0702f0b4d763b6e58ceb487c753a27f2a141d153))
+
+
+### Features
+
+* add check initial commit to create ECR repositories ([e2d0c3f](https://github.com/QueroDelivery/ci/commit/e2d0c3f84390d9841a7ec89075f737ef2c3996e4))
+* add step to creates a ecr repo ([8279bef](https://github.com/QueroDelivery/ci/commit/8279bef7fa4d3b3c4f16c1de8f52cf8c857dd899))
+
 ## [1.23.3](https://github.com/QueroDelivery/ci/compare/v1.23.2...v1.23.3) (2022-08-02)
 
 
