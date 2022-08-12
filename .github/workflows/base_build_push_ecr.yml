@@ -72,8 +72,8 @@ jobs:
           echo ${REPO_STAGE_NAME}
           aws ecr  describe-repositories --repository-names ${REPO_STAGE_NAME} --no-cli-pager || aws ecr  create-repository --repository-name ${REPO_STAGE_NAME} --no-cli-pager
 
-          aws ecr  get-lifecycle-policy --repository-name ${REPO_PROD_NAME} --no-cli-pager || aws ecr  put-lifecycle-policy --repository-name ${REPO_PROD_NAME} --lifecycle-policy-text file://./../../ecr_policy.json --no-cli-pager
-          aws ecr  get-lifecycle-policy --repository-name ${REPO_STAGE_NAME} --no-cli-pager  || aws ecr --profile querodelivery-infra  put-lifecycle-policy --repository-name ${REPO_STAGE_NAME} --lifecycle-policy-text file://./../../ecr_policy.json --no-cli-pager
+          aws ecr  get-lifecycle-policy --repository-name ${REPO_PROD_NAME} --no-cli-pager || aws ecr  put-lifecycle-policy --repository-name ${REPO_PROD_NAME} --lifecycle-policy-text file://ecr_policy.json --no-cli-pager
+          aws ecr  get-lifecycle-policy --repository-name ${REPO_STAGE_NAME} --no-cli-pager  || aws ecr --profile querodelivery-infra  put-lifecycle-policy --repository-name ${REPO_STAGE_NAME} --lifecycle-policy-text file://ecr_policy.json --no-cli-pager
 
 
       - name: Update with new version
