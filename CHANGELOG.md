@@ -1,3 +1,10 @@
+# [1.25.0](https://github.com/QueroDelivery/ci/compare/v1.24.0...v1.25.0) (2022-08-12)
+
+
+### Features
+
+* add step to creates a ecr repo ([c656b8c](https://github.com/QueroDelivery/ci/commit/c656b8cde444aebe6845ce7cf817d976ecc0e3e3))
+
 # [1.24.0](https://github.com/QueroDelivery/ci/compare/v1.23.3...v1.24.0) (2022-08-12)
 
 
