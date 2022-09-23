@@ -1,3 +1,10 @@
+# [1.26.0](https://github.com/QueroDelivery/ci/compare/v1.25.0...v1.26.0) (2022-09-23)
+
+
+### Features
+
+* add create ecr with initial commit ([8fc1ca2](https://github.com/QueroDelivery/ci/commit/8fc1ca2024fed262cc86ac03c9353a3688450691))
+
 # [1.25.0](https://github.com/QueroDelivery/ci/compare/v1.24.0...v1.25.0) (2022-08-12)
 
 
