@@ -65,7 +65,7 @@ jobs:
           aws-region: ${{ secrets.WF_AWS_REGION }}
 
       - name: Create ECR repo if is initial commit
-        if: ${{ github.event.head_commit.message }} === "initial commit"
+        if: ${{ github.event.head_commit.message }} == "initial commit"
         env:
           REPO_PROD_NAME: ${{inputs.WF_SERVICE_NAME}}_prod_repo
           REPO_STAGE_NAME: ${{inputs.WF_SERVICE_NAME}}_stage_repo
