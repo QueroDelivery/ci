@@ -72,6 +72,12 @@ jobs:
         run:
           
           cd setup
+          
+          echo "commit message"
+          
+          echo ${{ github.event.head_commit.message }}
+
+          echo ${{ github.event.head_commit.message }} == "initial commit"
 
           echo "This step will create repositories on ECR to push docker image to staging and production environments"
 
