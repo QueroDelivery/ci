@@ -71,12 +71,18 @@ jobs:
           REPO_STAGE_NAME: ${{inputs.WF_SERVICE_NAME}}_stage_repo
         run:
           
-          cd setup/
+          cd setup
+          
           echo "ls"
+          
           ls
+          
           echo "dir"
+          
           dir
+          
           echo "ecr_policy.json"
+          
           cat ecr_policy.json
 
           echo ${REPO_PROD_NAME}
