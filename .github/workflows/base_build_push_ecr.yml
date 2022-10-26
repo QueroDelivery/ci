@@ -128,7 +128,7 @@ jobs:
           docker tag $ECR_REPOSITORY:$VERSION_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION_TAG
           
-          echo "name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$VERSION_TAG" >> $GITHUB_OUTPUT
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$VERSION_TAG" >> $GITHUB_OUTPUT
 
           echo "COMMIT-HASH --> $VERSION_TAG"
           hash=$(git rev-parse HEAD)
@@ -138,5 +138,5 @@ jobs:
         id: service-name
         run: |
           export SERVICE_NAME=${{inputs.WF_SERVICE_NAME}}
-          echo "name=servicename::$SERVICE_NAME" >> $GITHUB_OUTPUT
+          echo "servicename=$SERVICE_NAME" >> $GITHUB_OUTPUT
           
