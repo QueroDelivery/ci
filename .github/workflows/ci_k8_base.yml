@@ -209,5 +209,6 @@ jobs:
         with:
           branch: 'main'
           title: 'Deploy in Prod'
+          base: stage
           token: ${{ secrets.WF_GITHUB_TOKEN }}
 
