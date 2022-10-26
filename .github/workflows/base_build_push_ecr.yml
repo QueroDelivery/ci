@@ -58,7 +58,7 @@ jobs:
           registry-url: ${{secrets.WF_REGISTRY}}
       
       - name: Configure AWS credentials without role
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v1-node16
         with:
           aws-access-key-id: ${{ secrets.WF_AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.WF_AWS_SECRET_ACCESS_KEY }}
