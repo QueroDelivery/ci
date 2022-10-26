@@ -205,9 +205,9 @@ jobs:
       - name: Create Pull Request for prod
         if: ${{ inputs.WF_CREATE_PR_IN_MAIN }}
         id: 'open-pr'
-        uses: repo-sync/pull-request@v2
+        uses: peter-evans/create-pull-request@v4
         with:
-          destination_branch: 'main'
-          pr_title: 'Deploy in Prod'
-          github_token: ${{ secrets.WF_GITHUB_TOKEN }}
+          branch: 'main'
+          title: 'Deploy in Prod'
+          token: ${{ secrets.WF_GITHUB_TOKEN }}
 
