@@ -65,5 +65,5 @@ jobs:
         id: serviceName
         run: |
           export SERVICE_NAME=`node -p -e "require('./package.json').name"`
-          echo "::set-output name=servicename::$SERVICE_NAME"
+          echo "name=servicename::$SERVICE_NAME" >> $GITHUB_OUTPUT
 
