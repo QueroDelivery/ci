@@ -207,8 +207,8 @@ jobs:
         id: 'open-pr'
         uses: peter-evans/create-pull-request@v4
         with:
-          branch: 'main'
+          branch: stage
           title: 'Deploy in Prod'
-          base: stage
+          base: main
           token: ${{ secrets.WF_GITHUB_TOKEN }}
 
