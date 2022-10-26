@@ -1,3 +1,15 @@
+# [1.29.0](https://github.com/QueroDelivery/ci/compare/v1.28.0...v1.29.0) (2022-10-26)
+
+
+### Bug Fixes
+
+* upgrade version of aws credentials to [@v1-node16](https://github.com/v1-node16) ([f623a74](https://github.com/QueroDelivery/ci/commit/f623a745f8406ee6660e37e52f9cbfa407c3fb50))
+
+
+### Features
+
+* change action to create PR deploy prod ([626d0af](https://github.com/QueroDelivery/ci/commit/626d0afa9e4ca6637f94b71a9c6f270d848c0e80))
+
 # [1.28.0](https://github.com/QueroDelivery/ci/compare/v1.27.0...v1.28.0) (2022-10-26)
 
 
