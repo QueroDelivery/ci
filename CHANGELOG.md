@@ -1,3 +1,10 @@
+# [1.27.0](https://github.com/QueroDelivery/ci/compare/v1.26.0...v1.27.0) (2022-10-26)
+
+
+### Features
+
+* change ::set-output because it was deprecated ([deab735](https://github.com/QueroDelivery/ci/commit/deab735ca15c8fcfe64d32d684edd59471fa8063))
+
 # [1.26.0](https://github.com/QueroDelivery/ci/compare/v1.25.0...v1.26.0) (2022-09-23)
 
 
