@@ -1,3 +1,10 @@
+# [1.28.0](https://github.com/QueroDelivery/ci/compare/v1.27.0...v1.28.0) (2022-10-26)
+
+
+### Features
+
+* upgrade setup node version ([21fa3cd](https://github.com/QueroDelivery/ci/commit/21fa3cd4722480fd76d3a6c569e25a49657e75f6))
+
 # [1.27.0](https://github.com/QueroDelivery/ci/compare/v1.26.0...v1.27.0) (2022-10-26)
 
 
