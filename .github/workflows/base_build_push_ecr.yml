@@ -68,7 +68,7 @@ jobs:
         env:
           REPO_PROD_NAME: ${{inputs.WF_SERVICE_NAME}}_prod_repo
           REPO_STAGE_NAME: ${{inputs.WF_SERVICE_NAME}}_stage_repo
-        run:
+        run: |
           if [[ "${{ github.event.head_commit.message }}" == "initial commit" ]]; then
             cd setup
 
