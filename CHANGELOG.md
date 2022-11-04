@@ -1,3 +1,10 @@
+# [1.30.0](https://github.com/QueroDelivery/ci/compare/v1.29.1...v1.30.0) (2022-11-04)
+
+
+### Features
+
+* update version of ci ([fa11462](https://github.com/QueroDelivery/ci/commit/fa1146204dc351ae71f0d7ca90f962e6dde00853))
+
 # [1.29.0](https://github.com/QueroDelivery/ci/compare/v1.28.0...v1.29.0) (2022-10-26)
 
 
