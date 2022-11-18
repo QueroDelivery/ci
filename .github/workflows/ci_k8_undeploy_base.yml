@@ -91,7 +91,7 @@ jobs:
         env:
           KUBE_NAME: ${{ env.SERVICE_NAME }}-pr-${{ env.PR_NUMBER }}
           KUBECONFIG: .kube/config-${{secrets.WF_KUBE_TYPE}}.yaml
-  
+        timeout-minutes: 2
         run: |
           export PATH=$PATH:$PWD
           kubectl version --client
