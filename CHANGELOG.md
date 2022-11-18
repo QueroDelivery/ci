@@ -1,3 +1,10 @@
+# [1.31.0](https://github.com/QueroDelivery/ci/compare/v1.30.0...v1.31.0) (2022-11-18)
+
+
+### Features
+
+* add timeout on Kubernets Undeploy. ([b27c298](https://github.com/QueroDelivery/ci/commit/b27c298977a847d813e6de268878c836c4ff4947))
+
 # [1.30.0](https://github.com/QueroDelivery/ci/compare/v1.29.1...v1.30.0) (2022-11-04)
 
 
