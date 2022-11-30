@@ -1,3 +1,10 @@
+# [1.32.0](https://github.com/QueroDelivery/ci/compare/v1.31.0...v1.32.0) (2022-11-30)
+
+
+### Features
+
+* add 20 min of the timeout on undeploy ([f690767](https://github.com/QueroDelivery/ci/commit/f69076761688127ca08855fdb9ed98153a502dcf))
+
 # [1.31.0](https://github.com/QueroDelivery/ci/compare/v1.30.0...v1.31.0) (2022-11-18)
 
 
