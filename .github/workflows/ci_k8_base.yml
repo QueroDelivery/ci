@@ -208,6 +208,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }} 
         run: |
-          echo "Creating yhe PR"
+          echo "Creating the PR Deply in prod"
           gh pr create --base "main" --title "Deploy in prod" --body "Pull request body"
 
