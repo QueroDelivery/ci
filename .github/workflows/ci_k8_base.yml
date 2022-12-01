@@ -208,7 +208,5 @@ jobs:
         uses: peter-evans/create-pull-request@v4
         with:
           token: ${{ secrets.WF_GITHUB_TOKEN }} 
-          branch: main
           title: 'Deploy in Prod'
-          base: stage
 
