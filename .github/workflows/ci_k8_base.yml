@@ -205,6 +205,8 @@ jobs:
       - name: Create Pull Request for prod
         if: ${{ inputs.WF_CREATE_PR_IN_MAIN }}
         id: 'open-pr'
+        env:
+          GH_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }} 
         run: |
           echo "Creating yhe PR"
           gh pr create --title "Deploy in prod" --body "Pull request body"
