@@ -209,5 +209,5 @@ jobs:
           GH_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }} 
         run: |
           echo "Creating yhe PR"
-          gh pr create --title "Deploy in prod" --body "Pull request body"
+          gh pr create --base "main" --title "Deploy in prod" --body "Pull request body"
 
