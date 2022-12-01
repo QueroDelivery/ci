@@ -1,3 +1,10 @@
+# [1.33.0](https://github.com/QueroDelivery/ci/compare/v1.32.0...v1.33.0) (2022-12-01)
+
+
+### Features
+
+* add creating PR Deploy in Prod ([6dd4204](https://github.com/QueroDelivery/ci/commit/6dd4204d289e95d97571636661bc78d1cb931a79))
+
 # [1.32.0](https://github.com/QueroDelivery/ci/compare/v1.31.0...v1.32.0) (2022-11-30)
 
 
