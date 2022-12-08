@@ -1,3 +1,10 @@
+## [1.33.1](https://github.com/QueroDelivery/ci/compare/v1.33.0...v1.33.1) (2022-12-08)
+
+
+### Bug Fixes
+
+* fix gitconfig ([57134ad](https://github.com/QueroDelivery/ci/commit/57134ad9c643a8da100104aaa7c2ec86be44b540))
+
 # [1.33.0](https://github.com/QueroDelivery/ci/compare/v1.32.0...v1.33.0) (2022-12-01)
 
 
