@@ -1,3 +1,10 @@
+# [1.34.0](https://github.com/QueroDelivery/ci/compare/v1.33.0...v1.34.0) (2023-01-28)
+
+
+### Features
+
+* :construction_worker: update base_node_build.yml to add lint check ([f19ba83](https://github.com/QueroDelivery/ci/commit/f19ba832cf374e48b45e87f391d9f8ffb00a2973))
+
 # [1.33.0](https://github.com/QueroDelivery/ci/compare/v1.32.0...v1.33.0) (2022-12-01)
 
 
