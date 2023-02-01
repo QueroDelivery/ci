@@ -209,5 +209,5 @@ jobs:
           GH_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }} 
         run: |
           echo "Creating the PR Deply in prod"
-          gh pr create --base "main" --title "Deploy in prod" --body "Pull request body"
+          gh pr edit stage -b "Pull request body" -t 'Deploy in prod'  && gh pr reopen stage || gh pr create --base "main" --title "Deploy in prod" --body "Pull request body"
 
