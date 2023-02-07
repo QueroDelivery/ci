@@ -194,13 +194,12 @@ jobs:
 
       - name: Create comment
         if: ${{ inputs.WF_SHOW_COMMENT }}
-        uses: peter-evans/create-or-update-comment@v1
-        with:
-          issue-number: ${{ github.event.pull_request.number }}
-          body: |
-            Segura o link dessa app review aí ó o/
-            -   URL: https://${{ secrets.WF_KUBE_NAME }}${{ secrets.WF_KUBE_DOMAIN }}
-          reactions: '+1'
+        id: 'create-comment'
+        env:
+          GH_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }} 
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} --body "Segura o link dessa app review aí ó o/
+            -   URL: https://${{ secrets.WF_KUBE_NAME }}${{ secrets.WF_KUBE_DOMAIN }}"
       
       - name: Create Pull Request for prod
         if: ${{ inputs.WF_CREATE_PR_IN_MAIN }}
