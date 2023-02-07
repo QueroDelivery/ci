@@ -194,6 +194,9 @@ jobs:
 
       - name: Create comment
         if: ${{ inputs.WF_SHOW_COMMENT }}
+        id: 'create-comment'
+        env:
+          GH_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }} 
         run: |
           gh pr comment ${{ github.event.pull_request.number }} --body "Segura o link dessa app review aí ó o/
             -   URL: https://${{ secrets.WF_KUBE_NAME }}${{ secrets.WF_KUBE_DOMAIN }}"
