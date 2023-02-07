@@ -1,3 +1,10 @@
+## [1.34.2](https://github.com/QueroDelivery/ci/compare/v1.34.1...v1.34.2) (2023-02-07)
+
+
+### Bug Fixes
+
+* upgrade version ([3fd20a4](https://github.com/QueroDelivery/ci/commit/3fd20a4a65063df640221944a8a8fec45f5519a5))
+
 ## [1.34.1](https://github.com/QueroDelivery/ci/compare/v1.34.0...v1.34.1) (2023-02-01)
 
 
