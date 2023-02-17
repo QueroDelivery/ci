@@ -8,6 +8,7 @@ on:
         required: true
       WF_PUBLISH_CODE_COVERAGE:
         type: string
+        default: false
         required: false
       BACKSTAGE_URL:
         type: string
