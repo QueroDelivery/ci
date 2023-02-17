@@ -10,7 +10,7 @@ on:
         type: string
         default: false
         required: false
-      BACKSTAGE_URL:
+      WF_BACKSTAGE_URL:
         type: string
         required: false
 
