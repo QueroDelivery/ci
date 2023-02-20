@@ -1,3 +1,10 @@
+# [1.35.0](https://github.com/QueroDelivery/ci/compare/v1.34.2...v1.35.0) (2023-02-20)
+
+
+### Features
+
+* adding publish code coverage on ci steps ([2c1344f](https://github.com/QueroDelivery/ci/commit/2c1344f788ea5e0e818e5ecf983c8db5d2c28ec3))
+
 ## [1.34.2](https://github.com/QueroDelivery/ci/compare/v1.34.1...v1.34.2) (2023-02-07)
 
 
