@@ -6,6 +6,13 @@ on:
       WF_NODE_VERSION:
         type: string
         required: true
+      WF_PUBLISH_CODE_COVERAGE:
+        type: string
+        default: false
+        required: false
+      WF_BACKSTAGE_URL:
+        type: string
+        required: false
 
     secrets:
       WF_NPM_TOKEN:
@@ -55,8 +62,24 @@ jobs:
           yarn lint
       
       - name: testing
+        env:
+          RUN_PUBLISH_COVERAGE: ${{inputs.WF_PUBLISH_CODE_COVERAGE}}
+          BACKSTAGE_URL: ${{inputs.WF_BACKSTAGE_URL}}
         run: |
           yarn test:ci
+          COMPONENT_NAME=`node -p -e "require('./package.json').name"`
+          FILE=coverage/int/cobertura-coverage.xml
+          if $RUN_PUBLISH_COVERAGE; then
+            if [ -f "$FILE" ]; then
+              curl --request POST \
+              --url ''$BACKSTAGE_URL'/api/code-coverage/report?entity=component%3Adefault%2F'$COMPONENT_NAME'&coverageType=cobertura' \
+              --header 'Content-Type: text/xml' \
+              --data @$FILE  
+              echo "Sending coverage report to quero developer portal"
+            else
+              echo "$FILE does not exist, code coverage not sended to quero developer portal"
+            fi
+          fi
 
       - name: Release
         env:
