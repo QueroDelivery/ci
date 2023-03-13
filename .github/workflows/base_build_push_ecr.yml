@@ -29,7 +29,7 @@ on:
       servicename:
         description: "The service name"
         value: ${{ jobs.setup.outputs.servicename }}
-        
+
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   setup:
@@ -39,7 +39,7 @@ jobs:
     continue-on-error: false
     outputs:
       servicename: ${{ steps.service-name.outputs.servicename }}
-      
+
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       - uses: actions/checkout@v3
@@ -47,16 +47,16 @@ jobs:
         uses: actions/checkout@v3
         with:
           ref: add-step-create-repository
-          token: ${{ secrets.WF_GITHUB_TOKEN }} 
+          token: ${{ secrets.WF_GITHUB_TOKEN }}
           repository: QueroDelivery/ci
           path: setup/
           persist-credentials: false
       - uses: actions/setup-node@v3
         with:
           node-version: ${{ inputs.WF_NODE_VERSION }}
-          cache: 'yarn'
+          cache: 'pnpm'
           registry-url: ${{secrets.WF_REGISTRY}}
-      
+
       - name: Configure AWS credentials without role
         uses: aws-actions/configure-aws-credentials@v1-node16
         with:
@@ -77,31 +77,31 @@ jobs:
             echo ${REPO_PROD_NAME}
 
             aws ecr describe-repositories --repository-names ${REPO_PROD_NAME} --no-cli-pager || aws ecr  create-repository --repository-name ${REPO_PROD_NAME} --no-cli-pager
-              
+
             echo ${REPO_STAGE_NAME}
-            
+
             aws ecr  describe-repositories --repository-names ${REPO_STAGE_NAME} --no-cli-pager || aws ecr  create-repository --repository-name ${REPO_STAGE_NAME} --no-cli-pager
 
             aws ecr  get-lifecycle-policy --repository-name ${REPO_PROD_NAME} --no-cli-pager || aws ecr  put-lifecycle-policy --repository-name ${REPO_PROD_NAME} --lifecycle-policy-text file://ecr_policy.json --no-cli-pager
             aws ecr  get-lifecycle-policy --repository-name ${REPO_STAGE_NAME} --no-cli-pager || aws ecr  put-lifecycle-policy --repository-name ${REPO_STAGE_NAME} --lifecycle-policy-text file://ecr_policy.json --no-cli-pager
-         
+
           else
             echo "Doesn't running create ECR repositories"
-          
+
           fi
 
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
-      
+
       - name: Update with new version
         run: |
           echo "getting branch"
           echo ${GITHUB_REF#refs/heads/}
           echo  "Updating the code with released version"
-        
+
           BRANCH=${GITHUB_REF#refs/heads/}
-          
+
           if [[ "$BRANCH" = "stage" || "$BRANCH" = "main" ]]; then
             git pull origin $BRANCH
             echo "Branch updated with the last version"
@@ -126,16 +126,15 @@ jobs:
           docker tag $ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker tag $ECR_REPOSITORY:$VERSION_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION_TAG
-          
+
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$VERSION_TAG" >> $GITHUB_OUTPUT
 
           echo "COMMIT-HASH --> $VERSION_TAG"
           hash=$(git rev-parse HEAD)
           echo $hash
-           
+
       - name: Setting service name outputs
         id: service-name
         run: |
           export SERVICE_NAME=${{inputs.WF_SERVICE_NAME}}
           echo "servicename=$SERVICE_NAME" >> $GITHUB_OUTPUT
-          

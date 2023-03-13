@@ -45,28 +45,28 @@ jobs:
         uses: actions/checkout@v3
         with:
           persist-credentials: false
-          
+
       - uses: actions/setup-node@v3
         with:
           node-version: ${{ inputs.WF_NODE_VERSION }}
-          cache: 'yarn'
+          cache: 'pnpm'
           registry-url: ${{secrets.WF_REGISTRY}}
-      - name: install packages using yarn.lock
+      - name: install packages using pnpm-lock.yaml
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.WF_NPM_TOKEN }} 
+          NODE_AUTH_TOKEN: ${{ secrets.WF_NPM_TOKEN }}
         run: |
-          yarn --frozen-lockfile
-      
+          pnpm --frozen-lockfile
+
       - name: linting
         run: |
-          yarn lint
-      
+          pnpm lint
+
       - name: testing
         env:
           RUN_PUBLISH_COVERAGE: ${{inputs.WF_PUBLISH_CODE_COVERAGE}}
           BACKSTAGE_URL: ${{inputs.WF_BACKSTAGE_URL}}
         run: |
-          yarn test:ci
+          pnpm test:ci
           COMPONENT_NAME=`node -p -e "require('./package.json').name"`
           FILE=coverage/int/cobertura-coverage.xml
           if $RUN_PUBLISH_COVERAGE; then
@@ -74,7 +74,7 @@ jobs:
               curl --request POST \
               --url ''$BACKSTAGE_URL'/api/code-coverage/report?entity=component%3Adefault%2F'$COMPONENT_NAME'&coverageType=cobertura' \
               --header 'Content-Type: text/xml' \
-              --data @$FILE  
+              --data @$FILE
               echo "Sending coverage report to quero developer portal"
             else
               echo "$FILE does not exist, code coverage not sended to quero developer portal"
@@ -83,14 +83,13 @@ jobs:
 
       - name: Release
         env:
-          NPM_TOKEN: ${{ secrets.WF_NPM_TOKEN }} 
+          NPM_TOKEN: ${{ secrets.WF_NPM_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
         run: |
-          yarn release
+          pnpm release
 
       - name: Getting SERVICE_NAME
         id: serviceName
         run: |
           export SERVICE_NAME=`node -p -e "require('./package.json').name"`
           echo "servicename=$SERVICE_NAME" >> $GITHUB_OUTPUT
-
