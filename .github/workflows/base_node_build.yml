@@ -46,9 +46,9 @@ jobs:
         with:
           persist-credentials: false
           
-      - uses: pnpm/action-setup@v2
-        with:
-          version: 7
+#       - uses: pnpm/action-setup@v2
+#         with:
+#           version: 7
       - uses: actions/setup-node@v3
         with:
           node-version: ${{ inputs.WF_NODE_VERSION }}
@@ -58,7 +58,7 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.WF_NPM_TOKEN }}
         run: |
-          pnpm i
+          pnpm install
 
       - name: linting
         run: |
