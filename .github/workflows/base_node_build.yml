@@ -63,17 +63,9 @@ jobs:
         with:
           path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          node-version: ${{ inputs.WF_NODE_VERSION }}
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
         name: Setup pnpm cache
-
-      - name: Install packages using pnpm-lock.yaml
-        env:
-          NPM_TOKEN: ${{ secrets.WF_NPM_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.WF_NPM_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
-        run: pnpm install
             
       - uses: actions/setup-node@v3
         env:
@@ -81,7 +73,11 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.WF_NPM_TOKEN }}
         with:
           node-version: ${{ inputs.WF_NODE_VERSION }}
+          cache: 'pnpm'
           registry-url: ${{secrets.WF_REGISTRY}}
+          
+      - name: Install packages using pnpm-lock.yaml
+        run: pnpm install
 
       - name: linting
         run: |
