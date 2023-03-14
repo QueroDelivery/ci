@@ -30,16 +30,7 @@ on:
 
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
-jobs:
-  install:
-      runs-on: ubuntu-latest
-
-      steps:
-        - uses: pnpm/action-setup@v2
-          with:
-            version: 6.0.2
-            run_install: false
-            
+jobs:          
   setup:
     name: preparing
     runs-on: ubuntu-latest
@@ -58,13 +49,12 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: ${{ inputs.WF_NODE_VERSION }}
-          cache: 'pnpm'
           registry-url: ${{secrets.WF_REGISTRY}}
       - name: install packages using pnpm-lock.yaml
         env:
           NODE_AUTH_TOKEN: ${{ secrets.WF_NPM_TOKEN }}
         run: |
-          pnpm --frozen-lockfile
+          npm i -g pnpm && pnpm --frozen-lockfile
 
       - name: linting
         run: |
