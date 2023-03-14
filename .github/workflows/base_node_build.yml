@@ -74,6 +74,9 @@ jobs:
         run: pnpm install
             
       - uses: actions/setup-node@v3
+        env:
+          NPM_TOKEN: ${{ secrets.WF_NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.WF_NPM_TOKEN }}
         with:
           node-version: ${{ inputs.WF_NODE_VERSION }}
           registry-url: ${{secrets.WF_REGISTRY}}
