@@ -66,6 +66,7 @@ jobs:
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
+          registry-url: ${{secrets.WF_REGISTRY}}
 
       - name: Install packages using pnpm-lock.yaml
         env:
