@@ -52,6 +52,9 @@ jobs:
           path: setup/
           persist-credentials: false
       - uses: pnpm/action-setup@v2
+        with:
+          version: 7
+          run_install: false
       - uses: actions/setup-node@v3
         with:
           node-version: ${{ inputs.WF_NODE_VERSION }}
