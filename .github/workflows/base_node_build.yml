@@ -99,7 +99,7 @@ jobs:
       - name: Release
         env:
           NPM_TOKEN: ${{ secrets.WF_NPM_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
+          GITHUB_PACKAGE_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
         run: |
           pnpm release
       - name: Getting SERVICE_NAME
