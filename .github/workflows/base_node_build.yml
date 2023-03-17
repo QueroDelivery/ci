@@ -6,7 +6,7 @@ on:
       WF_NODE_VERSION:
         type: string
         required: true
-      WF_ENV_TYPE:
+      WF_ENV_TYPE_DEPLOY:
         type: string
         required: true
       WF_PUBLISH_CODE_COVERAGE:
@@ -35,7 +35,7 @@ on:
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   setup:
-    environment: ${{inputs.WF_ENV_TYPE}}
+    environment: ${{inputs.WF_ENV_TYPE_DEPLOY}}
     name: preparing
     runs-on: ubuntu-latest
     continue-on-error: false

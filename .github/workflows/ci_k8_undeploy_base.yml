@@ -6,6 +6,9 @@ on:
       WF_ENV_TYPE:
         type: string
         required: true
+      WF_ENV_TYPE_DEPLOY:
+        type: string
+        required: true
         
     secrets:
       WF_KUBE_TYPE:
@@ -26,7 +29,7 @@ jobs:
   setup:
     name: preparing
     runs-on: ubuntu-latest
-    environment: ${{inputs.WF_ENV_TYPE}}
+    environment: ${{inputs.WF_ENV_TYPE_DEPLOY}}
     continue-on-error: false
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
