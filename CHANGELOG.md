@@ -1,3 +1,10 @@
+# [2.1.0](https://github.com/QueroDelivery/ci/compare/v2.0.0...v2.1.0) (2023-05-24)
+
+
+### Features
+
+* add a internal ingress to application ([dca7324](https://github.com/QueroDelivery/ci/commit/dca732469cce8959026a97b1e8aa226ccedd5ca3))
+
 # [2.0.0](https://github.com/QueroDelivery/ci/compare/v1.35.0...v2.0.0) (2023-03-23)
 
 
