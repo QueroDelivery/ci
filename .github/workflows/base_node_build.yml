@@ -81,7 +81,7 @@ jobs:
               --data @$FILE  
               echo "Sending coverage report to quero developer portal"
             else
-              echo "$FILE does not exist, code coverage not sended to quero developer portal"
+               echo "::warning:: $FILE does not exist, code coverage not sended to quero developer portal"
             fi
           fi
 
