@@ -1,3 +1,10 @@
+## [2.1.1](https://github.com/QueroDelivery/ci/compare/v2.1.0...v2.1.1) (2023-05-25)
+
+
+### Bug Fixes
+
+* improving log when can't send a coverage report to dev portal ([51bbf8e](https://github.com/QueroDelivery/ci/commit/51bbf8edbb5d2fe4fe3c8ca40149f0e49a7f4e7a))
+
 # [2.1.0](https://github.com/QueroDelivery/ci/compare/v2.0.0...v2.1.0) (2023-05-24)
 
 
