@@ -135,6 +135,7 @@ jobs:
           VERSION_TAG: ${{ github.sha }}
           SERVICE_NAME: ${{ inputs.WF_SERVICE_NAME }}
         run: |
+          ls -la
           # Build a docker container and
           # push it to ECR so that it can
           # be deployed to ECS.
