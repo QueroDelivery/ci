@@ -1,3 +1,13 @@
+# [2.2.0](https://github.com/QueroDelivery/ci/compare/v2.1.1...v2.2.0) (2023-06-28)
+
+
+### Features
+
+* add create dotenv before build ([9012216](https://github.com/QueroDelivery/ci/commit/90122161a18e47e483ac5a41959abd716cad6652))
+* add create dotenv before build ([16bc9e6](https://github.com/QueroDelivery/ci/commit/16bc9e6043a16c91e398b2e87cabb4cc498d5d34))
+* add create dotenv before build ([2d973bb](https://github.com/QueroDelivery/ci/commit/2d973bbd117821ee485f68c9ee7acc68f67d816e))
+* add create dotenv before build ([5633b21](https://github.com/QueroDelivery/ci/commit/5633b219c4ac4a85ec0fd474c903124f50cc1f44))
+
 ## [2.1.1](https://github.com/QueroDelivery/ci/compare/v2.1.0...v2.1.1) (2023-05-25)
 
 
