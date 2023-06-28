@@ -118,7 +118,7 @@ jobs:
         if: ${{ inputs.WF_CREATE_DOTENV_BEFORE_BUILD }}
         id: 'dotenv-from-parameter-store'
         with:
-          output: .env
+          output: ./.env
           ssm-path: '/${{ inputs.WF_ENV_TYPE }}/${{ secrets.WF_SERVICE_NAME }}'
           format: dotenv
         env:
@@ -136,6 +136,7 @@ jobs:
           SERVICE_NAME: ${{ inputs.WF_SERVICE_NAME }}
         run: |
           ls -la
+          cat .env
           # Build a docker container and
           # push it to ECR so that it can
           # be deployed to ECS.
