@@ -15,6 +15,10 @@ on:
       WF_NODE_VERSION:
         type: string
         required: true
+      WF_CREATE_DOTENV_BEFORE_BUILD:
+        type: boolean
+        default: false
+        required: false
     secrets:
       WF_NPM_TOKEN:
         required: true
@@ -111,6 +115,19 @@ jobs:
           else
             echo "Branch does not needs to be updated. Semantic-release had not run yet"
           fi
+      
+      - name: Creating dotenv from aws parameter store
+        uses: almerindo/action-env-from-aws-ssm@main
+        if: ${{ inputs.WF_CREATE_DOTENV_BEFORE_BUILD }}
+        id: 'dotenv-from-parameter-store'
+        with:
+          output: ./.env
+          ssm-path: '/${{ inputs.WF_ENV_TYPE }}/${{ secrets.WF_SERVICE_NAME }}'
+          format: dotenv
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.WF_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.WF_AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.WF_AWS_REGION }}
 
       - name: Build, tag, and push image to Amazon ECR
         id: build-image
