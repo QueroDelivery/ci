@@ -9,6 +9,9 @@ on:
       WF_ENV_TYPE:
         type: string
         required: true
+      WF_ENV_TYPE_DEPLOY:
+        type: string
+        required: true
       WF_NODE_VERSION:
         type: string
         required: true
@@ -39,7 +42,7 @@ jobs:
   setup:
     name: preparing
     runs-on: ubuntu-latest
-    environment: production
+    environment: ${{inputs.WF_ENV_TYPE_DEPLOY}}
     continue-on-error: false
     outputs:
       servicename: ${{ steps.service-name.outputs.servicename }}

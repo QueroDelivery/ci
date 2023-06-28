@@ -1,3 +1,51 @@
+## [2.1.1](https://github.com/QueroDelivery/ci/compare/v2.1.0...v2.1.1) (2023-05-25)
+
+
+### Bug Fixes
+
+* improving log when can't send a coverage report to dev portal ([51bbf8e](https://github.com/QueroDelivery/ci/commit/51bbf8edbb5d2fe4fe3c8ca40149f0e49a7f4e7a))
+
+# [2.1.0](https://github.com/QueroDelivery/ci/compare/v2.0.0...v2.1.0) (2023-05-24)
+
+
+### Features
+
+* add a internal ingress to application ([dca7324](https://github.com/QueroDelivery/ci/commit/dca732469cce8959026a97b1e8aa226ccedd5ca3))
+
+# [2.0.0](https://github.com/QueroDelivery/ci/compare/v1.35.0...v2.0.0) (2023-03-23)
+
+
+### Bug Fixes
+
+* add WF_ENV_TYPE_DEPLOY ([efd0201](https://github.com/QueroDelivery/ci/commit/efd02019b29bd08ea1fda1f3b076b22bdb230475))
+
+
+### Features
+
+* add envtime variable as required ([e19c38d](https://github.com/QueroDelivery/ci/commit/e19c38d168ea0abaa05a3f65059917052aab2cbf))
+
+
+### BREAKING CHANGES
+
+* This commit breaks the previous versions because
+adds the WF_ENV_TYPE as required in the base_node_build.yml file.
+
+This commit changes the CI/CD files to use ${{inputs.WF_ENV_TYPE}}
+as job environment.
+Example:
+jobs:
+  setup:
+    environment: ${{inputs.WF_ENV_TYPE}}
+
+ On branch feat/add-envtype
+ Changes to be committed:
+	modified:   .github/workflows/base_build_push_ecr.yml
+	modified:   .github/workflows/base_node_build.yml
+	modified:   .github/workflows/ci_k8_base.yml
+	modified:   .github/workflows/ci_k8_undeploy_base.yml
+
+footer: this commit is related to inprovments on CI/CD asked by Junior
+
 # [1.35.0](https://github.com/QueroDelivery/ci/compare/v1.34.2...v1.35.0) (2023-02-20)
 
 

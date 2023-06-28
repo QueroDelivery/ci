@@ -3,6 +3,9 @@ name: CI-K8-BASE
 on:
   workflow_call:
     inputs:
+      WF_ENV_TYPE_DEPLOY:
+        type: string
+        required: true
       WF_ENV_TYPE:
         type: string
         required: true
@@ -60,6 +63,8 @@ on:
         required: true
       WF_KUBE_DOMAIN:
         required: true
+      WF_KUBE_DOMAIN_INTERNAL:
+        required: true
       
       WF_GITHUB_TOKEN:
         required: true
@@ -72,7 +77,7 @@ jobs:
   setup:
     name: preparing
     runs-on: ubuntu-latest
-    environment: production
+    environment: ${{inputs.WF_ENV_TYPE_DEPLOY}}
     continue-on-error: false
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -85,7 +90,7 @@ jobs:
       - name: Checkout tools repo
         uses: actions/checkout@v3
         with:
-          ref: v1.0.0
+          ref: v1.1.0
           token: ${{ secrets.WF_GITHUB_TOKEN }} 
           repository: QueroDelivery/kube
           path: .kube
@@ -136,6 +141,7 @@ jobs:
         env:
           KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
           KUBE_DOMAIN: ${{ secrets.WF_KUBE_DOMAIN }}
+          KUBE_DOMAIN_INTERNAL: ${{ secrets.WF_KUBE_DOMAIN_INTERNAL }}
           KUBECONFIG: .kube/config-${{secrets.WF_KUBE_TYPE}}.yaml
           KUBEDEPLOYMENT: .kube/deployment-${{inputs.WF_KUBE_DEPLOYMENT}}.yaml
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}

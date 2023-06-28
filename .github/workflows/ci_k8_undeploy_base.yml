@@ -6,6 +6,9 @@ on:
       WF_ENV_TYPE:
         type: string
         required: true
+      WF_ENV_TYPE_DEPLOY:
+        type: string
+        required: true
         
     secrets:
       WF_KUBE_TYPE:
@@ -26,7 +29,7 @@ jobs:
   setup:
     name: preparing
     runs-on: ubuntu-latest
-    environment: production
+    environment: ${{inputs.WF_ENV_TYPE_DEPLOY}}
     continue-on-error: false
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -39,7 +42,7 @@ jobs:
       - name: Checkout tools repo
         uses: actions/checkout@v3
         with:
-          ref: v1.0.0
+          ref: v1.1.0
           token: ${{ secrets.WF_GITHUB_TOKEN }} 
           repository: QueroDelivery/kube
           path: .kube
