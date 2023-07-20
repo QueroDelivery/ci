@@ -1,3 +1,10 @@
+# [2.3.0](https://github.com/QueroDelivery/ci/compare/v2.2.0...v2.3.0) (2023-07-20)
+
+
+### Features
+
+* :construction_worker: adding node modules cache to base-node-build workflow ([d701fe8](https://github.com/QueroDelivery/ci/commit/d701fe820ca9f564e2d5594090ab9688684f7843))
+
 # [2.2.0](https://github.com/QueroDelivery/ci/compare/v2.1.1...v2.2.0) (2023-06-28)
 
 
