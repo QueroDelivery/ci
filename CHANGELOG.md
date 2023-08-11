@@ -1,3 +1,11 @@
+# [2.4.0](https://github.com/QueroDelivery/ci/compare/v2.3.0...v2.4.0) (2023-08-11)
+
+
+### Features
+
+* upgrade kube files version ([20e6f07](https://github.com/QueroDelivery/ci/commit/20e6f07cf58232934f1ce0fe43f23708c9f0022d))
+* use upgrade hpa kube version ([e93abe1](https://github.com/QueroDelivery/ci/commit/e93abe16965645f0319913b52a8f08796dc7be7b))
+
 # [2.3.0](https://github.com/QueroDelivery/ci/compare/v2.2.0...v2.3.0) (2023-07-20)
 
 
