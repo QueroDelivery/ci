@@ -86,6 +86,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           persist-credentials: false
+          fetch-depth: 0
       
       - name: Checkout tools repo
         uses: actions/checkout@v3
@@ -207,8 +208,20 @@ jobs:
           gh pr comment ${{ github.event.pull_request.number }} --body "Segura o link dessa app review aí ó o/
             -   URL: https://${{ secrets.WF_KUBE_NAME }}${{ secrets.WF_KUBE_DOMAIN }}"
       
+      - name: Check if there are commits between staging to main
+        id: check_commits
+        if: ${{ inputs.WF_CREATE_PR_IN_MAIN}}
+        run: |        
+            if [ "$(git rev-list --count 'origin/main..HEAD')" -eq 0 ]; then
+              echo "No commits to create pull request for."
+              echo "commits_head_main=false" >> $GITHUB_OUTPUT
+            else
+              echo "Commits found. Ready to create pull request."
+              echo "commits_head_main=true" >> $GITHUB_OUTPUT
+            fi
+  
       - name: Create Pull Request for prod
-        if: ${{ inputs.WF_CREATE_PR_IN_MAIN }}
+        if: ${{ inputs.WF_CREATE_PR_IN_MAIN && steps.check_commits.outputs.commits_head_main == 'true'}}
         id: 'open-pr'
         env:
           GH_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }} 
