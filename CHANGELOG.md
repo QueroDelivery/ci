@@ -1,3 +1,22 @@
+# [2.5.0](https://github.com/QueroDelivery/ci/compare/v2.4.0...v2.5.0) (2023-08-17)
+
+
+### Bug Fixes
+
+* check commits shell script step ([f27a053](https://github.com/QueroDelivery/ci/commit/f27a053eebbfefcdb26d2724de35462a323ecb0d))
+* just check commits when is to open PR ([7e7221a](https://github.com/QueroDelivery/ci/commit/7e7221a6c3e32e50630da8444372922c2b01eb39))
+* run ([8ad25a5](https://github.com/QueroDelivery/ci/commit/8ad25a53d78961a2bd8b5136af1118f0ddaee124))
+* syntax shell step ([1a75306](https://github.com/QueroDelivery/ci/commit/1a75306e33941f0a1c5dcf2ef385f40f98d107c3))
+* try a different approach to check diff commits count ([092fef2](https://github.com/QueroDelivery/ci/commit/092fef23a8345e8ce802bc270638cfd189c497de))
+* try another git command ([28a974e](https://github.com/QueroDelivery/ci/commit/28a974e7c68b4c65aee57eda0ee02ef63e44c083))
+
+
+### Features
+
+* add check if there is commits between stg to main ([45e755e](https://github.com/QueroDelivery/ci/commit/45e755e32eb734b4e80bbd833dd1de025a37f63d))
+* checking if there is any commit ahead main before to pr ([0a22439](https://github.com/QueroDelivery/ci/commit/0a224397a8dc18951655cb37e70e3416b7f10b10))
+* config fetch depth on checkout ([1f16f5b](https://github.com/QueroDelivery/ci/commit/1f16f5b2bd6caf3c079365d5a7b68cbcaa38a2c7))
+
 # [2.4.0](https://github.com/QueroDelivery/ci/compare/v2.3.0...v2.4.0) (2023-08-11)
 
 
