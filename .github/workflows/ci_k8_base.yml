@@ -207,6 +207,17 @@ jobs:
           gh pr comment ${{ github.event.pull_request.number }} --body "Segura o link dessa app review aí ó o/
             -   URL: https://${{ secrets.WF_KUBE_NAME }}${{ secrets.WF_KUBE_DOMAIN }}"
       
+      - name: Check if there are commits between stg to main
+        id: check_commits
+        run: |
+          if [ -z "$(git rev-list main..HEAD)" ]; then
+            echo "No commits to create pull request for."
+            echo "::set-output name=no_commits::true"
+          else
+            echo "Commits found. Ready to create pull request."
+            echo "::set-output name=no_commits::false"
+          fi
+  
       - name: Create Pull Request for prod
         if: ${{ inputs.WF_CREATE_PR_IN_MAIN }}
         id: 'open-pr'
