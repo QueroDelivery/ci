@@ -209,14 +209,14 @@ jobs:
       
       - name: Check if there are commits between staging to main
         id: check_commits
-        run: |
-          if [ -z git rev-list main..HEAD ]; then
-            echo "No commits to create pull request for."
-            echo "::set-output name=no_commits::true"
-          else
-            echo "Commits found. Ready to create pull request."
-            echo "::set-output name=no_commits::false"
-          fi
+        run: |        
+            if [ -z $(git rev-list main..HEAD)]; then
+              echo "No commits to create pull request for."
+              echo "::set-output name=no_commits::true"
+            else
+              echo "Commits found. Ready to create pull request."
+              echo "::set-output name=no_commits::false"
+            fi
   
       - name: Create Pull Request for prod
         if: ${{ inputs.WF_CREATE_PR_IN_MAIN }}
