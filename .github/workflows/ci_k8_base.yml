@@ -214,14 +214,14 @@ jobs:
         run: |        
             if [ "$(git rev-list --count 'origin/main..HEAD')" -eq 0 ]; then
               echo "No commits to create pull request for."
-              echo "name=no_commits_head_main::true" >> $GITHUB_OUTPUT
+              echo "name=commits_head_main::false" >> $GITHUB_OUTPUT
             else
               echo "Commits found. Ready to create pull request."
-              echo "name=no_commits_head_main::false" >> $GITHUB_OUTPUT
+              echo "name=commits_head_main::true" >> $GITHUB_OUTPUT
             fi
   
       - name: Create Pull Request for prod
-        if: ${{ inputs.WF_CREATE_PR_IN_MAIN && steps.check_commits.outputs.ahead == 'true'}}
+        if: ${{ inputs.WF_CREATE_PR_IN_MAIN && steps.check_commits.outputs.commits_head_main == 'true'}}
         id: 'open-pr'
         env:
           GH_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }} 
