@@ -217,7 +217,7 @@ jobs:
               echo "name=no_commits_head_main::true" >> $GITHUB_OUTPUT
             else
               echo "Commits found. Ready to create pull request."
-              echo "name::no_commits_head_main::false" >> $GITHUB_OUTPUT
+              echo "name=no_commits_head_main::false" >> $GITHUB_OUTPUT
             fi
   
       - name: Create Pull Request for prod
