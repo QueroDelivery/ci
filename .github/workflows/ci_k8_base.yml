@@ -210,7 +210,7 @@ jobs:
       - name: Check if there are commits between staging to main
         id: check_commits
         run: |        
-            if [ -z $(git rev-list main..HEAD)]; then
+            if [ "$(git rev-list --count main..HEAD)" -eq 0 ]; then
               echo "No commits to create pull request for."
               echo "::set-output name=no_commits::true"
             else
