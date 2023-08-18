@@ -1,3 +1,10 @@
+## [2.5.1](https://github.com/QueroDelivery/ci/compare/v2.5.0...v2.5.1) (2023-08-18)
+
+
+### Bug Fixes
+
+* rollback on kube folder ([66aa657](https://github.com/QueroDelivery/ci/commit/66aa6573ceb42a5fd36739a5b0df0df90ed13212))
+
 # [2.5.0](https://github.com/QueroDelivery/ci/compare/v2.4.0...v2.5.0) (2023-08-17)
 
 
