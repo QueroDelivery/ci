@@ -1,3 +1,10 @@
+## [2.6.1](https://github.com/QueroDelivery/ci/compare/v2.6.0...v2.6.1) (2023-08-23)
+
+
+### Bug Fixes
+
+* add mask password to another steps ([848011e](https://github.com/QueroDelivery/ci/commit/848011e5324b372a740edeeadbc3e9bf2d0728fe))
+
 # [2.6.0](https://github.com/QueroDelivery/ci/compare/v2.5.1...v2.6.0) (2023-08-23)
 
 
