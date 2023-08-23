@@ -1,3 +1,10 @@
+# [2.6.0](https://github.com/QueroDelivery/ci/compare/v2.5.1...v2.6.0) (2023-08-23)
+
+
+### Features
+
+* enable mask password as true on ecr login ([27a2cdb](https://github.com/QueroDelivery/ci/commit/27a2cdbd05f1704ae78643b19f9c2fb070c93a22))
+
 ## [2.5.1](https://github.com/QueroDelivery/ci/compare/v2.5.0...v2.5.1) (2023-08-18)
 
 
