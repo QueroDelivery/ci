@@ -91,7 +91,7 @@ jobs:
       - name: Checkout tools repo
         uses: actions/checkout@v3
         with:
-          ref: update-hpa-version
+          ref: v1.3.0
           token: ${{ secrets.WF_GITHUB_TOKEN }} 
           repository: QueroDelivery/kube
           path: .kube
