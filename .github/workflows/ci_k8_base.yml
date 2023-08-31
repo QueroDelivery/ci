@@ -161,7 +161,6 @@ jobs:
         run: |
           echo "Export must be a first line"
           export PATH=$PATH:$PWD
-          kubectl version --client
           kubectl version
           echo "Replacing envs from kube manifests"
           echo "public host ${PUBLIC_HOST}"
