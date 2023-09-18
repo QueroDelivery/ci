@@ -1,3 +1,11 @@
+# [2.7.0](https://github.com/QueroDelivery/ci/compare/v2.6.1...v2.7.0) (2023-09-18)
+
+
+### Features
+
+* define kube folder version ([b839f2b](https://github.com/QueroDelivery/ci/commit/b839f2b3ba70a56b10296945de7a6c56ef315fa2))
+* update bin kubectl ([9ea50f2](https://github.com/QueroDelivery/ci/commit/9ea50f222a3a53c20aa6f593aec51ae95ee745a2))
+
 ## [2.6.1](https://github.com/QueroDelivery/ci/compare/v2.6.0...v2.6.1) (2023-08-23)
 
 
