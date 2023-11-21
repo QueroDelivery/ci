@@ -1,3 +1,10 @@
+## [3.0.1](https://github.com/QueroDelivery/ci/compare/v3.0.0...v3.0.1) (2023-11-21)
+
+
+### Bug Fixes
+
+* change WF_INTERNET_FACING to required false and default false ([e91de17](https://github.com/QueroDelivery/ci/commit/e91de17df87f5107c77ebc80d37703b597c5f5a1))
+
 # [3.0.0](https://github.com/QueroDelivery/ci/compare/v2.7.0...v3.0.0) (2023-11-21)
 
 
