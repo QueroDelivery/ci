@@ -47,7 +47,8 @@ on:
         required: false
       WF_INTERNET_FACING:
         type: boolean
-        required: true
+        required: false
+        default: true
         
     secrets:
       WF_KUBE_TYPE:
