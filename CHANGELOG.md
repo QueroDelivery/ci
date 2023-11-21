@@ -1,3 +1,21 @@
+# [3.0.0](https://github.com/QueroDelivery/ci/compare/v2.7.0...v3.0.0) (2023-11-21)
+
+
+### Features
+
+* add feature to configure non internet facing ([fc1526c](https://github.com/QueroDelivery/ci/commit/fc1526c3432f39a5266552eb541772e7c641feb5))
+
+
+### BREAKING CHANGES
+
+* This commit needs to set a new variable to configure
+the visibility of the service.
+If the Service is internet facing you should configure the
+WF_INTERNET_FACING: TRUE, Otherwise , its value is false.
+
+footer: This commit is needed to set the visibility of the services on
+internet facing or local
+
 # [2.7.0](https://github.com/QueroDelivery/ci/compare/v2.6.1...v2.7.0) (2023-09-18)
 
 
