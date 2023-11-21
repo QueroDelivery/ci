@@ -45,6 +45,9 @@ on:
       WF_IS_INTERNAL:
         type: boolean
         required: false
+      WF_INTERNET_FACING:
+        type: boolean
+        required: true
         
     secrets:
       WF_KUBE_TYPE:
@@ -156,6 +159,8 @@ jobs:
           KUBE_CPU_REQUEST: ${{ inputs.WF_KUBE_CPU_REQUEST }}
           KUBE_NODE_GROUP: ${{ inputs.WF_KUBE_NODE_GROUP }}
         run: |
+          IF VPN=TRUE
+             KUBE_WHITELIST_SOURCE_RANGE=${{ secrets.KUBE_WHITELIST_SOURCE_RANGE }}
           echo "Export must be a first line"
           export PATH=$PATH:$PWD
           kubectl version --client
@@ -166,7 +171,6 @@ jobs:
           cat .kube/${KUBE_NAME}-env-cm.yaml | envsubst > ${KUBE_NAME}-env-cm.yaml
           cat ${KUBEDEPLOYMENT} | envsubst > deployment.yaml
           cat .kube/service.yaml | envsubst > service.yaml
-          cat .kube/ingress.yaml | envsubst > ingress.yaml
           cat .kube/hpa.yaml | envsubst > hpa.yaml
           echo "Applying namespace"
           kubectl apply -f namespace.yaml
@@ -181,9 +185,34 @@ jobs:
           kubectl apply -f hpa.yaml
           echo "Applying service"
           kubectl apply -f service.yaml
+          
+      - name: Ingress Internet Facing
+        if: ${{ inputs.WF_INTERNET_FACING }}
+        id: 'ingress-internet-facing'
+        env:
+          KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
+          KUBE_DOMAIN: ${{ secrets.WF_KUBE_DOMAIN }}
+          KUBE_DOMAIN_INTERNAL: ${{ secrets.WF_KUBE_DOMAIN_INTERNAL }}
+          KUBECONFIG: .kube/config-${{secrets.WF_KUBE_TYPE}}.yaml
+        run: |
+          cat .kube/ingress.yaml | envsubst > ingress.yaml
           echo "Applying ingress"
           kubectl apply -f ingress.yaml
           echo "URL: https://${KUBE_NAME}${KUBE_DOMAIN}"
+      
+      - name: Ingress Non Internet Facing
+        if: ${{ !inputs.WF_INTERNET_FACING }}
+        id: 'ingress-non-internet-facing'
+        env:
+          KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
+          KUBE_DOMAIN_INTERNAL: ${{ secrets.WF_KUBE_DOMAIN_INTERNAL }}
+          KUBECONFIG: .kube/config-${{secrets.WF_KUBE_TYPE}}.yaml
+        run: |
+          cat .kube/ingress-internal.yaml | envsubst > ingress.yaml
+          echo "Applying ingress"
+          kubectl apply -f ingress.yaml
+          echo "URL: http://${KUBE_NAME}${KUBE_DOMAIN_INTERNAL}"
+
       
       - name: Setting the service visibility
         if: ${{ inputs.WF_IS_INTERNAL }}
