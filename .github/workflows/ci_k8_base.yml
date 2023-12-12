@@ -27,11 +27,11 @@ on:
         default: 250Mi
       WF_KUBE_CPU_LIMIT:  
         type: string
-        required: false
-        default: 85m
+        required: true
       WF_KUBE_CPU_REQUEST:  
         type: string
-        required: true
+        required: false
+        default: 85m
       WF_KUBE_NODE_GROUP:  
         type: string
         required: true
