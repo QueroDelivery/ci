@@ -23,7 +23,8 @@ on:
         required: true
       WF_KUBE_MEMORY_REQUEST:  
         type: string
-        required: true
+        required: false
+        default: 250Mi
       WF_KUBE_CPU_LIMIT:  
         type: string
         required: true
