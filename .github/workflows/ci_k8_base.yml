@@ -20,7 +20,7 @@ on:
         required: true
       WF_KUBE_MEMORY_LIMIT:
         type: string
-        required: true
+        required: false
       WF_KUBE_MEMORY_REQUEST:  
         type: string
         required: false
@@ -141,6 +141,19 @@ jobs:
           sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
           curl -o aws-iam-authenticator https://amazon-eks.s3.us-west-2.amazonaws.com/1.19.6/2021-01-05/bin/linux/amd64/aws-iam-authenticator
           chmod u+x aws-iam-authenticator
+      
+      - name: Defining envs variables for kube
+        run: |
+          WF_KUBE_MEMORY_LIMIT=${{ inputs.WF_KUBE_MEMORY_LIMIT }}
+          
+          # Check if B is null or empty
+          if [ -z "$WF_KUBE_MEMORY_LIMIT" ]; then
+              # If WF_KUBE_MEMORY_LIMIT is null or empty, assign the value of WF_KUBE_MEMORY_REQUEST to WF_KUBE_MEMORY_LIMIT
+              WF_KUBE_MEMORY_LIMIT="${{ inputs.WF_KUBE_MEMORY_REQUEST }}"
+          fi
+
+          echo "WF_KUBE_MEMORY_LIMIT: $WF_KUBE_MEMORY_LIMIT"
+          
 
       - name: Kubernetes Deploy
         env:
