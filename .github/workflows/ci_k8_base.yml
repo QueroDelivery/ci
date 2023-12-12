@@ -150,8 +150,8 @@ jobs:
               WF_KUBE_MEMORY_LIMIT="${{ inputs.WF_KUBE_MEMORY_REQUEST }}"
           fi
 
-          echo "WF_KUBE_MEMORY_LIMIT: $WF_KUBE_MEMORY_LIMIT"
-          export WF_KUBE_MEMORY_LIMIT
+          echo "WF_KUBE_MEMORY_LIMIT=$WF_KUBE_MEMORY_LIMIT" >> $GITHUB_ENV
+          echo "WF_KUBE_MEMORY=$WF_KUBE_MEMORY_LIMIT" >> $GITHUB_ENV
 
       - name: Kubernetes Deploy
         env:
@@ -172,6 +172,7 @@ jobs:
           KUBE_CPU_REQUEST: ${{ inputs.WF_KUBE_CPU_REQUEST }}
           KUBE_NODE_GROUP: ${{ inputs.WF_KUBE_NODE_GROUP }}
         run: |
+          echo "WF_KUBE_MEMORY=$WF_KUBE_MEMORY"
           echo "Export must be a first line"
           export PATH=$PATH:$PWD
           kubectl version
