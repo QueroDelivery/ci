@@ -1,3 +1,15 @@
+# [2.9.0](https://github.com/QueroDelivery/ci/compare/v2.8.0...v2.9.0) (2023-12-12)
+
+
+### Bug Fixes
+
+* exporting WF_KUBE_MEMORY_LIMIT ([1b04257](https://github.com/QueroDelivery/ci/commit/1b04257f0cab3d577118bc609deb59ff0f298441))
+
+
+### Features
+
+* defining memory limit as memory requested when doesn't send memory limit input ([2ce7a08](https://github.com/QueroDelivery/ci/commit/2ce7a08f34b0e140367a8aa753e34721d77cc0b3))
+
 # [2.8.0](https://github.com/QueroDelivery/ci/compare/v2.7.0...v2.8.0) (2023-12-12)
 
 
