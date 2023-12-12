@@ -1,51 +1,27 @@
-# [3.0.0](https://github.com/QueroDelivery/ci/compare/v2.7.0...v3.0.0) (2023-11-21)
+# [2.9.0](https://github.com/QueroDelivery/ci/compare/v2.8.0...v2.9.0) (2023-12-12)
 
 
 ### Bug Fixes
 
-* change WF_INTERNET_FACING to required false and default false ([e91de17](https://github.com/QueroDelivery/ci/commit/e91de17df87f5107c77ebc80d37703b597c5f5a1))
-* revert internet-facing ([26b5031](https://github.com/QueroDelivery/ci/commit/26b50317970ead5219704cd7bf3ff047ebb89d35))
+* exporting WF_KUBE_MEMORY_LIMIT ([1b04257](https://github.com/QueroDelivery/ci/commit/1b04257f0cab3d577118bc609deb59ff0f298441))
 
 
 ### Features
 
-* add feature to configure non internet facing ([fc1526c](https://github.com/QueroDelivery/ci/commit/fc1526c3432f39a5266552eb541772e7c641feb5))
+* defining memory limit as memory requested when doesn't send memory limit input ([2ce7a08](https://github.com/QueroDelivery/ci/commit/2ce7a08f34b0e140367a8aa753e34721d77cc0b3))
 
-
-### BREAKING CHANGES
-
-* This commit needs to set a new variable to configure
-the visibility of the service.
-If the Service is internet facing you should configure the
-WF_INTERNET_FACING: TRUE, Otherwise , its value is false.
-
-footer: This commit is needed to set the visibility of the services on
-internet facing or local
-
-## [3.0.1](https://github.com/QueroDelivery/ci/compare/v3.0.0...v3.0.1) (2023-11-21)
+# [2.8.0](https://github.com/QueroDelivery/ci/compare/v2.7.0...v2.8.0) (2023-12-12)
 
 
 ### Bug Fixes
 
-* change WF_INTERNET_FACING to required false and default false ([e91de17](https://github.com/QueroDelivery/ci/commit/e91de17df87f5107c77ebc80d37703b597c5f5a1))
-
-# [3.0.0](https://github.com/QueroDelivery/ci/compare/v2.7.0...v3.0.0) (2023-11-21)
+* defining cpu requested instead cpu limits default ([0264ffe](https://github.com/QueroDelivery/ci/commit/0264ffe743b45d1067349c7bca2dcc48d32c0f16))
 
 
 ### Features
 
-* add feature to configure non internet facing ([fc1526c](https://github.com/QueroDelivery/ci/commit/fc1526c3432f39a5266552eb541772e7c641feb5))
-
-
-### BREAKING CHANGES
-
-* This commit needs to set a new variable to configure
-the visibility of the service.
-If the Service is internet facing you should configure the
-WF_INTERNET_FACING: TRUE, Otherwise , its value is false.
-
-footer: This commit is needed to set the visibility of the services on
-internet facing or local
+* defining default value to cpu requested ([108a340](https://github.com/QueroDelivery/ci/commit/108a340256a411b3ead9c07d8d4bcb6fd671ca7e))
+* defining default value to memory requested ([4524aeb](https://github.com/QueroDelivery/ci/commit/4524aebd2506aa49a5493da1f8ee72d1367ae13b))
 
 # [2.7.0](https://github.com/QueroDelivery/ci/compare/v2.6.1...v2.7.0) (2023-09-18)
 
