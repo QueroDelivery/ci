@@ -1,3 +1,16 @@
+# [2.8.0](https://github.com/QueroDelivery/ci/compare/v2.7.0...v2.8.0) (2023-12-12)
+
+
+### Bug Fixes
+
+* defining cpu requested instead cpu limits default ([0264ffe](https://github.com/QueroDelivery/ci/commit/0264ffe743b45d1067349c7bca2dcc48d32c0f16))
+
+
+### Features
+
+* defining default value to cpu requested ([108a340](https://github.com/QueroDelivery/ci/commit/108a340256a411b3ead9c07d8d4bcb6fd671ca7e))
+* defining default value to memory requested ([4524aeb](https://github.com/QueroDelivery/ci/commit/4524aebd2506aa49a5493da1f8ee72d1367ae13b))
+
 # [2.7.0](https://github.com/QueroDelivery/ci/compare/v2.6.1...v2.7.0) (2023-09-18)
 
 
