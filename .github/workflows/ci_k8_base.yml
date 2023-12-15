@@ -154,6 +154,7 @@ jobs:
       - name: Remove WF_KUBE_CPU_LIMIT when is null
         if: ${{inputs.WF_KUBE_CPU_LIMIT}} === 'null'
         run: |
+          cat .kube/deployment-new.yaml
           sed -i ''  '/KUBE_CPU_LIMIT/d' .kube/deployment-new.yaml
       - name: Kubernetes Deploy
         env:
