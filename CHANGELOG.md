@@ -1,3 +1,19 @@
+# [2.10.0](https://github.com/QueroDelivery/ci/compare/v2.9.0...v2.10.0) (2023-12-15)
+
+
+### Bug Fixes
+
+* directory to  kube folder ([3549d67](https://github.com/QueroDelivery/ci/commit/3549d67889bca0844963255b0c146413fcd6ccc9))
+* if command on remove WF KUBE CPU LIMIT ([011215b](https://github.com/QueroDelivery/ci/commit/011215b86e601e105fb83ea8e79ac93f98444fda))
+* if condition ([a318cf0](https://github.com/QueroDelivery/ci/commit/a318cf0752919efadf5510a16d0a14f35347d5b9))
+* if statement ([25ac13b](https://github.com/QueroDelivery/ci/commit/25ac13bc439e0a1a9c2183a4a4a9822a683dbed0))
+* nil string ([9d2a403](https://github.com/QueroDelivery/ci/commit/9d2a40310040307e0e7cb2a05a67b6ff807b523b))
+
+
+### Features
+
+* turn WF_KUBE_CPU_LIMIT optional and remove it from config when is null ([84a73b5](https://github.com/QueroDelivery/ci/commit/84a73b5ad182954b8e85745f927c422fc88435e6))
+
 # [2.9.0](https://github.com/QueroDelivery/ci/compare/v2.8.0...v2.9.0) (2023-12-12)
 
 
