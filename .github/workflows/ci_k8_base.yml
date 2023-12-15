@@ -155,7 +155,7 @@ jobs:
         if: ${{inputs.WF_KUBE_CPU_LIMIT}} === 'null'
         run: |
           cat .kube/deployment-new.yaml
-          sed -i ''  '/KUBE_CPU_LIMIT/g' ./.kube/deployment-new.yaml
+          sed -i '/KUBE_CPU_LIMIT/g' ./.kube/deployment-new.yaml
       - name: Kubernetes Deploy
         env:
           KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
