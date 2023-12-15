@@ -152,7 +152,7 @@ jobs:
 
           echo "WF_KUBE_MEMORY_LIMIT=$WF_KUBE_MEMORY_LIMIT" >> $GITHUB_ENV
       - name: Remove WF_KUBE_CPU_LIMIT when is null
-        if: ${{inputs.WF_KUBE_CPU_LIMIT}} === 'null'
+        if: ${{inputs.WF_KUBE_CPU_LIMIT}} == 'null'
         run: |
           echo WF_KUBE_CPU_LIMIT: ${{inputs.WF_KUBE_CPU_LIMIT}}
           sed -i '/KUBE_CPU_LIMIT/g' ./.kube/deployment-new.yaml
