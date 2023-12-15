@@ -27,7 +27,7 @@ on:
         default: 250Mi
       WF_KUBE_CPU_LIMIT:
         type: string
-        required: true
+        required: false
       WF_KUBE_CPU_REQUEST:
         type: string
         required: false
@@ -151,7 +151,10 @@ jobs:
           fi
 
           echo "WF_KUBE_MEMORY_LIMIT=$WF_KUBE_MEMORY_LIMIT" >> $GITHUB_ENV
-
+      - name: Remove WF_KUBE_CPU_LIMIT when is null
+        if: ${{inputs.WF_KUBE_CPU_LIMIT}} === 'null'
+        run: |
+          sed -i ''  '/KUBE_CPU_LIMIT/d' .kube/deployment-new.yaml
       - name: Kubernetes Deploy
         env:
           KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
