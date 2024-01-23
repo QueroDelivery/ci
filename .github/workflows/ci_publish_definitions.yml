@@ -195,9 +195,19 @@ jobs:
           git checkout -b $BRANCH_NAME
 
           cp -R ../../../$SERVICE_NAME  $SERVICE_NAME 
+
+          # Commit the changes and push the feature branch to origin
+          git add .
+          git commit -m "chore: update $SERVICE_NAME to $LATEST_TAG"
+          git push origin $BRANCH_NAME
+
+          echo "doing login"
           echo ${{ secrets.WF_GITHUB_TOKEN }} | gh auth login --with-token
           ##fazer o push 
 
+          echo "login done"
+
+          echo "creating PR"
           gh pr create \
           --body "" \
           --title "chore: update $SERVICE_NAME to $LATEST_TAG" \
