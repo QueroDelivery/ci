@@ -195,19 +195,14 @@ jobs:
           git config user.email "querodeliverysa@gmail.com"
           git config user.name "querodeliverysa"
 
-          echo "creating branch"          
+          echo "creating branch"
           git checkout -b $BRANCH_NAME
 
-          echo "doing a copy of files"          
-          cp -R ../../../$SERVICE_NAME  $SERVICE_NAME 
+          echo "doing a copy of files"
+          cp -R ../../../$SERVICE_NAME  $SERVICE_NAME
 
+          echo "commiting a copy of files"
           # Commit the changes and push the feature branch to origin
           git add .
           git commit -m "chore: update $SERVICE_NAME to $LATEST_TAG"
-          git push origin $BRANCH_NAME
-          
-          gh pr create \
-          --body "" \
-          --title "chore: update $SERVICE_NAME to $LATEST_TAG" \
-          --head "$BRANCH_NAME" \
-          --base "main"
+          git push origin stage
