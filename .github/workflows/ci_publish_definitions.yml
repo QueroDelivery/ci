@@ -179,12 +179,12 @@ jobs:
 
 
           # debug
+
           echo ls 
+          cd $SERVICE_NAME
           ls
-
-          echo cat
-          cat $SERVICE_NAME/ -R
-
+          echo ls 
+          cat deployment.yaml
 
           LATEST_TAG=$(git describe --tags --always --abbrev=0)
           REPOSITORY="QueroDelivery/applications-definitions"
