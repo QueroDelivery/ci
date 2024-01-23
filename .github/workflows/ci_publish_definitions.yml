@@ -200,7 +200,8 @@ jobs:
 
           echo "doing a copy of files"
           cp -R ../../../$SERVICE_NAME  $SERVICE_NAME
-
+          echo ${{ secrets.WF_GITHUB_TOKEN }} | gh auth login --with-token
+          
           echo "commiting a copy of files"
           # Commit the changes and push the feature branch to origin
           git add .
