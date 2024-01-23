@@ -190,20 +190,16 @@ jobs:
           https://querodeliverysa:${{ secrets.WF_GITHUB_TOKEN }}@github.com/$REPOSITORY \
           \
           $FOLDER
-
-          # debug
-
-          echo ls 
-          ls
-          
-
-          
           cd $FOLDER
-          echo "ls inside folder"
-          ls
           
           git checkout -b $BRANCH_NAME
 
           cp -R ../../../$SERVICE_NAME  $SERVICE_NAME 
+          echo ${{ secrets.WF_GITHUB_TOKEN }} | gh auth login --with-token
+          ##fazer o push 
 
-          ls
+          gh pr create \
+          --body "" \
+          --title "chore: update $SERVICE_NAME to $LATEST_TAG" \
+          --head "$BRANCH_NAME" \
+          --base "main"
