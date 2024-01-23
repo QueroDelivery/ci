@@ -187,7 +187,8 @@ jobs:
           git clone \
           --depth=1 \
           --branch=main \
-          https://github.com/QueroDelivery/applications-definitions \
+          https://querodeliverysa:${{ secrets.WF_GITHUB_TOKEN }}@github.com/$REPOSITORY \
+          \
           $FOLDER
 
           # debug
