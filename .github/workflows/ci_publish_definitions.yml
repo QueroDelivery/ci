@@ -168,9 +168,7 @@ jobs:
         run: |
           echo "Export must be a first line"
           export PATH=$PATH:$PWD
-          kubectl version
           echo "Replacing envs from kube manifests"
-          echo "public host ${PUBLIC_HOST}"
           mkdir $SERVICE_NAME 
           cat .kube/namespace.yaml | envsubst > $SERVICE_NAME/namespace.yaml
           cat .kube/${KUBE_NAME}-env-cm.yaml | envsubst > $SERVICE_NAME/${KUBE_NAME}-env-cm.yaml
