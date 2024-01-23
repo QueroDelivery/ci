@@ -191,6 +191,11 @@ jobs:
           \
           $FOLDER
           cd $FOLDER
+
+          # Setup the committers identity.
+          git config user.email "querodeliverysa@gmail.com"
+          git config user.name "querodeliverysa"
+
           
           git checkout -b $BRANCH_NAME
 
