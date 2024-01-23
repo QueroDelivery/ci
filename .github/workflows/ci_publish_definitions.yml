@@ -1,0 +1,202 @@
+# This is a basic workflow to help you get started with Actions
+name: CI-K8-BASE
+on:
+  workflow_call:
+    inputs:
+      WF_ENV_TYPE_DEPLOY:
+        type: string
+        required: true
+      WF_ENV_TYPE:
+        type: string
+        required: true
+      WF_PUBLIC_HOST:
+        type: string
+        required: false
+      WF_KUBE_MIN_REPLICAS:
+        type: string
+        required: true
+      WF_KUBE_MAX_REPLICAS:
+        type: string
+        required: true
+      WF_KUBE_MEMORY_LIMIT:
+        type: string
+        required: false
+      WF_KUBE_MEMORY_REQUEST:
+        type: string
+        required: false
+        default: 250Mi
+      WF_KUBE_CPU_LIMIT:
+        type: string
+        required: false
+      WF_KUBE_CPU_REQUEST:
+        type: string
+        required: false
+        default: 85m
+      WF_KUBE_NODE_GROUP:
+        type: string
+        required: true
+      WF_KUBE_DEPLOYMENT:
+        type: string
+        required: true
+      WF_SHOW_COMMENT:
+        type: boolean
+        required: false
+      WF_CREATE_PR_IN_MAIN:
+        type: boolean
+        required: false
+      WF_IS_INTERNAL:
+        type: boolean
+        required: false
+
+    secrets:
+      WF_KUBE_TYPE:
+        required: true
+
+      WF_SERVICE_NAME:
+        required: true
+      WF_KUBE_NAME:
+        required: true
+      WF_KUBE_DOMAIN:
+        required: true
+      WF_KUBE_DOMAIN_INTERNAL:
+        required: true
+
+      WF_GITHUB_TOKEN:
+        required: true
+
+      WF_WHITELIST_SOURCE_RANGE:
+        required: false
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  setup:
+    name: preparing
+    runs-on: ubuntu-latest
+    environment: ${{inputs.WF_ENV_TYPE_DEPLOY}}
+    continue-on-error: false
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Checkout tools repo
+        uses: actions/checkout@v3
+        with:
+          ref: v1.3.0
+          token: ${{ secrets.WF_GITHUB_TOKEN }}
+          repository: QueroDelivery/kube
+          path: .kube
+          persist-credentials: false
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          aws-access-key-id: ${{ secrets.WF_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.WF_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.WF_AWS_REGION }}
+          role-session-name: ${{ secrets.WF_SERVICE_NAME }}_GitHubActions
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+        with:
+          mask-password: "true"
+
+      - name: Creating configmap.yaml from aws parameter store
+        uses: almerindo/action-env-from-aws-ssm@main
+        with:
+          output: .kube/${{ secrets.WF_KUBE_NAME }}-env-cm.yaml
+          ssm-path: "/${{ inputs.WF_ENV_TYPE }}/${{ secrets.WF_SERVICE_NAME }}"
+          format: configmap
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.WF_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.WF_AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.WF_AWS_REGION }}
+
+      - name: Override kubefiles
+        run: |
+          FILE=setup/.kube
+          if [[ -d "$FILE" ]]; then
+            echo "$FILE EXIST!" 
+            cp -avf setup/.kube/*.yaml .kube/
+            echo "Kubefiles Override FINISHED" 
+          fi
+
+      - name: Defining envs variables for kube
+        run: |
+          WF_KUBE_MEMORY_LIMIT=${{ inputs.WF_KUBE_MEMORY_LIMIT }}
+
+          # Check if B is null or empty
+          if [ -z "$WF_KUBE_MEMORY_LIMIT" ]; then
+              # If WF_KUBE_MEMORY_LIMIT is null or empty, assign the value of WF_KUBE_MEMORY_REQUEST to WF_KUBE_MEMORY_LIMIT
+              WF_KUBE_MEMORY_LIMIT="${{ inputs.WF_KUBE_MEMORY_REQUEST }}"
+          fi
+
+          echo "WF_KUBE_MEMORY_LIMIT=$WF_KUBE_MEMORY_LIMIT" >> $GITHUB_ENV
+      - name: Remove WF_KUBE_CPU_LIMIT when is null
+        if: ${{inputs.WF_KUBE_CPU_LIMIT == ''}}
+        run: |
+          sed -i '/KUBE_CPU_LIMIT/g' ./.kube/deployment-new.yaml
+      - name: Send definitions manifests to repo
+        env:
+          KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
+          KUBE_DOMAIN: ${{ secrets.WF_KUBE_DOMAIN }}
+          KUBE_DOMAIN_INTERNAL: ${{ secrets.WF_KUBE_DOMAIN_INTERNAL }}
+          SERVICE_NAME: ${{ secrets.WF_SERVICE_NAME }}
+          KUBECONFIG: .kube/config-${{secrets.WF_KUBE_TYPE}}.yaml
+          KUBEDEPLOYMENT: .kube/deployment-${{inputs.WF_KUBE_DEPLOYMENT}}.yaml
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: "${{ secrets.WF_SERVICE_NAME }}_${{ inputs.WF_ENV_TYPE}}_repo"
+          VERSION_TAG: ${{ github.sha }}
+          KUBE_MIN_REPLICAS: ${{ inputs.WF_KUBE_MIN_REPLICAS }}
+          PUBLIC_HOST: ${{ inputs.WF_PUBLIC_HOST }}
+          KUBE_MAX_REPLICAS: ${{ inputs.WF_KUBE_MAX_REPLICAS }}
+          KUBE_MEMORY_LIMIT: ${{ env.WF_KUBE_MEMORY_LIMIT }}
+          KUBE_MEMORY_REQUEST: ${{ inputs.WF_KUBE_MEMORY_REQUEST }}
+          KUBE_CPU_LIMIT: ${{ inputs.WF_KUBE_CPU_LIMIT }}
+          KUBE_CPU_REQUEST: ${{ inputs.WF_KUBE_CPU_REQUEST }}
+          KUBE_NODE_GROUP: ${{ inputs.WF_KUBE_NODE_GROUP }}
+        run: |
+          echo "Export must be a first line"
+          export PATH=$PATH:$PWD
+          kubectl version
+          echo "Replacing envs from kube manifests"
+          echo "public host ${PUBLIC_HOST}"
+          mkdir $SERVICE_NAME 
+          cat .kube/namespace.yaml | envsubst > $SERVICE_NAME/namespace.yaml
+          cat .kube/${KUBE_NAME}-env-cm.yaml | envsubst > $SERVICE_NAME/${KUBE_NAME}-env-cm.yaml
+          cat ${KUBEDEPLOYMENT} | envsubst > $SERVICE_NAME/deployment.yaml
+          cat .kube/service.yaml | envsubst > $SERVICE_NAME/service.yaml
+          cat .kube/ingress.yaml | envsubst > $SERVICE_NAME/ingress.yaml
+          cat .kube/hpa.yaml | envsubst > $SERVICE_NAME/hpa.yaml
+
+
+          # debug
+          echo ls 
+          ls
+
+          echo cat
+          cat $SERVICE_NAME/ -R
+
+
+          LATEST_TAG=$(git describe --tags --always --abbrev=0)
+          REPOSITORY="QueroDelivery/applications-definitions"
+          FOLDER="bin/$REPOSITORY"
+          BRANCH_NAME="update-$SERVICE_NAME-to-$LATEST_TAG"
+
+          git clone \
+          --depth=1 \
+          --branch=main \
+          https://github.com/$REPOSITORY \
+          $FOLDER
+
+          cd $FOLDER
+
+          git checkout -b $BRANCH_NAME
+
+          cp -R ../../../$SERVICE_NAME  $SERVICE_NAME 
+
+          ls
