@@ -183,10 +183,11 @@ jobs:
           FOLDER="bin/$REPOSITORY"
           BRANCH_NAME="update-$SERVICE_NAME-to-$LATEST_TAG"
 
+          echo "starting to clone"
           git clone \
           --depth=1 \
           --branch=main \
-          https://github.com/$REPOSITORY \
+          https://github.com/QueroDelivery/applications-definitions \
           $FOLDER
 
           # debug
