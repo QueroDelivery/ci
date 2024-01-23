@@ -1,5 +1,5 @@
 # This is a basic workflow to help you get started with Actions
-name: CI-K8-BASE
+name: PUBLISH_DEFINITIONS
 on:
   workflow_call:
     inputs:
