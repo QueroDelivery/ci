@@ -182,25 +182,21 @@ jobs:
           REPOSITORY="QueroDelivery/applications-definitions"
           FOLDER="bin/$REPOSITORY"
           BRANCH_NAME="update-$SERVICE_NAME-to-$LATEST_TAG"
-          echo "starting to clone"
+          
           git clone https://${{ secrets.WF_GITHUB_TOKEN }}@github.com/$REPOSITORY \
           $FOLDER
 
           cd $FOLDER
 
-          echo "config user"
           # Setup the committers identity.
           git config user.email "querodeliverysa@gmail.com"
           git config user.name "querodeliverysa"
 
-          echo "creating branch"
-          git checkout -b stage
+          git checkout -b ${{inputs.WF_ENV_TYPE}}
 
-          echo "doing a copy of files"
           cp -R ../../../$SERVICE_NAME  $SERVICE_NAME
 
-          echo "commiting a copy of files"
           # Commit the changes and push the feature branch to origin
           git add .
           git commit -m "chore: update $SERVICE_NAME to $LATEST_TAG"
-          git push origin stage
+          git push origin ${{inputs.WF_ENV_TYPE}}
