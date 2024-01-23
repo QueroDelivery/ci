@@ -178,14 +178,6 @@ jobs:
           cat .kube/hpa.yaml | envsubst > $SERVICE_NAME/hpa.yaml
 
 
-          # debug
-
-          echo ls 
-          cd $SERVICE_NAME
-          ls
-          echo ls 
-          cat deployment.yaml
-
           LATEST_TAG=$(git describe --tags --always --abbrev=0)
           REPOSITORY="QueroDelivery/applications-definitions"
           FOLDER="bin/$REPOSITORY"
@@ -197,8 +189,17 @@ jobs:
           https://github.com/$REPOSITORY \
           $FOLDER
 
-          cd $FOLDER
+          # debug
 
+          echo ls 
+          ls
+          
+
+          
+          cd $FOLDER
+          echo "ls inside folder"
+          ls
+          
           git checkout -b $BRANCH_NAME
 
           cp -R ../../../$SERVICE_NAME  $SERVICE_NAME 
