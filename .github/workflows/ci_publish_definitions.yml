@@ -60,6 +60,12 @@ on:
         required: true
       WF_KUBE_DOMAIN_INTERNAL:
         required: true
+      WF_AWS_ACCESS_KEY_ID:
+        required: true
+      WF_AWS_SECRET_ACCESS_KEY:
+        required: true
+      WF_AWS_REGION:
+        required: true
 
       WF_GITHUB_TOKEN:
         required: true
