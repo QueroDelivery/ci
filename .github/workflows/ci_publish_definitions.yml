@@ -189,7 +189,8 @@ jobs:
           gh repo clone $REPOSITORY $FOLDER
 
           cd $FOLDER
-
+          echo ${{ secrets.WF_GITHUB_TOKEN }} | gh auth login --with-token
+          
           echo "config user"
           # Setup the committers identity.
           git config user.email "querodeliverysa@gmail.com"
