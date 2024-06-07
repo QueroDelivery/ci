@@ -1,3 +1,11 @@
+# [2.11.0](https://github.com/QueroDelivery/ci/compare/v2.10.0...v2.11.0) (2024-06-07)
+
+
+### Features
+
+* :sparkles: update checkout, setup-node and cache to v4 ([70795dd](https://github.com/QueroDelivery/ci/commit/70795dd15776da0544130bd5984e9cd95c3c0b58))
+* :sparkles: update checkout, setup-node and cache to v4 ([488ff8f](https://github.com/QueroDelivery/ci/commit/488ff8fa3e5032763814c1bca7df866409481956))
+
 # [2.10.0](https://github.com/QueroDelivery/ci/compare/v2.9.0...v2.10.0) (2023-12-15)
 
 
