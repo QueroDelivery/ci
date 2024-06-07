@@ -45,11 +45,11 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
         with:
           persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v3
         with:
           node-version: ${{ inputs.WF_NODE_VERSION }}
           cache: "yarn"
@@ -57,7 +57,7 @@ jobs:
 
       - name: Cache NPM dependencies
         id: node-modules-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v3
         env:
           cache-name: node-modules-cache
         with:

@@ -49,16 +49,16 @@ jobs:
       
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
       - name: Checkout tools repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
         with:
           ref: add-step-create-repository
           token: ${{ secrets.WF_GITHUB_TOKEN }} 
           repository: QueroDelivery/ci
           path: setup/
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v3
         with:
           node-version: ${{ inputs.WF_NODE_VERSION }}
           cache: 'yarn'
