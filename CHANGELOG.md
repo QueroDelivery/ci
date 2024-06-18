@@ -1,3 +1,10 @@
+# [2.12.0](https://github.com/QueroDelivery/ci/compare/v2.11.0...v2.12.0) (2024-06-18)
+
+
+### Features
+
+* fixed version of kube folder ([5d65efb](https://github.com/QueroDelivery/ci/commit/5d65efbbbb38a02c5fc34b5a059209da21b44292))
+
 # [2.11.0](https://github.com/QueroDelivery/ci/compare/v2.10.0...v2.11.0) (2024-06-07)
 
 
