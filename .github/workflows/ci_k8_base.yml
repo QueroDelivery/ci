@@ -27,7 +27,7 @@ on:
         default: 250Mi
       WF_KUBE_CPU_LIMIT:
         type: string
-        required: true
+        required: false
       WF_KUBE_CPU_REQUEST:
         type: string
         required: false
@@ -84,13 +84,13 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
           fetch-depth: 0
 
       - name: Checkout tools repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: v1.3.0
           token: ${{ secrets.WF_GITHUB_TOKEN }}
@@ -151,7 +151,10 @@ jobs:
           fi
 
           echo "WF_KUBE_MEMORY_LIMIT=$WF_KUBE_MEMORY_LIMIT" >> $GITHUB_ENV
-
+      - name: Remove WF_KUBE_CPU_LIMIT when is null
+        if: ${{inputs.WF_KUBE_CPU_LIMIT == ''}}
+        run: |
+          sed -i '/KUBE_CPU_LIMIT/g' ./.kube/deployment-new.yaml
       - name: Kubernetes Deploy
         env:
           KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
