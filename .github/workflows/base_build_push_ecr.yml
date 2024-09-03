@@ -49,23 +49,23 @@ jobs:
       
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Checkout tools repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: add-step-create-repository
           token: ${{ secrets.WF_GITHUB_TOKEN }} 
           repository: QueroDelivery/ci
           path: setup/
           persist-credentials: false
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ inputs.WF_NODE_VERSION }}
           cache: 'yarn'
           registry-url: ${{secrets.WF_REGISTRY}}
       
       - name: Configure AWS credentials without role
-        uses: aws-actions/configure-aws-credentials@v1-node16
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.WF_AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.WF_AWS_SECRET_ACCESS_KEY }}
@@ -99,9 +99,7 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
-        with:
-          mask-password: 'true'
+        uses: aws-actions/amazon-ecr-login@v2
       
       - name: Update with new version
         run: |
