@@ -1,3 +1,17 @@
+# [2.13.0](https://github.com/QueroDelivery/ci/compare/v2.12.0...v2.13.0) (2024-06-21)
+
+
+### Features
+
+* :sparkles: update version amazon-ecr-login and configure-aws-credentials ([58d12b0](https://github.com/QueroDelivery/ci/commit/58d12b0233b48473dfc11dd757bc4f40f35968ce))
+
+# [2.12.0](https://github.com/QueroDelivery/ci/compare/v2.11.0...v2.12.0) (2024-06-18)
+
+
+### Features
+
+* fixed version of kube folder ([5d65efb](https://github.com/QueroDelivery/ci/commit/5d65efbbbb38a02c5fc34b5a059209da21b44292))
+
 # [2.11.0](https://github.com/QueroDelivery/ci/compare/v2.10.0...v2.11.0) (2024-06-07)
 
 
