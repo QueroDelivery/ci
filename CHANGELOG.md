@@ -1,3 +1,29 @@
+# [3.0.0](https://github.com/QueroDelivery/ci/compare/v2.13.0...v3.0.0) (2024-09-03)
+
+
+### Bug Fixes
+
+* change WF_INTERNET_FACING to required false and default false ([e91de17](https://github.com/QueroDelivery/ci/commit/e91de17df87f5107c77ebc80d37703b597c5f5a1))
+* revert internet-facing ([26b5031](https://github.com/QueroDelivery/ci/commit/26b50317970ead5219704cd7bf3ff047ebb89d35))
+
+
+### Features
+
+* add feature to configure non internet facing ([fc1526c](https://github.com/QueroDelivery/ci/commit/fc1526c3432f39a5266552eb541772e7c641feb5))
+* turn memory requested optional and default 250Mi ([3319975](https://github.com/QueroDelivery/ci/commit/33199754788c1bf6684b516b300cbe36bbd92b51))
+* upgrade kube folder version ([5da2a76](https://github.com/QueroDelivery/ci/commit/5da2a769f3e3a3a8bac1b1a85b4fa849758e8c9a))
+
+
+### BREAKING CHANGES
+
+* This commit needs to set a new variable to configure
+the visibility of the service.
+If the Service is internet facing you should configure the
+WF_INTERNET_FACING: TRUE, Otherwise , its value is false.
+
+footer: This commit is needed to set the visibility of the services on
+internet facing or local
+
 # [2.13.0](https://github.com/QueroDelivery/ci/compare/v2.12.0...v2.13.0) (2024-06-21)
 
 
