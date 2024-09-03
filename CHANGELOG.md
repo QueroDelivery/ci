@@ -1,3 +1,17 @@
+# [3.1.0](https://github.com/QueroDelivery/ci/compare/v3.0.0...v3.1.0) (2024-09-03)
+
+
+### Bug Fixes
+
+* rollback curl aws-iam-authenticator version ([655e642](https://github.com/QueroDelivery/ci/commit/655e6420d4dea64c5694ff6f71180b0c96d99f4e))
+
+
+### Features
+
+* fixed version of kube folder ([8155038](https://github.com/QueroDelivery/ci/commit/815503857699adbc80ee025560eb7d65126bd09b))
+* update aws iam authenticator bin version ([f7d1f06](https://github.com/QueroDelivery/ci/commit/f7d1f064c6629f7b8dd08f9a7c9fc7c620c7f6a6))
+* upgrade kubectl version to 1.28 ([3f1738c](https://github.com/QueroDelivery/ci/commit/3f1738cf8a155920b02c22512a277a441289d306))
+
 # [3.0.0](https://github.com/QueroDelivery/ci/compare/v2.13.0...v3.0.0) (2024-09-03)
 
 
