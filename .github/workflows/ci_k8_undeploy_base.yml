@@ -42,7 +42,7 @@ jobs:
       - name: Checkout tools repo
         uses: actions/checkout@v4
         with:
-          ref: feat-auto-instrumentation
+          ref: v1.3.0
           token: ${{ secrets.WF_GITHUB_TOKEN }} 
           repository: QueroDelivery/kube
           path: .kube
