@@ -92,7 +92,7 @@ jobs:
       - name: Checkout tools repo
         uses: actions/checkout@v4
         with:
-          ref: upgrade-authenticator-api-version
+          ref: v1.7.0
           token: ${{ secrets.WF_GITHUB_TOKEN }}
           repository: QueroDelivery/kube
           path: .kube
