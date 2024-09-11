@@ -177,6 +177,7 @@ jobs:
           kubectl version
           echo "Replacing envs from kube manifests"
           echo "public host ${PUBLIC_HOST}"
+          cat .kube/namespace.yaml
           cat .kube/namespace.yaml | envsubst > namespace.yaml
           cat .kube/${KUBE_NAME}-env-cm.yaml | envsubst > ${KUBE_NAME}-env-cm.yaml
           cat ${KUBEDEPLOYMENT} | envsubst > deployment.yaml
