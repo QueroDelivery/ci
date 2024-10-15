@@ -19,6 +19,10 @@ on:
         type: boolean
         default: false
         required: false
+      WF_FONT_AWESOME_TOKEN:
+        type: string
+        required: false
+
     secrets:
       WF_NPM_TOKEN:
         required: true
@@ -32,6 +36,8 @@ on:
         required: true
       WF_AWS_REGION:
         required: true
+      WF_FONT_AWESOME_TOKEN:
+        required: false
     outputs:
       servicename:
         description: "The service name"
@@ -41,6 +47,8 @@ on:
 jobs:
   setup:
     name: preparing
+    env:
+      FONT_AWESOME_TOKEN: ${{ secrets.WF_FONT_AWESOME_TOKEN }}
     runs-on: ubuntu-latest
     environment: ${{inputs.WF_ENV_TYPE_DEPLOY}}
     continue-on-error: false
@@ -141,7 +149,8 @@ jobs:
           # Build a docker container and
           # push it to ECR so that it can
           # be deployed to ECS.
-          echo "registry=http://registry.npmjs.org/" > .npmrc && echo "${{ secrets.WF_NPM_USER }}:registry=https://npm.pkg.github.com" >> .npmrc && echo "//npm.pkg.github.com/:_authToken=${{ secrets.WF_NPM_TOKEN }}" >> .npmrc
+          echo "registry=http://registry.npmjs.org/" > .npmrc && echo "${{ secrets.WF_NPM_USER }}:registry=https://npm.pkg.github.com" >> .npmrc && echo "//npm.pkg.github.com/:_authToken=${{ secrets.WF_NPM_TOKEN }}" >> .npmrc && echo "@fortawesome:registry=https://npm.fontawesome.com/" >> .npmrc && echo "//npm.fontawesome.com/:_authToken=${{ secrets.WF_FONT_AWESOME_TOKEN }}" >> .npmrc
+
           docker build --build-arg SERVICE_NAME=$SERVICE_NAME -t $ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REPOSITORY:$VERSION_TAG .
           docker tag $ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker tag $ECR_REPOSITORY:$VERSION_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION_TAG
