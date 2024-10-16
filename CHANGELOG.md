@@ -1,3 +1,10 @@
+# [3.2.0](https://github.com/QueroDelivery/ci/compare/v3.1.0...v3.2.0) (2024-10-16)
+
+
+### Features
+
+* **new-env-font-awesome:** Should add new input and new env referr of fontAwesome ([ac3c6ab](https://github.com/QueroDelivery/ci/commit/ac3c6abefab0ad6c7bdbfebc3855d45daae1e3ba))
+
 # [3.1.0](https://github.com/QueroDelivery/ci/compare/v3.0.0...v3.1.0) (2024-09-03)
 
 
