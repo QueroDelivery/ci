@@ -1,3 +1,10 @@
+# [3.3.0](https://github.com/QueroDelivery/ci/compare/v3.2.0...v3.3.0) (2024-11-07)
+
+
+### Features
+
+* lock version of kube folder ([743c0bf](https://github.com/QueroDelivery/ci/commit/743c0bff95f68ab9cfbf81f443c32c34be5311ca))
+
 # [3.2.0](https://github.com/QueroDelivery/ci/compare/v3.1.0...v3.2.0) (2024-10-16)
 
 
