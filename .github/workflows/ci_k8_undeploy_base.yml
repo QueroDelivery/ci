@@ -84,7 +84,7 @@ jobs:
         
       - name: Setup kubectl
         run: |
-          curl -LO "https://dl.k8s.io/release/v1.28.13/bin/linux/amd64/kubectl"
+          curl -LO "https://dl.k8s.io/release/v1.30.6/bin/linux/amd64/kubectl"
           chmod u+x kubectl
           sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
           curl -Lo aws-iam-authenticator https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v0.6.26/aws-iam-authenticator_0.6.26_linux_amd64
