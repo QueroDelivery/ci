@@ -1,3 +1,10 @@
+# [3.4.0](https://github.com/QueroDelivery/ci/compare/v3.3.0...v3.4.0) (2024-11-08)
+
+
+### Features
+
+* upgrade kubectl version ([c24d6b7](https://github.com/QueroDelivery/ci/commit/c24d6b7982ff2bcf229d5819c50acb403a0ed556))
+
 # [3.3.0](https://github.com/QueroDelivery/ci/compare/v3.2.0...v3.3.0) (2024-11-07)
 
 
