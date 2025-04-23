@@ -1,3 +1,10 @@
+# [3.5.0](https://github.com/QueroDelivery/ci/compare/v3.4.0...v3.5.0) (2025-04-23)
+
+
+### Features
+
+* use new kube folder ([98900fc](https://github.com/QueroDelivery/ci/commit/98900fc9acf1c76bcd85bf0558595c6494792260))
+
 # [3.4.0](https://github.com/QueroDelivery/ci/compare/v3.3.0...v3.4.0) (2024-11-08)
 
 
