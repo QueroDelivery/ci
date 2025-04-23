@@ -182,6 +182,7 @@ jobs:
           cat ${KUBEDEPLOYMENT} | envsubst > deployment.yaml
           cat .kube/service.yaml | envsubst > service.yaml
           cat .kube/ingress.yaml | envsubst > ingress.yaml
+          cat .kube/ingress-internal.yaml | envsubst > ingress-internal.yaml
           cat .kube/hpa.yaml | envsubst > hpa.yaml
           echo "Applying namespace"
           kubectl apply -f namespace.yaml
