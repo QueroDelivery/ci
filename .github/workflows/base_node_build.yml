@@ -16,6 +16,9 @@ on:
       WF_BACKSTAGE_URL:
         type: string
         required: false
+      WF_FONT_AWESOME_TOKEN:
+        type: string
+        required: false
 
     secrets:
       WF_NPM_TOKEN:
@@ -26,6 +29,8 @@ on:
         required: true
       WF_REGISTRY:
         required: true
+      WF_FONT_AWESOME_TOKEN:
+        required: false
     outputs:
       servicename:
         description: "The service name"
@@ -36,6 +41,8 @@ jobs:
   setup:
     environment: ${{inputs.WF_ENV_TYPE_DEPLOY}}
     name: preparing
+    env:
+      FONT_AWESOME_TOKEN: ${{ secrets.WF_FONT_AWESOME_TOKEN }}
     runs-on: ubuntu-latest
     continue-on-error: false
     outputs:
