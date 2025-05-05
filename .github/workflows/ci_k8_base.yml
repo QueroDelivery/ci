@@ -92,7 +92,7 @@ jobs:
       - name: Checkout tools repo
         uses: actions/checkout@v4
         with:
-          ref: v1.10.0
+          ref: v1.11.0
           token: ${{ secrets.WF_GITHUB_TOKEN }}
           repository: QueroDelivery/kube
           path: .kube
@@ -152,7 +152,7 @@ jobs:
       - name: Remove WF_KUBE_CPU_LIMIT when is null
         if: ${{inputs.WF_KUBE_CPU_LIMIT == ''}}
         run: |
-          sed -i '/KUBE_CPU_LIMIT/g' ./.kube/deployment-new.yaml
+          sed -i '' '/KUBE_CPU_LIMIT/d' ./deployment-new.yaml
       - name: Kubernetes Deploy
         env:
           KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
