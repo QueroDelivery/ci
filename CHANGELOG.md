@@ -1,3 +1,11 @@
+## [3.5.1](https://github.com/QueroDelivery/ci/compare/v3.5.0...v3.5.1) (2025-05-06)
+
+
+### Bug Fixes
+
+* cpu limit configs ([845da1a](https://github.com/QueroDelivery/ci/commit/845da1a0c9238543fe516c19ff810180ba89244a))
+* kube folder path ([cd8fd98](https://github.com/QueroDelivery/ci/commit/cd8fd988f964dc3ec9bde9808a28baf4d01f11d0))
+
 # [3.5.0](https://github.com/QueroDelivery/ci/compare/v3.4.0...v3.5.0) (2025-04-23)
 
 
