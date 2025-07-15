@@ -1,8 +1,11 @@
-# This is a basic workflow to help you get started with Actions
 name: CI-K8-BASE
+
 on:
   workflow_call:
     inputs:
+      WF_IMAGE_TAG:
+        type: string
+        required: true
       WF_ENV_TYPE_DEPLOY:
         type: string
         required: true
@@ -51,14 +54,12 @@ on:
     secrets:
       WF_KUBE_TYPE:
         required: true
-
       WF_AWS_ACCESS_KEY_ID:
         required: true
       WF_AWS_SECRET_ACCESS_KEY:
         required: true
       WF_AWS_REGION:
         required: true
-
       WF_SERVICE_NAME:
         required: true
       WF_KUBE_NAME:
@@ -67,29 +68,23 @@ on:
         required: true
       WF_KUBE_DOMAIN_INTERNAL:
         required: true
-
       WF_GITHUB_TOKEN:
         required: true
-
       WF_WHITELIST_SOURCE_RANGE:
         required: false
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  setup:
-    name: preparing
+  deploy:
+    name: Deploy to Kubernetes
     runs-on: ubuntu-latest
-    environment: ${{inputs.WF_ENV_TYPE_DEPLOY}}
-    continue-on-error: false
-    # Steps represent a sequence of tasks that will be executed as part of the job
+    environment: ${{ inputs.WF_ENV_TYPE_DEPLOY }}
     steps:
-      - name: Checkout
+      - name: Checkout source
         uses: actions/checkout@v4
         with:
-          persist-credentials: false
           fetch-depth: 0
 
-      - name: Checkout tools repo
+      - name: Checkout kube manifests
         uses: actions/checkout@v4
         with:
           ref: v1.11.0
@@ -98,7 +93,7 @@ jobs:
           path: .kube
           persist-credentials: false
 
-      - name: Configure AWS credentials
+      - name: Setup AWS & IAM
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.WF_AWS_ACCESS_KEY_ID }}
@@ -110,7 +105,7 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Creating configmap.yaml from aws parameter store
+      - name: Fetch environment from SSM
         uses: almerindo/action-env-from-aws-ssm@main
         with:
           output: .kube/${{ secrets.WF_KUBE_NAME }}-env-cm.yaml
@@ -121,127 +116,71 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.WF_AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ${{ secrets.WF_AWS_REGION }}
 
-      - name: Override kubefiles
-        run: |
-          FILE=setup/.kube
-          if [[ -d "$FILE" ]]; then
-            echo "$FILE EXIST!" 
-            cp -avf setup/.kube/*.yaml .kube/
-            echo "Kubefiles Override FINISHED" 
-          fi
-
       - name: Setup kubectl
         run: |
           curl -LO "https://dl.k8s.io/release/v1.30.6/bin/linux/amd64/kubectl"
-          chmod u+x kubectl
-          sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/
           curl -Lo aws-iam-authenticator https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v0.6.26/aws-iam-authenticator_0.6.26_linux_amd64
-          chmod u+x aws-iam-authenticator
+          chmod +x aws-iam-authenticator
+          sudo mv aws-iam-authenticator /usr/local/bin/
 
-      - name: Defining envs variables for kube
+      - name: Prepare envs
         run: |
-          WF_KUBE_MEMORY_LIMIT=${{ inputs.WF_KUBE_MEMORY_LIMIT }}
+          echo "WF_KUBE_MEMORY_LIMIT=${{ inputs.WF_KUBE_MEMORY_LIMIT || inputs.WF_KUBE_MEMORY_REQUEST }}" >> $GITHUB_ENV
 
-          # Check if B is null or empty
-          if [ -z "$WF_KUBE_MEMORY_LIMIT" ]; then
-              # If WF_KUBE_MEMORY_LIMIT is null or empty, assign the value of WF_KUBE_MEMORY_REQUEST to WF_KUBE_MEMORY_LIMIT
-              WF_KUBE_MEMORY_LIMIT="${{ inputs.WF_KUBE_MEMORY_REQUEST }}"
-          fi
-
-          echo "WF_KUBE_MEMORY_LIMIT=$WF_KUBE_MEMORY_LIMIT" >> $GITHUB_ENV
-      - name: Remove WF_KUBE_CPU_LIMIT when is null
-        if: ${{inputs.WF_KUBE_CPU_LIMIT == ''}}
+      - name: Render manifests with envsubst
         run: |
-          sed -i '/KUBE_CPU_LIMIT/d' ./.kube/deployment-new.yaml
-      - name: Kubernetes Deploy
+          mkdir -p rendered
+          for file in .kube/*.yaml; do
+            envsubst < "$file" > "rendered/$(basename $file)"
+          done
+
+      - name: Apply manifests
         env:
-          KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
-          KUBE_DOMAIN: ${{ secrets.WF_KUBE_DOMAIN }}
-          KUBE_DOMAIN_INTERNAL: ${{ secrets.WF_KUBE_DOMAIN_INTERNAL }}
-          KUBECONFIG: .kube/config-${{secrets.WF_KUBE_TYPE}}.yaml
-          KUBEDEPLOYMENT: .kube/deployment-${{inputs.WF_KUBE_DEPLOYMENT}}.yaml
+          KUBECONFIG: .kube/config-${{ secrets.WF_KUBE_TYPE }}.yaml
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: "${{ secrets.WF_SERVICE_NAME }}_${{ inputs.WF_ENV_TYPE}}_repo"
-          VERSION_TAG: ${{ github.sha }}
-          KUBE_MIN_REPLICAS: ${{ inputs.WF_KUBE_MIN_REPLICAS }}
-          PUBLIC_HOST: ${{ inputs.WF_PUBLIC_HOST }}
-          KUBE_MAX_REPLICAS: ${{ inputs.WF_KUBE_MAX_REPLICAS }}
-          KUBE_MEMORY_LIMIT: ${{ env.WF_KUBE_MEMORY_LIMIT }}
-          KUBE_MEMORY_REQUEST: ${{ inputs.WF_KUBE_MEMORY_REQUEST }}
-          KUBE_CPU_LIMIT: ${{ inputs.WF_KUBE_CPU_LIMIT }}
-          KUBE_CPU_REQUEST: ${{ inputs.WF_KUBE_CPU_REQUEST }}
-          KUBE_NODE_GROUP: ${{ inputs.WF_KUBE_NODE_GROUP }}
-        run: |
-          echo "Export must be a first line"
-          export PATH=$PATH:$PWD
-          kubectl version
-          echo "Replacing envs from kube manifests"
-          echo "public host ${PUBLIC_HOST}"
-          cat .kube/namespace.yaml | envsubst > namespace.yaml
-          cat .kube/${KUBE_NAME}-env-cm.yaml | envsubst > ${KUBE_NAME}-env-cm.yaml
-          cat ${KUBEDEPLOYMENT} | envsubst > deployment.yaml
-          cat .kube/service.yaml | envsubst > service.yaml
-          cat .kube/ingress.yaml | envsubst > ingress.yaml
-          cat .kube/ingress-internal.yaml | envsubst > ingress-internal.yaml
-          cat .kube/hpa.yaml | envsubst > hpa.yaml
-          echo "Applying namespace"
-          kubectl apply -f namespace.yaml
-          echo "Applying configmap"
-          kubectl apply -f ${KUBE_NAME}-env-cm.yaml
-          echo "Applying deployment"
-          kubectl apply -f deployment.yaml
-          echo "Applying rollout"
-          kubectl rollout restart deployment/${KUBE_NAME} -n ${KUBE_NAME}
-          kubectl rollout status deployment/${KUBE_NAME} -n ${KUBE_NAME}
-          echo "Applying hpa"
-          kubectl apply -f hpa.yaml
-          echo "Applying service"
-          kubectl apply -f service.yaml
-          echo "Applying ingress"
-          kubectl apply -f ingress.yaml
-          echo "Applying ingress internal"
-          kubectl apply -f ingress-internal.yaml
-          echo "URL: https://${KUBE_NAME}${KUBE_DOMAIN}"
-
-      - name: Setting the service visibility
-        if: ${{ inputs.WF_IS_INTERNAL }}
-        id: "set-visibility"
-        env:
-          KUBECONFIG: .kube/config-${{secrets.WF_KUBE_TYPE}}.yaml
+          ECR_REPOSITORY: "${{ secrets.WF_SERVICE_NAME }}_${{ inputs.WF_ENV_TYPE }}_repo"
+          VERSION_TAG: ${{ inputs.WF_IMAGE_TAG }}
           KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
-          WHITELIST_SOURCE_RANGE: ${{ secrets.WF_WHITELIST_SOURCE_RANGE}}
         run: |
-          echo "Setting thee path"
           export PATH=$PATH:$PWD
+          kubectl apply -f rendered/namespace.yaml
+          kubectl apply -f .kube/${KUBE_NAME}-env-cm.yaml
+          kubectl apply -f rendered/deployment-${{ inputs.WF_KUBE_DEPLOYMENT }}.yaml
+          kubectl rollout restart deployment/$KUBE_NAME -n $KUBE_NAME
+          kubectl rollout status deployment/$KUBE_NAME -n $KUBE_NAME
+          kubectl apply -f rendered/hpa.yaml
+          kubectl apply -f rendered/service.yaml
+          kubectl apply -f rendered/ingress.yaml
+          kubectl apply -f rendered/ingress-internal.yaml
+
+      - name: Set service visibility (internal ingress whitelist)
+        if: ${{ inputs.WF_IS_INTERNAL }}
+        env:
+          KUBECONFIG: .kube/config-${{ secrets.WF_KUBE_TYPE }}.yaml
+          KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
+          WHITELIST_SOURCE_RANGE: ${{ secrets.WF_WHITELIST_SOURCE_RANGE }}
+        run: |
           kubectl -n ${KUBE_NAME} annotate --overwrite ingress ${KUBE_NAME} ingress.kubernetes.io/whitelist-source-range=${WHITELIST_SOURCE_RANGE}
           kubectl -n ${KUBE_NAME} annotate --overwrite ingress ${KUBE_NAME} kubernetes.io/whitelist-source-range=${WHITELIST_SOURCE_RANGE}
 
-      - name: Create comment
+      - name: Comment on PR with deployed image
         if: ${{ inputs.WF_SHOW_COMMENT }}
-        id: "create-comment"
+        env:
+          GH_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
+          ECR_REPOSITORY: "${{ secrets.WF_SERVICE_NAME }}_${{ inputs.WF_ENV_TYPE }}_repo"
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} --body "✅ Deployed image: \`${{ steps.login-ecr.outputs.registry }}/${ECR_REPOSITORY}:${{ inputs.WF_IMAGE_TAG }}\`"
+
+      - name: Open PR to main if needed
+        if: ${{ inputs.WF_CREATE_PR_IN_MAIN }}
         env:
           GH_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
         run: |
-          gh pr comment ${{ github.event.pull_request.number }} --body "Segura o link dessa app review aí ó o/
-            -   URL: https://${{ secrets.WF_KUBE_NAME }}${{ secrets.WF_KUBE_DOMAIN }}"
-
-      - name: Check if there are commits between staging to main
-        id: check_commits
-        if: ${{ inputs.WF_CREATE_PR_IN_MAIN}}
-        run: |
-          if [ "$(git rev-list --count 'origin/main..HEAD')" -eq 0 ]; then
-            echo "No commits to create pull request for."
-            echo "commits_head_main=false" >> $GITHUB_OUTPUT
+          git fetch origin main
+          if [ "$(git rev-list origin/main..HEAD --count)" -gt 0 ]; then
+            gh pr create --base main --title "Deploy to production" --body "Auto-generated PR to promote to production"
           else
-            echo "Commits found. Ready to create pull request."
-            echo "commits_head_main=true" >> $GITHUB_OUTPUT
+            echo "No new commits to promote"
           fi
-
-      - name: Create Pull Request for prod
-        if: ${{ inputs.WF_CREATE_PR_IN_MAIN && steps.check_commits.outputs.commits_head_main == 'true'}}
-        id: "open-pr"
-        env:
-          GH_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
-        run: |
-          echo "Creating the PR Deply in prod"
-          gh pr edit stage -b "Pull request body" -t 'Deploy in prod'  && gh pr reopen stage || gh pr create --base "main" --title "Deploy in prod" --body "Pull request body"
