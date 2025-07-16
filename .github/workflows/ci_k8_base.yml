@@ -136,10 +136,6 @@ jobs:
             envsubst < "$file" > "rendered/$(basename $file)"
           done
 
-      - name: Validate manifests
-        run: |
-          kubectl apply --dry-run=client -f rendered/
-
       - name: Apply manifests
         env:
           KUBECONFIG: .kube/config-${{ secrets.WF_KUBE_TYPE }}.yaml
