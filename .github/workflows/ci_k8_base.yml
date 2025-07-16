@@ -108,7 +108,7 @@ jobs:
       - name: Fetch environment from SSM
         uses: almerindo/action-env-from-aws-ssm@main
         with:
-          output: .kube/${{ secrets.WF_KUBE_NAME }}-env-cm.yaml
+          output: ./kube/${{ secrets.WF_KUBE_NAME }}-env-cm.yaml
           ssm-path: "/${{ inputs.WF_ENV_TYPE }}/${{ secrets.WF_SERVICE_NAME }}"
           format: configmap
         env:
@@ -131,29 +131,34 @@ jobs:
 
       - name: Render manifests with envsubst
         run: |
-          mkdir -p rendered
+          mkdir -p .kube
           for file in .kube/*.yaml; do
-            envsubst < "$file" > "rendered/$(basename $file)"
+            envsubst < "$file" > ".kube/$(basename $file)"
           done
+
+      - name: Validate manifests
+        run: |
+          kubectl apply --dry-run=client -f .kube/
 
       - name: Apply manifests
         env:
           KUBECONFIG: .kube/config-${{ secrets.WF_KUBE_TYPE }}.yaml
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: "${{ secrets.WF_SERVICE_NAME }}_${{ inputs.WF_ENV_TYPE }}_repo"
+          ECR_REPOSITORY: "${{ secrets.WF_SERVICE_NAME }}"
           VERSION_TAG: ${{ inputs.WF_IMAGE_TAG }}
           KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
         run: |
           export PATH=$PATH:$PWD
-          kubectl apply -f rendered/namespace.yaml
+          kubectl apply -f .kube/namespace.yaml
           kubectl apply -f .kube/${KUBE_NAME}-env-cm.yaml
-          kubectl apply -f rendered/deployment-${{ inputs.WF_KUBE_DEPLOYMENT }}.yaml
-          kubectl rollout restart deployment/$KUBE_NAME -n $KUBE_NAME
-          kubectl rollout status deployment/$KUBE_NAME -n $KUBE_NAME
-          kubectl apply -f rendered/hpa.yaml
-          kubectl apply -f rendered/service.yaml
-          kubectl apply -f rendered/ingress.yaml
-          kubectl apply -f rendered/ingress-internal.yaml
+          kubectl apply -f .kube/deployment-${{ inputs.WF_KUBE_DEPLOYMENT }}.yaml
+          DEPLOY_NAME=$(yq e '.metadata.name' .kube/deployment-${{ inputs.WF_KUBE_DEPLOYMENT }}.yaml)
+          kubectl rollout restart deployment/$DEPLOY_NAME -n $KUBE_NAME
+          kubectl rollout status deployment/$DEPLOY_NAME -n $KUBE_NAME
+          kubectl apply -f .kube/hpa.yaml
+          kubectl apply -f .kube/service.yaml
+          kubectl apply -f .kube/ingress.yaml
+          kubectl apply -f .kube/ingress-internal.yaml
 
       - name: Set service visibility (internal ingress whitelist)
         if: ${{ inputs.WF_IS_INTERNAL }}
@@ -163,7 +168,6 @@ jobs:
           WHITELIST_SOURCE_RANGE: ${{ secrets.WF_WHITELIST_SOURCE_RANGE }}
         run: |
           kubectl -n ${KUBE_NAME} annotate --overwrite ingress ${KUBE_NAME} ingress.kubernetes.io/whitelist-source-range=${WHITELIST_SOURCE_RANGE}
-          kubectl -n ${KUBE_NAME} annotate --overwrite ingress ${KUBE_NAME} kubernetes.io/whitelist-source-range=${WHITELIST_SOURCE_RANGE}
 
       - name: Comment on PR with deployed image
         if: ${{ inputs.WF_SHOW_COMMENT }}
