@@ -130,6 +130,23 @@ jobs:
           echo "WF_KUBE_MEMORY_LIMIT=${{ inputs.WF_KUBE_MEMORY_LIMIT || inputs.WF_KUBE_MEMORY_REQUEST }}" >> $GITHUB_ENV
 
       - name: Render manifests with envsubst
+        env:
+          KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
+          KUBE_DOMAIN: ${{ secrets.WF_KUBE_DOMAIN }}
+          KUBE_DOMAIN_INTERNAL: ${{ secrets.WF_KUBE_DOMAIN_INTERNAL }}
+          KUBECONFIG: .kube/config-${{secrets.WF_KUBE_TYPE}}.yaml
+          KUBEDEPLOYMENT: .kube/deployment-${{inputs.WF_KUBE_DEPLOYMENT}}.yaml
+          KUBE_MIN_REPLICAS: ${{ inputs.WF_KUBE_MIN_REPLICAS }}
+          PUBLIC_HOST: ${{ inputs.WF_PUBLIC_HOST }}
+          KUBE_MAX_REPLICAS: ${{ inputs.WF_KUBE_MAX_REPLICAS }}
+          KUBE_MEMORY_LIMIT: ${{ env.WF_KUBE_MEMORY_LIMIT }}
+          KUBE_MEMORY_REQUEST: ${{ inputs.WF_KUBE_MEMORY_REQUEST }}
+          KUBE_CPU_LIMIT: ${{ inputs.WF_KUBE_CPU_LIMIT }}
+          KUBE_CPU_REQUEST: ${{ inputs.WF_KUBE_CPU_REQUEST }}
+          KUBE_NODE_GROUP: ${{ inputs.WF_KUBE_NODE_GROUP }}
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: "${{ secrets.WF_SERVICE_NAME }}"
+          VERSION_TAG: ${{ inputs.WF_IMAGE_TAG }}
         run: |
           mkdir -p rendered
           for file in .kube/*.yaml; do
