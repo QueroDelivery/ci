@@ -135,7 +135,7 @@ jobs:
           for file in .kube/*.yaml; do
             envsubst < "$file" > "rendered/$(basename $file)"
           done
-
+          cat rendered/namespace.yaml
       - name: Apply manifests
         env:
           KUBECONFIG: .kube/config-${{ secrets.WF_KUBE_TYPE }}.yaml
