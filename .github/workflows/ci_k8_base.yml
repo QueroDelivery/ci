@@ -108,7 +108,7 @@ jobs:
       - name: Fetch environment from SSM
         uses: almerindo/action-env-from-aws-ssm@main
         with:
-          output: ./kube/${{ secrets.WF_KUBE_NAME }}-env-cm.yaml
+          output: ./.kube/${{ secrets.WF_KUBE_NAME }}-env-cm.yaml
           ssm-path: "/${{ inputs.WF_ENV_TYPE }}/${{ secrets.WF_SERVICE_NAME }}"
           format: configmap
         env:
