@@ -62,17 +62,24 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: '${{ inputs.WF_SERVICE_NAME }}'
-          IMAGE_TAG: latest
           VERSION_TAG: ${{ github.sha }}
         run: |
           gunzip -c image.tar.gz | docker load
           IMAGE_ID=$(docker images -q)
+          PR_NUMBER=${{ github.event.pull_request.number }}
           
-          docker tag $IMAGE_ID $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          # Tag with PR number (if available)
+          if [ -n "$PR_NUMBER" ]; then
+            docker tag $IMAGE_ID $ECR_REGISTRY/$ECR_REPOSITORY:pr-$PR_NUMBER
+            docker push $ECR_REGISTRY/$ECR_REPOSITORY:pr-$PR_NUMBER
+          fi
+
           docker tag $IMAGE_ID $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION_TAG
 
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION_TAG
+          docker tag $IMAGE_ID $ECR_REGISTRY/$ECR_REPOSITORY:$WF_ENV_TYPE_DEPLOY
+
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$WF_ENV_TYPE_DEPLOY
 
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$VERSION_TAG" >> $GITHUB_OUTPUT
 
