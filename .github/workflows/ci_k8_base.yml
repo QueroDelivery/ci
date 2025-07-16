@@ -131,14 +131,14 @@ jobs:
 
       - name: Render manifests with envsubst
         run: |
-          mkdir -p .kube
+          mkdir -p rendered
           for file in .kube/*.yaml; do
-            envsubst < "$file" > ".kube/$(basename $file)"
+            envsubst < "$file" > "rendered/$(basename $file)"
           done
 
       - name: Validate manifests
         run: |
-          kubectl apply --dry-run=client -f .kube/
+          kubectl apply --dry-run=client -f rendered/
 
       - name: Apply manifests
         env:
@@ -149,16 +149,16 @@ jobs:
           KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
         run: |
           export PATH=$PATH:$PWD
-          kubectl apply -f .kube/namespace.yaml
-          kubectl apply -f .kube/${KUBE_NAME}-env-cm.yaml
-          kubectl apply -f .kube/deployment-${{ inputs.WF_KUBE_DEPLOYMENT }}.yaml
-          DEPLOY_NAME=$(yq e '.metadata.name' .kube/deployment-${{ inputs.WF_KUBE_DEPLOYMENT }}.yaml)
+          kubectl apply -f rendered/namespace.yaml
+          kubectl apply -f rendered/${KUBE_NAME}-env-cm.yaml
+          kubectl apply -f rendered/deployment-${{ inputs.WF_KUBE_DEPLOYMENT }}.yaml
+          DEPLOY_NAME=$(yq e '.metadata.name' rendered/deployment-${{ inputs.WF_KUBE_DEPLOYMENT }}.yaml)
           kubectl rollout restart deployment/$DEPLOY_NAME -n $KUBE_NAME
           kubectl rollout status deployment/$DEPLOY_NAME -n $KUBE_NAME
-          kubectl apply -f .kube/hpa.yaml
-          kubectl apply -f .kube/service.yaml
-          kubectl apply -f .kube/ingress.yaml
-          kubectl apply -f .kube/ingress-internal.yaml
+          kubectl apply -f rendered/hpa.yaml
+          kubectl apply -f rendered/service.yaml
+          kubectl apply -f rendered/ingress.yaml
+          kubectl apply -f rendered/ingress-internal.yaml
 
       - name: Set service visibility (internal ingress whitelist)
         if: ${{ inputs.WF_IS_INTERNAL }}
