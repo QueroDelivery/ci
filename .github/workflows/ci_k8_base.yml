@@ -224,7 +224,7 @@ jobs:
         if: ${{ inputs.WF_ENV_TYPE_DEPLOY == 'dev' }}
         uses: actions/upload-artifact@v4
         with:
-          name: dev-deploy-state
+          name: service-${{ inputs.WF_SERVICE_NAME }}-dev-${{ github.event.pull_request.number || github.sha }}
           path: .deploys/service.json
 
       - name: Commit & Push deploy state (stg/prod)
