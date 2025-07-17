@@ -212,7 +212,7 @@ jobs:
 
           # Write digest under environment key
           jq --arg env "$ENV" \
-            --arg digest "$DIGEST" \
+            --arg digest "$IMAGE_DIGEST" \
             --arg version_tag "$VERSION_TAG" \
             --arg image_tag "$IMAGE_TAG" \
             '.[$env] = {digest: $digest, version_tag: $version_tag, image_tag: $image_tag}' \
