@@ -22,6 +22,11 @@ jobs:
     environment: ${{ inputs.TO_ENV }}
 
     steps:
+      - name: Checkout deploy-state branch
+        uses: actions/checkout@v4
+        with:
+            ref: deploy-state
+            token: ${{ secrets.WF_GITHUB_TOKEN }}
       - name: Getting SERVICE_NAME
         id: serviceName
         run: |
@@ -35,11 +40,6 @@ jobs:
           name: service-${{ steps.serviceName.outputs.servicename }}-dev-${{ inputs.ARTIFACT_ID }}
           path: dev-meta
 
-      - name: Checkout deploy-state branch
-        uses: actions/checkout@v4
-        with:
-          ref: deploy-state
-          token: ${{ secrets.WF_GITHUB_TOKEN }}
 
       - name: Ensure .deploys/service.json exists
         run: |
