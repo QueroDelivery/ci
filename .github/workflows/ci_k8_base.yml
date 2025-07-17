@@ -6,6 +6,9 @@ on:
       WF_IMAGE_TAG:
         type: string
         required: true
+      WF_DIGEST_IMAGE:
+        type: string
+        required: true
       WF_ENV_TYPE_DEPLOY:
         type: string
         required: true
@@ -185,10 +188,28 @@ jobs:
       - name: Comment on PR with deployed image
         if: ${{ inputs.WF_SHOW_COMMENT }}
         env:
+          IMAGE_DIGEST: ${{inputs.WF_DIGEST_IMAGE}}
           GH_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
           ECR_REPOSITORY: "${{ secrets.WF_SERVICE_NAME }}_${{ inputs.WF_ENV_TYPE }}_repo"
         run: |
           gh pr comment ${{ github.event.pull_request.number }} --body "✅ Deployed image: \`${{ steps.login-ecr.outputs.registry }}/${ECR_REPOSITORY}:${{ inputs.WF_IMAGE_TAG }}\`"
+      - name: upsert .deploys/service.json
+        run: |
+          mkdir -p .deploys
+
+          FILE=".deploys/service.json"
+          SERVICE_NAME=$(node -p -e "require('./package.json').name")
+
+          if [ -f "$FILE" ]; then
+            echo "Updating $FILE"
+          else
+            echo "Creating $FILE"
+            echo '{}' > "$FILE"
+          fi
+
+          jq --arg image "$IMAGE_DIGEST" '.review = { "digest": $image }' "$FILE" > "$FILE.tmp" && mv "$FILE.tmp" "$FILE"
+
+          cat "$FILE"
 
       - name: Open PR to main if needed
         if: ${{ inputs.WF_CREATE_PR_IN_MAIN }}
