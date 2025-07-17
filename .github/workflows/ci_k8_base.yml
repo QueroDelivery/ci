@@ -195,13 +195,11 @@ jobs:
       - name: upsert .deploys/service.json
         env:
           IMAGE_DIGEST: ${{inputs.WF_DIGEST_IMAGE}}
-          FILE: 'service.json'
+          FILE: "service.json"
           ENV: "${{ inputs.WF_ENV_TYPE_DEPLOY }}"
           GITHUB_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
           IMAGE_TAG: ${{ inputs.WF_IMAGE_TAG }}
           VERSION_TAG: "${{ github.sha }}"
-          BRANCH: "deploy-state"
-
 
         run: |
           mkdir -p .deploys && cd .deploys
@@ -221,14 +219,25 @@ jobs:
             "$FILE" > tmp.json && mv tmp.json "$FILE"
 
           cat "$FILE"
-          
-          # Commit changes
+
+      - name: Handle dev layer vs tracked environments
+        if: ${{ inputs.WF_ENV_TYPE_DEPLOY == 'dev' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: dev-deploy-state
+          path: .deploys/service.json
+
+      - name: Commit & Push deploy state (stg/prod)
+        if: ${{ inputs.WF_ENV_TYPE_DEPLOY != 'dev' }}
+        env:
+          BRANCH: "deploy-state"
+          ENV: "${{ inputs.WF_ENV_TYPE_DEPLOY }}"
+        run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
 
           git fetch origin $BRANCH:$BRANCH || git checkout --orphan $BRANCH
           git switch $BRANCH
-
 
           git add "$FILE"
           git commit -m "chore(ci): update digest for $ENV [skip ci]"
