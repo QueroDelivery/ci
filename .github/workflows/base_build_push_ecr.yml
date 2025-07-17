@@ -38,7 +38,7 @@ jobs:
     environment: ${{ inputs.WF_ENV_TYPE_DEPLOY }}
     outputs:
       servicename: ${{ steps.service-name.outputs.servicename }}
-      digest: ${{ steps.load-image.outputs.servicename }}
+      digest: ${{ steps.load-image.outputs.digest }}
 
     steps:
       - uses: actions/checkout@v4
