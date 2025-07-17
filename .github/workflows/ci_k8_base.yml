@@ -200,6 +200,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
           IMAGE_TAG: ${{ inputs.WF_IMAGE_TAG }}
           VERSION_TAG: "${{ github.sha }}"
+          BRANCH: "deploy-state"
+
 
         run: |
           mkdir -p .deploys && cd .deploys
@@ -223,9 +225,14 @@ jobs:
           # Commit changes
           git config user.name "github-actions"
           git config user.email "actions@github.com"
+
+          git fetch origin $BRANCH:$BRANCH || git checkout --orphan $BRANCH
+          git switch $BRANCH
+
+
           git add "$FILE"
-          git commit -m "chore(ci): update digest for $ENV"
-          git push origin HEAD
+          git commit -m "chore(ci): update digest for $ENV [skip ci]"
+          git push origin $BRANCH
 
       - name: Open PR to main if needed
         if: ${{ inputs.WF_CREATE_PR_IN_MAIN }}
