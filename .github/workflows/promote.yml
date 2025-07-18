@@ -32,8 +32,6 @@ jobs:
         run: |
           SERVICE_NAME=$(node -p -e "require('./package.json').name")
           echo "servicename=$SERVICE_NAME" >> $GITHUB_OUTPUT
-          echo 'artifact' ${{ inputs.ARTIFACT_ID }}
-
       - name: Download dev artifact (if FROM_ENV is dev)
         if: ${{ inputs.FROM_ENV == 'dev' }}
         uses: actions/download-artifact@v4
