@@ -59,9 +59,10 @@ jobs:
           fi
 
           cat from.json
-          DIGEST=$(jq -r '.digest' from.json)
-          VERSION_TAG=$(jq -r '.version_tag' from.json)
-          IMAGE_TAG=$(jq -r '.image_tag' from.json)
+          DIGEST=$(jq -r '.dev.digest' from.json)
+          VERSION_TAG=$(jq -r '.dev.version_tag' from.json)
+          IMAGE_TAG=$(jq -r '.dev.image_tag' from.json)
+
 
           if [[ -z "$DIGEST" || "$DIGEST" == "null" ]]; then
             echo "❌ Missing digest for ${{ inputs.FROM_ENV }}"
