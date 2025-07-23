@@ -12,6 +12,9 @@ on:
       ARTIFACT_ID:
         type: string
         required: false  # only used for dev
+      ARTIFACT_RUN_ID:
+        type: string
+        required: false
     secrets:
       WF_GITHUB_TOKEN:
         required: true
@@ -38,6 +41,8 @@ jobs:
         with:
           name: service-${{ steps.serviceName.outputs.servicename }}-dev-${{ inputs.ARTIFACT_ID }}
           path: dev-meta
+          github-token: ${{ secrets.WF_GITHUB_TOKEN }}
+          run-id: ${{ inputs.ARTIFACT_RUN_ID }}
 
 
       - name: Ensure .deploys/service.json exists
