@@ -19,6 +19,17 @@ on:
       WF_GITHUB_TOKEN:
         required: true
 
+    outputs:
+      digest:
+        description: "The image digest"
+        value: ${{ jobs.promote.outputs.digest }}
+      image_tag:
+        description: "The image digest"
+        value: ${{ jobs.promote.outputs.image_tag }}
+      version_tag:
+        description: "The image digest"
+        value: ${{ jobs.promote.outputs.version_tag }}
+
 jobs:
   promote:
     runs-on: ubuntu-latest
@@ -76,14 +87,10 @@ jobs:
              '.[$env] = {digest: $digest, version_tag: $version_tag, image_tag: $image_tag}' \
              .deploys/service.json > tmp.json && mv tmp.json .deploys/service.json
 
+          echo "digest=$DIGEST" >> $GITHUB_OUTPUT
+          echo "version_tag=$VERSION_TAG" >> $GITHUB_OUTPUT
+          echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+          
           echo "✅ Promoted ${{
             steps.serviceName.outputs.servicename
           }} from ${{ inputs.FROM_ENV }} to ${{ inputs.TO_ENV }}"
-
-      - name: Commit and push promotion
-        run: |
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          git add .deploys/service.json
-          git commit -m "chore(ci): promote ${{ steps.serviceName.outputs.servicename }} from ${{ inputs.FROM_ENV }} to ${{ inputs.TO_ENV }} [skip ci]" || echo "Nothing to commit"
-          git push origin deploy-state
