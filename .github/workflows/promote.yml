@@ -103,3 +103,25 @@ jobs:
           echo "digest=$DIGEST" >> $GITHUB_OUTPUT
           echo "version_tag=$VERSION_TAG" >> $GITHUB_OUTPUT
           echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+      - name: Retag image in ECR
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.NEW_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.NEW_AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-east-1
+          REPO: ${{ steps.serviceName.outputs.service_name }}
+          FROM_TAG: ${{ steps.promote.outputs.image_tag }}
+          TO_TAG: ${{ inputs.TO_ENV }}
+          DIGEST: ${{ steps.promote.outputs.digest }}
+        run: |
+          echo "🔁 Retagging image in ECR: $REPO from $FROM_TAG (digest: $DIGEST) to $TO_TAG"
+
+          aws ecr put-image \
+            --repository-name "$REPO" \
+            --image-tag "$TO_TAG" \
+            --image-manifest "$(aws ecr batch-get-image \
+              --repository-name "$REPO" \
+              --image-ids imageDigest=$DIGEST \
+              --query 'images[0].imageManifest' \
+              --output text)"
+
+          echo "✅ Image retagged in ECR: $REPO:$TO_TAG"
