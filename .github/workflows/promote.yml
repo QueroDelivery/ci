@@ -24,13 +24,13 @@ on:
         description: "The image digest"
         value: ${{ jobs.promote.outputs.digest }}
       image_tag:
-        description: "The image digest"
+        description: "The image tag"
         value: ${{ jobs.promote.outputs.image_tag }}
       version_tag:
-        description: "The image digest"
+        description: "The version tag (commit sha)"
         value: ${{ jobs.promote.outputs.version_tag }}
       service_name:
-        description: "The image digest"
+        description: "The service name"
         value: ${{ jobs.promote.outputs.service_name }}
 
 jobs:
@@ -38,18 +38,26 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ inputs.TO_ENV }}
 
+    outputs:
+      digest: ${{ steps.promote.outputs.digest }}
+      image_tag: ${{ steps.promote.outputs.image_tag }}
+      version_tag: ${{ steps.promote.outputs.version_tag }}
+      service_name: ${{ steps.serviceName.outputs.service_name }}
+
     steps:
       - name: Checkout deploy-state branch
         uses: actions/checkout@v4
         with:
-            ref: deploy-state
-            token: ${{ secrets.WF_GITHUB_TOKEN }}
-      - name: Getting SERVICE_NAME
+          ref: deploy-state
+          token: ${{ secrets.WF_GITHUB_TOKEN }}
+
+      - name: Get service name
         id: serviceName
         run: |
           SERVICE_NAME=$(node -p -e "require('./package.json').name")
           echo "service_name=$SERVICE_NAME" >> $GITHUB_OUTPUT
-      - name: Download dev artifact (if FROM_ENV is dev)
+
+      - name: Download dev artifact (only if FROM_ENV is dev)
         if: ${{ inputs.FROM_ENV == 'dev' }}
         uses: actions/download-artifact@v4
         with:
@@ -58,13 +66,13 @@ jobs:
           github-token: ${{ secrets.WF_GITHUB_TOKEN }}
           run-id: ${{ inputs.ARTIFACT_RUN_ID }}
 
-
       - name: Ensure .deploys/service.json exists
         run: |
           mkdir -p .deploys
           [ -f .deploys/service.json ] || echo '{}' > .deploys/service.json
 
-      - name: Load promotion data
+      - name: Promote image metadata
+        id: promote
         run: |
           if [[ "${{ inputs.FROM_ENV }}" == "dev" ]]; then
             cp dev-meta/service.json from.json
@@ -72,11 +80,12 @@ jobs:
             jq --arg env "${{ inputs.FROM_ENV }}" '.[$env]' .deploys/service.json > from.json
           fi
 
+          echo "📦 Loaded metadata from ${{ inputs.FROM_ENV }}"
           cat from.json
-          DIGEST=$(jq -r '.dev.digest' from.json)
-          VERSION_TAG=$(jq -r '.dev.version_tag' from.json)
-          IMAGE_TAG=$(jq -r '.dev.image_tag' from.json)
 
+          DIGEST=$(jq -r '.digest' from.json)
+          VERSION_TAG=$(jq -r '.version_tag' from.json)
+          IMAGE_TAG=$(jq -r '.image_tag' from.json)
 
           if [[ -z "$DIGEST" || "$DIGEST" == "null" ]]; then
             echo "❌ Missing digest for ${{ inputs.FROM_ENV }}"
@@ -90,10 +99,7 @@ jobs:
              '.[$env] = {digest: $digest, version_tag: $version_tag, image_tag: $image_tag}' \
              .deploys/service.json > tmp.json && mv tmp.json .deploys/service.json
 
+          echo "✅ Promoted ${{ steps.serviceName.outputs.service_name }} from ${{ inputs.FROM_ENV }} to ${{ inputs.TO_ENV }}"
           echo "digest=$DIGEST" >> $GITHUB_OUTPUT
           echo "version_tag=$VERSION_TAG" >> $GITHUB_OUTPUT
           echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
-
-          echo "✅ Promoted ${{
-            steps.serviceName.outputs.servicename
-          }} from ${{ inputs.FROM_ENV }} to ${{ inputs.TO_ENV }}"
