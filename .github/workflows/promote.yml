@@ -83,7 +83,7 @@ jobs:
           if [[ "${{ inputs.FROM_ENV }}" == "dev" ]]; then
             cp dev-meta/service.json from.json
           else
-            jq --arg env "${{ inputs.FROM_ENV }}" '.[$env]' .deploys/service.json > from.json
+            cp .deploys/service.json from.json
           fi
 
           echo "📦 Loaded metadata from ${{ inputs.FROM_ENV }}"
