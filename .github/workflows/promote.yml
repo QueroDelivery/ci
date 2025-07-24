@@ -126,7 +126,21 @@ jobs:
           echo "🔁 Retagging image in ECR: $REPO from digest $DIGEST to tag $TO_TAG"
           
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          REGION=${{ env.AWS_REGION || 'us-east-1' }}
+          REGION=***
+
+          # Check if tag already exists and matches digest
+          EXISTING_DIGEST=$(aws ecr describe-images \
+            --repository-name "$REPO" \
+            --image-ids imageTag="$TO_TAG" \
+            --query 'imageDetails[0].imageDigest' \
+            --output text 2>/dev/null)
+
+          if [[ "$EXISTING_DIGEST" == "$DIGEST" ]]; then
+            echo "✅ Tag '$TO_TAG' already points to digest '$DIGEST'. Skipping re-tag."
+            exit 0
+          fi
+
+          # Fetch image manifest
           MANIFEST=$(aws ecr batch-get-image \
             --repository-name "$REPO" \
             --image-ids imageDigest="$DIGEST" \
@@ -138,6 +152,7 @@ jobs:
             exit 1
           fi
 
+          # Put image with new tag
           echo "📤 Putting image with new tag: $TO_TAG"
           aws ecr put-image \
             --repository-name "$REPO" \
@@ -145,4 +160,5 @@ jobs:
             --image-manifest "$MANIFEST"
 
           echo "✅ Retag successful: $REPO:$TO_TAG"
+
 
