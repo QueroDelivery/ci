@@ -245,8 +245,6 @@ jobs:
           git push origin $BRANCH
 
 
-          cat "$FILE"
-
       - name: Handle dev layer vs tracked environments
         if: ${{ inputs.WF_ENV_TYPE_DEPLOY == 'dev' }}
         uses: actions/upload-artifact@v4
