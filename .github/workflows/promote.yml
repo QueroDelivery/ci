@@ -18,6 +18,12 @@ on:
     secrets:
       WF_GITHUB_TOKEN:
         required: true
+      WF_AWS_ACCESS_KEY_ID:
+        required: true
+      WF_AWS_SECRET_ACCESS_KEY:
+        required: true
+      WF_AWS_REGION:
+        required: true
 
     outputs:
       digest:
@@ -110,7 +116,7 @@ jobs:
           aws-access-key-id: ${{ secrets.WF_AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.WF_AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.WF_AWS_REGION }}
-          role-session-name: ${{ secrets.WF_SERVICE_NAME }}_GitHubActions
+          role-session-name:  ${{ steps.serviceName.outputs.service_name }}_GitHubActions
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
