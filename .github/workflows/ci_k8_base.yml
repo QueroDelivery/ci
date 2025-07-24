@@ -189,7 +189,7 @@ jobs:
         if: ${{ inputs.WF_SHOW_COMMENT }}
         env:
           GH_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
-          ECR_REPOSITORY: "${{ secrets.WF_SERVICE_NAME }}_${{ inputs.WF_ENV_TYPE }}_repo"
+          ECR_REPOSITORY: "${{ secrets.WF_SERVICE_NAME }}"
         run: |
           gh pr comment ${{ github.event.pull_request.number }} --body "✅ Deployed image: \`${{ steps.login-ecr.outputs.registry }}/${ECR_REPOSITORY}:${{ inputs.WF_IMAGE_TAG }}\`"
           gh pr comment ${{ github.event.pull_request.number }} --body "Segura o link dessa app review aí ó o/

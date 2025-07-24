@@ -3,9 +3,6 @@ name: CI-K8-BASE-UNDEPLOY
 on:
   workflow_call:
     inputs:
-      WF_ENV_TYPE:
-        type: string
-        required: true
       WF_ENV_TYPE_DEPLOY:
         type: string
         required: true
