@@ -239,11 +239,6 @@ jobs:
           # Move file back into worktree
           cp .deploys/$FILE ../deploy-worktree/.deploys/$FILE
 
-          cd ../deploy-worktree
-          git add .deploys/$FILE
-          git commit -m "chore(ci): upsert $ENV deploy state [skip ci]" || echo "⚠️ Nothing to commit"
-          git push origin $BRANCH
-
 
       - name: Handle dev layer vs tracked environments
         if: ${{ inputs.WF_ENV_TYPE_DEPLOY == 'dev' }}
@@ -259,21 +254,35 @@ jobs:
           ENV: "${{ inputs.WF_ENV_TYPE_DEPLOY }}"
           FILE: ".deploys/service.json"
         run: |
+          # Setup Git identity
           git config user.name "github-actions"
           git config user.email "actions@github.com"
 
-          # Cria diretório isolado para o worktree
-          git fetch origin $BRANCH:$BRANCH || true
+          # Remove worktree if already exists (idempotency)
+          if [ -d "../deploy-worktree" ]; then
+            echo "🧹 Cleaning up existing worktree"
+            git worktree remove --force ../deploy-worktree || true
+          fi
+
+          # Fetch remote branch into local if needed
+          if ! git show-ref --verify --quiet refs/remotes/origin/$BRANCH; then
+            git fetch origin $BRANCH:$BRANCH || git checkout --orphan $BRANCH
+          else
+            git fetch origin $BRANCH
+          fi
+
+          # Add isolated worktree for that branch
           git worktree add ../deploy-worktree $BRANCH
 
-          # Copia o service.json gerado
+          # Copy generated .deploys/service.json into worktree
           cp "$FILE" ../deploy-worktree/$FILE
 
+          # Commit and push if there are changes
           cd ../deploy-worktree
-
           git add "$FILE"
           git commit -m "chore(ci): promote $ENV from dev to $ENV [skip ci]" || echo "⚠️ Nothing to commit"
           git push origin $BRANCH
+
 
       - name: Open PR to main if needed
         if: ${{ inputs.WF_CREATE_PR_IN_MAIN }}
