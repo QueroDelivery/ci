@@ -232,21 +232,24 @@ jobs:
         env:
           BRANCH: "deploy-state"
           ENV: "${{ inputs.WF_ENV_TYPE_DEPLOY }}"
+          FILE: ".deploys/service.json"
         run: |
-          fetch origin $BRANCH:$BRANCH || git worktree add ../deploy-worktree $BRANCH
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+
+          # Cria diretório isolado para o worktree
+          git fetch origin $BRANCH:$BRANCH || true
+          git worktree add ../deploy-worktree $BRANCH
+
+          # Copia o service.json gerado
           cp "$FILE" ../deploy-worktree/$FILE
 
           cd ../deploy-worktree
 
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-
-          git fetch origin $BRANCH:$BRANCH || git checkout --orphan $BRANCH
-          git switch $BRANCH
-
           git add "$FILE"
-          git commit -m "chore(ci): update digest for $ENV [skip ci]"
+          git commit -m "chore(ci): promote $ENV from dev to $ENV [skip ci]" || echo "⚠️ Nothing to commit"
           git push origin $BRANCH
+
 
       - name: Open PR to main if needed
         if: ${{ inputs.WF_CREATE_PR_IN_MAIN }}
