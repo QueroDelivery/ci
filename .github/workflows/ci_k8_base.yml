@@ -197,30 +197,53 @@ jobs:
           gh pr comment ${{ github.event.pull_request.number }} --body "✅ Deployed image: \`${{ steps.login-ecr.outputs.registry }}/${ECR_REPOSITORY}:${{ inputs.WF_IMAGE_TAG }}\`"
           gh pr comment ${{ github.event.pull_request.number }} --body "Segura o link dessa app review aí ó o/
             -   URL: https://${{ secrets.WF_KUBE_NAME }}${{ secrets.WF_KUBE_DOMAIN }}"
+
       - name: upsert .deploys/service.json
         env:
-          IMAGE_DIGEST: ${{inputs.WF_DIGEST_IMAGE}}
+          IMAGE_DIGEST: ${{ inputs.WF_DIGEST_IMAGE }}
           FILE: "service.json"
           ENV: "${{ inputs.WF_ENV_TYPE_DEPLOY }}"
           GITHUB_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
           IMAGE_TAG: ${{ inputs.WF_IMAGE_TAG }}
           VERSION_TAG: "${{ github.sha }}"
+          BRANCH: deploy-state
 
         run: |
-          mkdir -p .deploys && cd .deploys
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+
+          # Fetch and create worktree
           git fetch origin $BRANCH:$BRANCH || true
           git worktree add ../deploy-worktree $BRANCH
 
-          cp ../deploy-worktree/$FILE $FILE || echo "{}" > $FILE
+          # Ensure deploys dir
+          mkdir -p .deploys
 
+          # If exists in branch, copy it; else init
+          if [ -f ../deploy-worktree/.deploys/$FILE ]; then
+            cp ../deploy-worktree/.deploys/$FILE .deploys/$FILE
+          else
+            echo "{}" > .deploys/$FILE
+          fi
 
-          # Write digest under environment key
+          # Merge or add deploy info
           jq --arg env "$ENV" \
-            --arg digest "$IMAGE_DIGEST" \
-            --arg version_tag "$VERSION_TAG" \
-            --arg image_tag "$IMAGE_TAG" \
-            '. + {($env): {digest: $digest, version_tag: $version_tag, image_tag: $image_tag}}' \
-            "$FILE" > tmp.json && mv tmp.json "$FILE"
+             --arg digest "$IMAGE_DIGEST" \
+             --arg version_tag "$VERSION_TAG" \
+             --arg image_tag "$IMAGE_TAG" \
+             '. + {($env): {digest: $digest, version_tag: $version_tag, image_tag: $image_tag}}' \
+             .deploys/$FILE > .deploys/tmp.json && mv .deploys/tmp.json .deploys/$FILE
+
+          cat .deploys/$FILE
+
+          # Move file back into worktree
+          cp .deploys/$FILE ../deploy-worktree/.deploys/$FILE
+
+          cd ../deploy-worktree
+          git add .deploys/$FILE
+          git commit -m "chore(ci): upsert $ENV deploy state [skip ci]" || echo "⚠️ Nothing to commit"
+          git push origin $BRANCH
+
 
           cat "$FILE"
 
@@ -253,7 +276,6 @@ jobs:
           git add "$FILE"
           git commit -m "chore(ci): promote $ENV from dev to $ENV [skip ci]" || echo "⚠️ Nothing to commit"
           git push origin $BRANCH
-
 
       - name: Open PR to main if needed
         if: ${{ inputs.WF_CREATE_PR_IN_MAIN }}
