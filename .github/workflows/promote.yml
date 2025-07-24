@@ -94,7 +94,7 @@ jobs:
 
           jq --arg env "${{ inputs.TO_ENV }}" \
              --arg digest "$DIGEST" \
-             --arg version_tag "$VERSION_TAG" \
+             --arg version_tag "${{ inputs.TO_ENV }}" \
              --arg image_tag "$IMAGE_TAG" \
              '.[$env] = {digest: $digest, version_tag: $version_tag, image_tag: $image_tag}' \
              .deploys/service.json > tmp.json && mv tmp.json .deploys/service.json
