@@ -208,12 +208,11 @@ jobs:
 
         run: |
           mkdir -p .deploys && cd .deploys
-          # Create or update JSON
-          if [ -f "$FILE" ]; then
-            echo "Updating existing file"
-          else
-            echo "{}" > "$FILE"
-          fi
+          git fetch origin $BRANCH:$BRANCH || true
+          git worktree add ../deploy-worktree $BRANCH
+
+          cp ../deploy-worktree/$FILE $FILE || echo "{}" > $FILE
+
 
           # Write digest under environment key
           jq --arg env "$ENV" \
