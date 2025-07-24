@@ -83,9 +83,9 @@ jobs:
           echo "📦 Loaded metadata from ${{ inputs.FROM_ENV }}"
           cat from.json
 
-          DIGEST=$(jq -r '.digest' from.json)
-          VERSION_TAG=$(jq -r '.version_tag' from.json)
-          IMAGE_TAG=$(jq -r '.image_tag' from.json)
+          DIGEST=$(jq -r '.${{ inputs.FROM_ENV }}.digest' from.json)
+          VERSION_TAG=$(jq -r '.${{ inputs.FROM_ENV }}.version_tag' from.json)
+          IMAGE_TAG=$(jq -r '.${{ inputs.FROM_ENV }}.image_tag' from.json)
 
           if [[ -z "$DIGEST" || "$DIGEST" == "null" ]]; then
             echo "❌ Missing digest for ${{ inputs.FROM_ENV }}"
