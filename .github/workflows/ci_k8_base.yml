@@ -131,7 +131,10 @@ jobs:
       - name: Prepare envs
         run: |
           echo "WF_KUBE_MEMORY_LIMIT=${{ inputs.WF_KUBE_MEMORY_LIMIT || inputs.WF_KUBE_MEMORY_REQUEST }}" >> $GITHUB_ENV
-
+      - name: Remove WF_KUBE_CPU_LIMIT when is null
+        if: ${{inputs.WF_KUBE_CPU_LIMIT == ''}}
+        run: |
+          sed -i '/KUBE_CPU_LIMIT/d' ./.kube/deployment-new.yaml
       - name: Render manifests with envsubst
         env:
           KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
