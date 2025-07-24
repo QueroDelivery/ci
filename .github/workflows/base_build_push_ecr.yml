@@ -80,9 +80,12 @@ jobs:
           docker tag $IMAGE_ID $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION_TAG
 
-          docker tag $IMAGE_ID $ECR_REGISTRY/$ECR_REPOSITORY:$ENV_TYPE_DEPLOY
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$ENV_TYPE_DEPLOY
-
+          if [ "$ENV_TYPE_DEPLOY" != "dev" ]; then
+            docker tag $IMAGE_ID $ECR_REGISTRY/$ECR_REPOSITORY:$ENV_TYPE_DEPLOY
+            docker push $ECR_REGISTRY/$ECR_REPOSITORY:$ENV_TYPE_DEPLOY
+          else
+            echo "⚠️ Skipping tag with ENV_TYPE_DEPLOY=dev"
+          fi
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$VERSION_TAG" >> $GITHUB_OUTPUT
 
           DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' $IMAGE_ID | cut -d'@' -f2)
