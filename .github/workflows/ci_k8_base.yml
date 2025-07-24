@@ -220,7 +220,7 @@ jobs:
             --arg digest "$IMAGE_DIGEST" \
             --arg version_tag "$VERSION_TAG" \
             --arg image_tag "$IMAGE_TAG" \
-            '.[$env] = {digest: $digest, version_tag: $version_tag, image_tag: $image_tag}' \
+            '. + {($env): {digest: $digest, version_tag: $version_tag, image_tag: $image_tag}}' \
             "$FILE" > tmp.json && mv tmp.json "$FILE"
 
           cat "$FILE"
