@@ -233,11 +233,11 @@ jobs:
           BRANCH: "deploy-state"
           ENV: "${{ inputs.WF_ENV_TYPE_DEPLOY }}"
         run: |
-          it fetch origin $BRANCH:$BRANCH || git worktree add ../deploy-worktree $BRANCH
+          fetch origin $BRANCH:$BRANCH || git worktree add ../deploy-worktree $BRANCH
           cp "$FILE" ../deploy-worktree/$FILE
 
           cd ../deploy-worktree
-          
+
           git config user.name "github-actions"
           git config user.email "actions@github.com"
 
