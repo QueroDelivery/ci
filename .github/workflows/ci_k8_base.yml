@@ -152,7 +152,7 @@ jobs:
           KUBE_NODE_GROUP: ${{ inputs.WF_KUBE_NODE_GROUP }}
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: "${{ secrets.WF_SERVICE_NAME }}"
-          VERSION_TAG: ${{ inputs.WF_IMAGE_TAG }}
+          VERSION_TAG: ${{ inputs.WF_DIGEST_IMAGE }}
         run: |
           mkdir -p rendered
           for file in .kube/*.yaml; do
@@ -164,7 +164,7 @@ jobs:
           KUBECONFIG: .kube/config-${{ secrets.WF_KUBE_TYPE }}.yaml
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: "${{ secrets.WF_SERVICE_NAME }}"
-          VERSION_TAG: ${{ inputs.WF_IMAGE_TAG }}
+          VERSION_TAG: ${{ inputs.WF_DIGEST_IMAGE }}
           KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
         run: |
           export PATH=$PATH:$PWD
@@ -216,7 +216,7 @@ jobs:
           git fetch origin $BRANCH:$BRANCH || true
           git worktree add ../deploy-worktree $BRANCH
 
-          # Ensure deploys dir
+          # Ensure deploys dir (local)
           mkdir -p .deploys
 
           # If exists in branch, copy it; else init
@@ -236,7 +236,8 @@ jobs:
 
           cat .deploys/$FILE
 
-          # Move file back into worktree
+          # ✅ Ensure destination dir before copying
+          mkdir -p ../deploy-worktree/.deploys
           cp .deploys/$FILE ../deploy-worktree/.deploys/$FILE
 
 
