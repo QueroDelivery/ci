@@ -42,6 +42,7 @@ jobs:
     outputs:
       servicename: ${{ steps.service-name.outputs.servicename }}
       digest: ${{ steps.load-image.outputs.digest }}
+      version_tag: ${{ steps.load-image.outputs.version_tag }}
 
     steps:
       - uses: actions/checkout@v4
