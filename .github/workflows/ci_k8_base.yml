@@ -212,24 +212,34 @@ jobs:
           BRANCH: deploy-state
 
         run: |
+          # Setup Git user
           git config user.name "github-actions"
           git config user.email "actions@github.com"
 
-          # Fetch and create worktree
-          git fetch origin $BRANCH:$BRANCH || true
-          git worktree add ../deploy-worktree $BRANCH
+          # Check if remote branch exists
+          if git ls-remote --exit-code --heads origin "$BRANCH"; then
+            echo "🔁 Branch $BRANCH exists on remote. Fetching..."
+            git fetch origin "$BRANCH":"$BRANCH"
+          else
+            echo "🆕 Branch $BRANCH does not exist. Creating from main..."
+            git fetch origin main
+            git branch "$BRANCH" origin/main
+          fi
 
-          # Ensure deploys dir (local)
+          # Create a worktree for the branch
+          git worktree add ../deploy-worktree "$BRANCH"
+
+          # Ensure local .deploys dir
           mkdir -p .deploys
 
-          # If exists in branch, copy it; else init
+          # Copy or initialize deploy file
           if [ -f ../deploy-worktree/.deploys/$FILE ]; then
             cp ../deploy-worktree/.deploys/$FILE .deploys/$FILE
           else
             echo "{}" > .deploys/$FILE
           fi
 
-          # Merge or add deploy info
+          # Update the deploy file
           jq --arg env "$ENV" \
              --arg digest "$IMAGE_DIGEST" \
              --arg version_tag "$VERSION_TAG" \
@@ -239,7 +249,7 @@ jobs:
 
           cat .deploys/$FILE
 
-          # ✅ Ensure destination dir before copying
+          # Ensure destination dir and copy updated file
           mkdir -p ../deploy-worktree/.deploys
           cp .deploys/$FILE ../deploy-worktree/.deploys/$FILE
 
