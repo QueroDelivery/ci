@@ -208,7 +208,7 @@ jobs:
           ENV: "${{ inputs.WF_ENV_TYPE_DEPLOY }}"
           GITHUB_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
           IMAGE_TAG: ${{ inputs.WF_IMAGE_TAG }}
-          VERSION_TAG: "${{ inputs.WF_IMAGE_VERSION_TAG || github.sha }}"
+          VERSION_TAG: "${{ inputs.WF_IMAGE_VERSION_TAG }}"
           BRANCH: deploy-state
 
         run: |

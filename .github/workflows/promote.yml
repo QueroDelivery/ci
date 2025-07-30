@@ -40,6 +40,25 @@ on:
         value: ${{ jobs.promote.outputs.service_name }}
 
 jobs:
+  init-deploy-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout default branch (e.g., main)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.WF_GITHUB_TOKEN }}
+
+      - name: Ensure deploy-state branch exists
+        run: |
+          if git ls-remote --exit-code --heads origin deploy-state; then
+            echo "✅ Branch 'deploy-state' already exists."
+          else
+            echo "🚀 Creating branch 'deploy-state' from current HEAD."
+            git checkout -b deploy-state
+            git push origin deploy-state
+          fi
+
   promote:
     runs-on: ubuntu-latest
     environment: ${{ inputs.TO_ENV }}
