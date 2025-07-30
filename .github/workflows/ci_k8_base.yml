@@ -204,7 +204,7 @@ jobs:
       - name: upsert .deploys/service.json
         env:
           IMAGE_DIGEST: ${{ inputs.WF_DIGEST_IMAGE }}
-          FILE: "service.json"
+          FILE: .deploys/service.json
           ENV: "${{ inputs.WF_ENV_TYPE_DEPLOY }}"
           GITHUB_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
           IMAGE_TAG: ${{ inputs.WF_IMAGE_TAG }}
@@ -216,6 +216,12 @@ jobs:
           git config user.name "github-actions"
           git config user.email "actions@github.com"
 
+          # Validate source file exists
+          if [ ! -f "$FILE" ]; then
+            echo "❌ Source file '$FILE' not found. Aborting."
+            exit 1
+          fi
+
           # Remove worktree if already exists (idempotency)
           if [ -d "../deploy-worktree" ]; then
             echo "🧹 Cleaning up existing worktree"
@@ -224,7 +230,9 @@ jobs:
 
           # Fetch remote branch into local if needed
           if ! git show-ref --verify --quiet refs/remotes/origin/$BRANCH; then
-            git fetch origin $BRANCH:$BRANCH || git checkout --orphan $BRANCH
+            echo "🆕 Branch '$BRANCH' does not exist remotely. Creating it."
+            git fetch origin main
+            git branch "$BRANCH" origin/main
           else
             git fetch origin $BRANCH
           fi
@@ -241,8 +249,14 @@ jobs:
           # Commit and push if there are changes
           cd ../deploy-worktree
           git add "$FILE"
-          git commit -m "chore(ci): promote $ENV from dev to $ENV [skip ci]" || echo "⚠️ Nothing to commit"
-          git push origin $BRANCH
+
+          if git diff --cached --quiet; then
+            echo "⚠️ Nothing to commit"
+          else
+            git commit -m "chore(ci): promote $ENV from dev to $ENV [skip ci]"
+            git push origin $BRANCH
+          fi
+
 
 
       - name: Handle dev layer vs tracked environments
