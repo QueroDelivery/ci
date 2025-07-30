@@ -30,6 +30,9 @@ on:
       digest:
         description: "The image digest"
         value: ${{ jobs.setup.outputs.digest }}
+      version_tag:
+        description: "The image version_tag"
+        value: ${{ jobs.setup.outputs.version_tag }}
 
 jobs:
   setup:
@@ -87,9 +90,11 @@ jobs:
             echo "⚠️ Skipping tag with ENV_TYPE_DEPLOY=dev"
           fi
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$VERSION_TAG" >> $GITHUB_OUTPUT
+          
 
           DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' $IMAGE_ID | cut -d'@' -f2)
           echo "digest=$DIGEST" >> $GITHUB_OUTPUT
+          echo "version_tag=$VERSION_TAG" >> $GITHUB_OUTPUT
 
       - name: Output service name
         id: service-name
