@@ -6,6 +6,9 @@ on:
       WF_IMAGE_TAG:
         type: string
         required: true
+      WF_IMAGE_VERSION_TAG:
+        type: string
+        required: true
       WF_DIGEST_IMAGE:
         type: string
         required: true
@@ -152,7 +155,7 @@ jobs:
           KUBE_NODE_GROUP: ${{ inputs.WF_KUBE_NODE_GROUP }}
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: "${{ secrets.WF_SERVICE_NAME }}"
-          VERSION_TAG: ${{ inputs.WF_DIGEST_IMAGE }}
+          VERSION_TAG: ${{ inputs.WF_IMAGE_VERSION_TAG }}
         run: |
           mkdir -p rendered
           for file in .kube/*.yaml; do
@@ -164,7 +167,7 @@ jobs:
           KUBECONFIG: .kube/config-${{ secrets.WF_KUBE_TYPE }}.yaml
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: "${{ secrets.WF_SERVICE_NAME }}"
-          VERSION_TAG: ${{ inputs.WF_DIGEST_IMAGE }}
+          VERSION_TAG: ${{ inputs.WF_IMAGE_VERSION_TAG }}
           KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
         run: |
           export PATH=$PATH:$PWD
@@ -205,7 +208,7 @@ jobs:
           ENV: "${{ inputs.WF_ENV_TYPE_DEPLOY }}"
           GITHUB_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
           IMAGE_TAG: ${{ inputs.WF_IMAGE_TAG }}
-          VERSION_TAG: "${{ github.sha }}"
+          VERSION_TAG: "${{ inputs.WF_IMAGE_VERSION_TAG || github.sha }}"
           BRANCH: deploy-state
 
         run: |
