@@ -313,14 +313,23 @@ jobs:
           git push origin $BRANCH
 
 
-      - name: Open PR to main if needed
-        if: ${{ inputs.WF_CREATE_PR_IN_MAIN }}
+      - name: Check if there are commits between staging to main
+        id: check_commits
+        if: ${{ inputs.WF_CREATE_PR_IN_MAIN}}
+        run: |
+          if [ "$(git rev-list --count 'origin/main..HEAD')" -eq 0 ]; then
+            echo "No commits to create pull request for."
+            echo "commits_head_main=false" >> $GITHUB_OUTPUT
+          else
+            echo "Commits found. Ready to create pull request."
+            echo "commits_head_main=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Pull Request for prod
+        if: ${{ inputs.WF_CREATE_PR_IN_MAIN && steps.check_commits.outputs.commits_head_main == 'true'}}
+        id: "open-pr"
         env:
           GH_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
         run: |
-          git fetch origin main
-          if [ "$(git rev-list origin/main..HEAD --count)" -gt 0 ]; then
-            gh pr create --base main --title "Deploy to production" --body "Auto-generated PR to promote to production"
-          else
-            echo "No new commits to promote"
-          fi
+          echo "Creating the PR Deply in prod"
+          gh pr edit stage -b "Pull request body" -t 'Deploy in prod'  && gh pr reopen stage || gh pr create --base "main" --title "Deploy in prod" --body "Pull request body"
