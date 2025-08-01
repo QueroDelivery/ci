@@ -216,11 +216,13 @@ jobs:
           git config user.name "github-actions"
           git config user.email "actions@github.com"
 
-          # Validate source file exists
+          # Ensure source file exists or initialize it
+          mkdir -p "$(dirname "$FILE")"
           if [ ! -f "$FILE" ]; then
-            echo "❌ Source file '$FILE' not found. Aborting."
-            exit 1
+            echo "⚠️ File '$FILE' not found. Initializing with empty object."
+            echo "{}" > "$FILE"
           fi
+
 
           # Remove worktree if already exists (idempotency)
           if [ -d "../deploy-worktree" ]; then
