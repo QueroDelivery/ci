@@ -223,6 +223,13 @@ jobs:
             echo "{}" > "$FILE"
           fi
 
+          # Upsert data into the service.json
+          jq --arg env "$ENV" \
+            --arg digest "$IMAGE_DIGEST" \
+            --arg version_tag "$VERSION_TAG" \
+            --arg image_tag "$IMAGE_TAG" \
+            '. + {($env): {digest: $digest, version_tag: $version_tag, image_tag: $image_tag}}' \
+            "$FILE" > "$FILE.tmp" && mv "$FILE.tmp" "$FILE"
 
           # Remove worktree if already exists (idempotency)
           if [ -d "../deploy-worktree" ]; then
@@ -258,6 +265,7 @@ jobs:
             git commit -m "chore(ci): promote $ENV from dev to $ENV [skip ci]"
             git push origin $BRANCH
           fi
+
 
 
 
