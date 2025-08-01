@@ -216,14 +216,35 @@ jobs:
           git config user.name "github-actions"
           git config user.email "actions@github.com"
 
-          # Ensure source file exists or initialize it
+          # Worktree cleanup (idempotent)
+          if [ -d "../deploy-worktree" ]; then
+            echo "🧹 Cleaning up existing worktree"
+            git worktree remove --force ../deploy-worktree || true
+          fi
+
+          # Ensure remote branch exists or create from main
+          if ! git show-ref --verify --quiet refs/remotes/origin/$BRANCH; then
+            echo "🆕 Branch '$BRANCH' does not exist remotely. Creating it from main."
+            git fetch origin main
+            git branch "$BRANCH" origin/main
+          else
+            git fetch origin $BRANCH
+          fi
+
+          # Create worktree pointing to the branch
+          git worktree add ../deploy-worktree $BRANCH
+
+          # Prepare local source file for upsert based on branch content
           mkdir -p "$(dirname "$FILE")"
-          if [ ! -f "$FILE" ]; then
-            echo "⚠️ File '$FILE' not found. Initializing with empty object."
+          if [ -f "../deploy-worktree/$FILE" ]; then
+            echo "📄 Loading existing $FILE from branch"
+            cp "../deploy-worktree/$FILE" "$FILE"
+          else
+            echo "🆕 Initializing $FILE with empty object"
             echo "{}" > "$FILE"
           fi
 
-          # Upsert data into the service.json
+          # Upsert new environment entry into the file
           jq --arg env "$ENV" \
             --arg digest "$IMAGE_DIGEST" \
             --arg version_tag "$VERSION_TAG" \
@@ -231,40 +252,9 @@ jobs:
             '. + {($env): {digest: $digest, version_tag: $version_tag, image_tag: $image_tag}}' \
             "$FILE" > "$FILE.tmp" && mv "$FILE.tmp" "$FILE"
 
-          # Remove worktree if already exists (idempotency)
-          if [ -d "../deploy-worktree" ]; then
-            echo "🧹 Cleaning up existing worktree"
-            git worktree remove --force ../deploy-worktree || true
-          fi
-
-          # Fetch remote branch into local if needed
-          if ! git show-ref --verify --quiet refs/remotes/origin/$BRANCH; then
-            echo "🆕 Branch '$BRANCH' does not exist remotely. Creating it."
-            git fetch origin main
-            git branch "$BRANCH" origin/main
-          else
-            git fetch origin $BRANCH
-          fi
-
-          # Add isolated worktree for that branch
-          git worktree add ../deploy-worktree $BRANCH
-
-          # Ensure destination dir exists before copying
+          # Copy updated file into the worktree
           mkdir -p "$(dirname ../deploy-worktree/$FILE)"
-
-          # Copy generated file into worktree
           cp "$FILE" ../deploy-worktree/$FILE
-
-          # Commit and push if there are changes
-          cd ../deploy-worktree
-          git add "$FILE"
-
-          if git diff --cached --quiet; then
-            echo "⚠️ Nothing to commit"
-          else
-            git commit -m "chore(ci): promote $ENV from dev to $ENV [skip ci]"
-            git push origin $BRANCH
-          fi
 
 
 
