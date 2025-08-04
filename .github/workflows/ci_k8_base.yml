@@ -293,6 +293,9 @@ jobs:
           # Add isolated worktree for that branch
           git worktree add ../deploy-worktree $BRANCH
 
+          # Ensure destination directory exists
+          mkdir -p "$(dirname ../deploy-worktree/$FILE)"
+
           # Copy generated .deploys/service.json into worktree
           cp "$FILE" ../deploy-worktree/$FILE
 
