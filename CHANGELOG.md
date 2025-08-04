@@ -1,3 +1,11 @@
+## [4.0.1](https://github.com/QueroDelivery/ci/compare/v4.0.0...v4.0.1) (2025-08-04)
+
+
+### Bug Fixes
+
+* commit message ([48ba000](https://github.com/QueroDelivery/ci/commit/48ba000c0fa99c1f8bdc90af80b3a77ba3dca241))
+* mkdir before copy file in deploy state ([b7d857f](https://github.com/QueroDelivery/ci/commit/b7d857fbf5b1c97f44e99069aae79f34b720275c))
+
 # [4.0.0](https://github.com/QueroDelivery/ci/compare/v3.5.1...v4.0.0) (2025-08-04)
 
 
