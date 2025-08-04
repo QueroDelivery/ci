@@ -160,16 +160,19 @@ jobs:
           fi
 
           # Fetch image manifest
-          MANIFEST=$(aws ecr batch-get-image \
+          RAW_MANIFEST=$(aws ecr batch-get-image \
             --repository-name "$REPO" \
             --image-ids imageDigest="$DIGEST" \
             --query 'images[0].imageManifest' \
             --output text)
 
-          if [[ -z "$MANIFEST" || "$MANIFEST" == "null" ]]; then
+          if [[ -z "$RAW_MANIFEST" || "$RAW_MANIFEST" == "null" ]]; then
             echo "❌ Failed to retrieve image manifest for digest: $DIGEST"
             exit 1
           fi
+
+          # Properly quote the manifest JSON string
+          MANIFEST=$(echo "$RAW_MANIFEST" | jq -Rs .)
 
           # Put image with new tag
           echo "📤 Putting image with new tag: $TO_TAG"
@@ -179,5 +182,4 @@ jobs:
             --image-manifest "$MANIFEST"
 
           echo "✅ Retag successful: $REPO:$TO_TAG"
-
 
