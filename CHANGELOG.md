@@ -1,3 +1,63 @@
+# [4.0.0](https://github.com/QueroDelivery/ci/compare/v3.5.1...v4.0.0) (2025-08-04)
+
+
+### Bug Fixes
+
+* a few path mismatch ([3578d1f](https://github.com/QueroDelivery/ci/commit/3578d1f715569e99617baea75dca6269117f9c81))
+* add coment with app review link ([e2bf318](https://github.com/QueroDelivery/ci/commit/e2bf318e8236f6da636e017cd3c6e783eb6a2e22))
+* add login ecr before retag ([eac47c1](https://github.com/QueroDelivery/ci/commit/eac47c1fb8c35805014472b42aaaf5990953f99b))
+* add update file with new params on upsert service json ([a55af9d](https://github.com/QueroDelivery/ci/commit/a55af9dca8fd32f3a1aade73168d821e8850722e))
+* commit service json ([6292790](https://github.com/QueroDelivery/ci/commit/6292790aba452e7142904bd45a98f7d1658575cf))
+* cp service json independent environment ([a9db3e1](https://github.com/QueroDelivery/ci/commit/a9db3e1f40ef7c39eb01bb6de7336d578c5f8a0c))
+* create PR to main with upsert behavior ([f766806](https://github.com/QueroDelivery/ci/commit/f7668064b7be2a0418590f6235361fedd527c3dd))
+* create service json when doesnt exists ([1bd72a6](https://github.com/QueroDelivery/ci/commit/1bd72a69ba2cb0edfd35e6ddc54cad8940acb885))
+* dont tag dev in ecr ([7eafb3e](https://github.com/QueroDelivery/ci/commit/7eafb3e541b7dca00a3bf006ee8e4414df0825be))
+* ecr name on push ([8182696](https://github.com/QueroDelivery/ci/commit/81826962cde91fa3734bd44e870f3a99609ccd11))
+* ensure deploy state branch exists ([0939118](https://github.com/QueroDelivery/ci/commit/0939118ccb02e547d68487d9ebb93637b26ffc34))
+* export correct digest after push ecr ([94d140f](https://github.com/QueroDelivery/ci/commit/94d140fd3404a7709732553ce80a90f0f9a9b3d8))
+* export servicename on promote ([54b3f0a](https://github.com/QueroDelivery/ci/commit/54b3f0af132a12d8aee97c8db9a22354d81c79f7))
+* fetch correct service json ([41ac03b](https://github.com/QueroDelivery/ci/commit/41ac03bbed7e37bf0510d29225997ffacf7aa93a))
+* name of state file in artifact ([017cb76](https://github.com/QueroDelivery/ci/commit/017cb7679515ee64b203dffc96f4fa2d996bcf48))
+* overriding service json file ([7478c2b](https://github.com/QueroDelivery/ci/commit/7478c2b2574669c1a8bb94191ee4340d4dbfaf6a))
+* overriding services json ([e3f939c](https://github.com/QueroDelivery/ci/commit/e3f939c9fec4ba67a4ab94a7c6ee05099ac95196))
+* parameters on setup aws ([905bba9](https://github.com/QueroDelivery/ci/commit/905bba95180291a800375219fb529f383d498242))
+* path reading values from service json ([451eff4](https://github.com/QueroDelivery/ci/commit/451eff4d0458abfe8e5794fcb4b40ecb363b633a))
+* promote reading metadata ([d402d29](https://github.com/QueroDelivery/ci/commit/d402d296279e60100b880976791299b7776c963e))
+* push flow of updated service files ([93c42e7](https://github.com/QueroDelivery/ci/commit/93c42e7b7cd2700eeae87bd814b43ccaec4f1176))
+* repository name in ecr ([9bce038](https://github.com/QueroDelivery/ci/commit/9bce0381f432814b9679564bd23297050106c61c))
+* retag image flow ([67287d7](https://github.com/QueroDelivery/ci/commit/67287d7f41becc7047e7ecdb11c5110cf4f91971))
+* rm unnecessary cat ([0d1e28f](https://github.com/QueroDelivery/ci/commit/0d1e28f7f628dc123b1d3ea01a4f6e8abda8b860))
+* rm unnecessary input on push ecr ([40abbe6](https://github.com/QueroDelivery/ci/commit/40abbe6e7f8127f90fc735b19ab7c9aeca579a4e))
+* rollback to remove kube cpu limit when null ([74989de](https://github.com/QueroDelivery/ci/commit/74989de3406622b3860408e430d9c9f0ddce0ac6))
+* rules to breaking change on semantic release ([d56ff34](https://github.com/QueroDelivery/ci/commit/d56ff3429c658ef9aa647e2467161ff9fdcf4640))
+* secret instead input ([1a5e623](https://github.com/QueroDelivery/ci/commit/1a5e623f0988f7652e342d3759995bcedc08a7dc))
+* setup npmrc step ([faa2f4b](https://github.com/QueroDelivery/ci/commit/faa2f4ba9915f22577de9e39150d6e15be39ba61))
+* update file locally and remotelly ([ea3ffda](https://github.com/QueroDelivery/ci/commit/ea3ffda6e64a76ce058f409aaabc1961735084f1))
+* upsert service json in repository ([f58c3c1](https://github.com/QueroDelivery/ci/commit/f58c3c182eefc721737569190e488b6c0c5d2ed1))
+* version tag promoted ([44d156c](https://github.com/QueroDelivery/ci/commit/44d156c283a10eb317cc2a638c1a40d04ee95cc0))
+* version_tag as output to push ecr process ([f075825](https://github.com/QueroDelivery/ci/commit/f07582509675dc9c9b5e8a8b43a519ab949d9112))
+* wrong initial command ([ea6b0d2](https://github.com/QueroDelivery/ci/commit/ea6b0d2c8d115bec3e1436a74ff6016bddd201ec))
+
+
+### Features
+
+* add promote steps ([40c1e28](https://github.com/QueroDelivery/ci/commit/40c1e28a247484ccee7cd49ed8a7f03c9828d080))
+* add retag idempotent process ([e00452b](https://github.com/QueroDelivery/ci/commit/e00452b593aa7db2e11b55f4c2fc0253359bf324))
+* add retag image in ecr ([9539efd](https://github.com/QueroDelivery/ci/commit/9539efd70822aa1ffdd0cdfb741f3573b27ef8a7))
+* adding new packages to run release locally ([c3f3de2](https://github.com/QueroDelivery/ci/commit/c3f3de244b191d3da4aa51fc2fe541724d5f2ac1))
+* commit deploy state in separately branch ([f499fd1](https://github.com/QueroDelivery/ci/commit/f499fd1e92e53216d769927dcfcf363f70a16c13))
+* ensure deploy state branch exists ([6f4ed83](https://github.com/QueroDelivery/ci/commit/6f4ed830849b42b11f4ba519c85bdb668abe9d26))
+* export digest after push ecr ([5906f9d](https://github.com/QueroDelivery/ci/commit/5906f9d3a7e6e58c8f4b6faf5511b922485ba900))
+* general ci changes to able build once deploy many ([fae374d](https://github.com/QueroDelivery/ci/commit/fae374d103ef461d344acef8d3bb24321212ce01))
+* general updates in service json file ([ce3629a](https://github.com/QueroDelivery/ci/commit/ce3629a9ddbc1ce87ff6c5b216deebda301a858d))
+* generating BREAKING CHANGE ([83649dc](https://github.com/QueroDelivery/ci/commit/83649dce4c57efe0b9e01e58a4555037a23af770))
+* idempotency on commit service json ([5c2059e](https://github.com/QueroDelivery/ci/commit/5c2059edc4d3c5161c22d8d5aeb5226eea336ae3))
+* just upload to deploy-state in stg or prd ([a7ee493](https://github.com/QueroDelivery/ci/commit/a7ee493be8834cda0499ee1628cb577128ebfcc2))
+* receive a WF_IMAGE_VERSION_TAG on deploy ([13993eb](https://github.com/QueroDelivery/ci/commit/13993eb849419cbf0b9d4955d07edfa8da68e1f1))
+* set version tag as an output ([b6cee69](https://github.com/QueroDelivery/ci/commit/b6cee6931dbf72b9c0a0bc4d84e27d20379e1eea))
+* use digest image instead just a tag ([4569851](https://github.com/QueroDelivery/ci/commit/45698517b239a8c23c32729aee22274248e44216))
+* use image digest to upsert service.json file ([c226b50](https://github.com/QueroDelivery/ci/commit/c226b50341ce6b8313845910238e153f6b92fba0))
+
 ## [3.5.1](https://github.com/QueroDelivery/ci/compare/v3.5.0...v3.5.1) (2025-05-06)
 
 
