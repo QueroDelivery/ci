@@ -302,7 +302,7 @@ jobs:
           # Commit and push if there are changes
           cd ../deploy-worktree
           git add "$FILE"
-          git commit -m "chore(ci): promote $ENV from dev to $ENV [skip ci]" || echo "⚠️ Nothing to commit"
+          git commit -m "chore(ci): promote to $ENV [skip ci]" || echo "⚠️ Nothing to commit"
           git push origin $BRANCH
 
 
