@@ -1,6 +1,19 @@
 {
   "plugins": [
-    "@semantic-release/commit-analyzer",
+    [
+      "@semantic-release/commit-analyzer",
+      {
+        "preset": "conventionalcommits",
+        "releaseRules": [
+          { "type": "feat", "release": "minor" },
+          { "type": "fix", "release": "patch" },
+          { "breaking": true, "release": "major" }
+        ],
+        "parserOpts": {
+          "noteKeywords": ["BREAKING CHANGE", "BREAKING CHANGES"]
+        }
+      }
+    ],
     "@semantic-release/release-notes-generator",
     [
       "@semantic-release/npm",
@@ -8,20 +21,16 @@
         "npmPublish": false
       }
     ],
-
     "@semantic-release/changelog",
     [
       "@semantic-release/git",
       {
         "message": "Release <%= nextRelease.version %> [skip ci]",
-        "assets": [
-          "package.json",
-          "CHANGELOG.md"
-        ]
+        "assets": ["package.json", "CHANGELOG.md"]
       }
     ]
   ],
-  "branches": [ "main" ],
+  "branches": ["main"],
   "type": "git",
   "url": "git@github.com:QueroDelivery/ci"
 }

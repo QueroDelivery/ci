@@ -1,12 +1,9 @@
-# This is a basic workflow to help you get started with Actions
 name: CI-ECR-BASE
+
 on:
   workflow_call:
     inputs:
       WF_SERVICE_NAME:
-        type: string
-        required: true
-      WF_ENV_TYPE:
         type: string
         required: true
       WF_ENV_TYPE_DEPLOY:
@@ -15,19 +12,8 @@ on:
       WF_NODE_VERSION:
         type: string
         required: true
-      WF_CREATE_DOTENV_BEFORE_BUILD:
-        type: boolean
-        default: false
-        required: false
-      WF_FONT_AWESOME_TOKEN:
-        type: string
-        required: false
 
     secrets:
-      WF_NPM_TOKEN:
-        required: true
-      WF_NPM_USER:
-        required: true
       WF_GITHUB_TOKEN:
         required: true
       WF_AWS_ACCESS_KEY_ID:
@@ -36,135 +22,81 @@ on:
         required: true
       WF_AWS_REGION:
         required: true
-      WF_FONT_AWESOME_TOKEN:
-        required: false
+
     outputs:
       servicename:
         description: "The service name"
         value: ${{ jobs.setup.outputs.servicename }}
-        
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+      digest:
+        description: "The image digest"
+        value: ${{ jobs.setup.outputs.digest }}
+      version_tag:
+        description: "The image version_tag"
+        value: ${{ jobs.setup.outputs.version_tag }}
+
 jobs:
   setup:
-    name: preparing
-    env:
-      FONT_AWESOME_TOKEN: ${{ secrets.WF_FONT_AWESOME_TOKEN }}
+    name: push-to-ecr
     runs-on: ubuntu-latest
-    environment: ${{inputs.WF_ENV_TYPE_DEPLOY}}
-    continue-on-error: false
+    environment: ${{ inputs.WF_ENV_TYPE_DEPLOY }}
     outputs:
       servicename: ${{ steps.service-name.outputs.servicename }}
-      
-    # Steps represent a sequence of tasks that will be executed as part of the job
+      digest: ${{ steps.load-image.outputs.digest }}
+      version_tag: ${{ steps.load-image.outputs.version_tag }}
+
     steps:
       - uses: actions/checkout@v4
-      - name: Checkout tools repo
-        uses: actions/checkout@v4
-        with:
-          ref: add-step-create-repository
-          token: ${{ secrets.WF_GITHUB_TOKEN }} 
-          repository: QueroDelivery/ci
-          path: setup/
-          persist-credentials: false
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ inputs.WF_NODE_VERSION }}
-          cache: 'yarn'
-          registry-url: ${{secrets.WF_REGISTRY}}
-      
-      - name: Configure AWS credentials without role
+
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.WF_AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.WF_AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.WF_AWS_REGION }}
 
-      - name: Create ECR repo if is initial commit
-        env:
-          REPO_PROD_NAME: ${{inputs.WF_SERVICE_NAME}}_prod_repo
-          REPO_STAGE_NAME: ${{inputs.WF_SERVICE_NAME}}_stage_repo
-        run: |
-          if [[ "${{ github.event.head_commit.message }}" == "initial commit" ]]; then
-            cd setup
-
-            echo "This step will create repositories on ECR to push docker image to staging and production environments"
-
-            echo ${REPO_PROD_NAME}
-
-            aws ecr describe-repositories --repository-names ${REPO_PROD_NAME} --no-cli-pager || aws ecr  create-repository --repository-name ${REPO_PROD_NAME} --no-cli-pager
-              
-            echo ${REPO_STAGE_NAME}
-            
-            aws ecr  describe-repositories --repository-names ${REPO_STAGE_NAME} --no-cli-pager || aws ecr  create-repository --repository-name ${REPO_STAGE_NAME} --no-cli-pager
-
-            aws ecr  get-lifecycle-policy --repository-name ${REPO_PROD_NAME} --no-cli-pager || aws ecr  put-lifecycle-policy --repository-name ${REPO_PROD_NAME} --lifecycle-policy-text file://ecr_policy.json --no-cli-pager
-            aws ecr  get-lifecycle-policy --repository-name ${REPO_STAGE_NAME} --no-cli-pager || aws ecr  put-lifecycle-policy --repository-name ${REPO_STAGE_NAME} --lifecycle-policy-text file://ecr_policy.json --no-cli-pager
-         
-          else
-            echo "Doesn't running create ECR repositories"
-          
-          fi
-
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
-      
-      - name: Update with new version
-        run: |
-          echo "getting branch"
-          echo ${GITHUB_REF#refs/heads/}
-          echo  "Updating the code with released version"
-        
-          BRANCH=${GITHUB_REF#refs/heads/}
-          
-          if [[ "$BRANCH" = "stage" || "$BRANCH" = "main" ]]; then
-            git pull origin $BRANCH
-            echo "Branch updated with the last version"
-          else
-            echo "Branch does not needs to be updated. Semantic-release had not run yet"
-          fi
-      
-      - name: Creating dotenv from aws parameter store
-        uses: almerindo/action-env-from-aws-ssm@main
-        if: ${{ inputs.WF_CREATE_DOTENV_BEFORE_BUILD }}
-        id: 'dotenv-from-parameter-store'
-        with:
-          output: ./.env
-          ssm-path: '/${{ inputs.WF_ENV_TYPE }}/${{ secrets.WF_SERVICE_NAME }}'
-          format: dotenv
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.WF_AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.WF_AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: ${{ secrets.WF_AWS_REGION }}
 
-      - name: Build, tag, and push image to Amazon ECR
-        id: build-image
+      - name: Download built image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: built-image
+
+      - name: Load image and push to ECR
+        id: load-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: '${{inputs.WF_SERVICE_NAME}}_${{inputs.WF_ENV_TYPE}}_repo'
-          IMAGE_TAG: latest
+          ECR_REPOSITORY: "${{ inputs.WF_SERVICE_NAME }}"
+          ENV_TYPE_DEPLOY: "${{ inputs.WF_ENV_TYPE_DEPLOY }}"
           VERSION_TAG: ${{ github.sha }}
-          SERVICE_NAME: ${{ inputs.WF_SERVICE_NAME }}
         run: |
-          # Build a docker container and
-          # push it to ECR so that it can
-          # be deployed to ECS.
-          echo "registry=http://registry.npmjs.org/" > .npmrc && echo "${{ secrets.WF_NPM_USER }}:registry=https://npm.pkg.github.com" >> .npmrc && echo "//npm.pkg.github.com/:_authToken=${{ secrets.WF_NPM_TOKEN }}" >> .npmrc && echo "@fortawesome:registry=https://npm.fontawesome.com/" >> .npmrc && echo "//npm.fontawesome.com/:_authToken=${{ secrets.WF_FONT_AWESOME_TOKEN }}" >> .npmrc
+          gunzip -c image.tar.gz | docker load
+          IMAGE_ID=$(docker images -q)
+          PR_NUMBER=${{ github.event.pull_request.number }}
 
-          docker build --build-arg SERVICE_NAME=$SERVICE_NAME -t $ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REPOSITORY:$VERSION_TAG .
-          docker tag $ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker tag $ECR_REPOSITORY:$VERSION_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION_TAG
+          # Tag with PR number (if available)
+          if [ -n "$PR_NUMBER" ]; then
+            docker tag $IMAGE_ID $ECR_REGISTRY/$ECR_REPOSITORY:pr-$PR_NUMBER
+            docker push $ECR_REGISTRY/$ECR_REPOSITORY:pr-$PR_NUMBER
+          fi
+
+          docker tag $IMAGE_ID $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION_TAG
-          
-          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$VERSION_TAG" >> $GITHUB_OUTPUT
 
-          echo "COMMIT-HASH --> $VERSION_TAG"
-          hash=$(git rev-parse HEAD)
-          echo $hash
-           
-      - name: Setting service name outputs
-        id: service-name
-        run: |
-          export SERVICE_NAME=${{inputs.WF_SERVICE_NAME}}
-          echo "servicename=$SERVICE_NAME" >> $GITHUB_OUTPUT
+          if [ "$ENV_TYPE_DEPLOY" != "dev" ]; then
+            docker tag $IMAGE_ID $ECR_REGISTRY/$ECR_REPOSITORY:$ENV_TYPE_DEPLOY
+            docker push $ECR_REGISTRY/$ECR_REPOSITORY:$ENV_TYPE_DEPLOY
+          else
+            echo "⚠️ Skipping tag with ENV_TYPE_DEPLOY=dev"
+          fi
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$VERSION_TAG" >> $GITHUB_OUTPUT
           
+
+          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' $IMAGE_ID | cut -d'@' -f2)
+          echo "digest=$DIGEST" >> $GITHUB_OUTPUT
+          echo "version_tag=$VERSION_TAG" >> $GITHUB_OUTPUT
+
+      - name: Output service name
+        id: service-name
+        run: echo "servicename=${{ inputs.WF_SERVICE_NAME }}" >> $GITHUB_OUTPUT

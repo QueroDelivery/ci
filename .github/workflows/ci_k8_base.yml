@@ -1,8 +1,17 @@
-# This is a basic workflow to help you get started with Actions
 name: CI-K8-BASE
+
 on:
   workflow_call:
     inputs:
+      WF_IMAGE_TAG:
+        type: string
+        required: true
+      WF_IMAGE_VERSION_TAG:
+        type: string
+        required: true
+      WF_DIGEST_IMAGE:
+        type: string
+        required: true
       WF_ENV_TYPE_DEPLOY:
         type: string
         required: true
@@ -51,14 +60,12 @@ on:
     secrets:
       WF_KUBE_TYPE:
         required: true
-
       WF_AWS_ACCESS_KEY_ID:
         required: true
       WF_AWS_SECRET_ACCESS_KEY:
         required: true
       WF_AWS_REGION:
         required: true
-
       WF_SERVICE_NAME:
         required: true
       WF_KUBE_NAME:
@@ -67,29 +74,23 @@ on:
         required: true
       WF_KUBE_DOMAIN_INTERNAL:
         required: true
-
       WF_GITHUB_TOKEN:
         required: true
-
       WF_WHITELIST_SOURCE_RANGE:
         required: false
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  setup:
-    name: preparing
+  deploy:
+    name: Deploy to Kubernetes
     runs-on: ubuntu-latest
-    environment: ${{inputs.WF_ENV_TYPE_DEPLOY}}
-    continue-on-error: false
-    # Steps represent a sequence of tasks that will be executed as part of the job
+    environment: ${{ inputs.WF_ENV_TYPE_DEPLOY }}
     steps:
-      - name: Checkout
+      - name: Checkout source
         uses: actions/checkout@v4
         with:
-          persist-credentials: false
           fetch-depth: 0
 
-      - name: Checkout tools repo
+      - name: Checkout kube manifests
         uses: actions/checkout@v4
         with:
           ref: v1.11.0
@@ -98,7 +99,7 @@ jobs:
           path: .kube
           persist-credentials: false
 
-      - name: Configure AWS credentials
+      - name: Setup AWS & IAM
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.WF_AWS_ACCESS_KEY_ID }}
@@ -110,10 +111,10 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Creating configmap.yaml from aws parameter store
+      - name: Fetch environment from SSM
         uses: almerindo/action-env-from-aws-ssm@main
         with:
-          output: .kube/${{ secrets.WF_KUBE_NAME }}-env-cm.yaml
+          output: ./.kube/${{ secrets.WF_KUBE_NAME }}-env-cm.yaml
           ssm-path: "/${{ inputs.WF_ENV_TYPE }}/${{ secrets.WF_SERVICE_NAME }}"
           format: configmap
         env:
@@ -121,48 +122,29 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.WF_AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ${{ secrets.WF_AWS_REGION }}
 
-      - name: Override kubefiles
-        run: |
-          FILE=setup/.kube
-          if [[ -d "$FILE" ]]; then
-            echo "$FILE EXIST!" 
-            cp -avf setup/.kube/*.yaml .kube/
-            echo "Kubefiles Override FINISHED" 
-          fi
-
       - name: Setup kubectl
         run: |
           curl -LO "https://dl.k8s.io/release/v1.30.6/bin/linux/amd64/kubectl"
-          chmod u+x kubectl
-          sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/
           curl -Lo aws-iam-authenticator https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v0.6.26/aws-iam-authenticator_0.6.26_linux_amd64
-          chmod u+x aws-iam-authenticator
+          chmod +x aws-iam-authenticator
+          sudo mv aws-iam-authenticator /usr/local/bin/
 
-      - name: Defining envs variables for kube
+      - name: Prepare envs
         run: |
-          WF_KUBE_MEMORY_LIMIT=${{ inputs.WF_KUBE_MEMORY_LIMIT }}
-
-          # Check if B is null or empty
-          if [ -z "$WF_KUBE_MEMORY_LIMIT" ]; then
-              # If WF_KUBE_MEMORY_LIMIT is null or empty, assign the value of WF_KUBE_MEMORY_REQUEST to WF_KUBE_MEMORY_LIMIT
-              WF_KUBE_MEMORY_LIMIT="${{ inputs.WF_KUBE_MEMORY_REQUEST }}"
-          fi
-
-          echo "WF_KUBE_MEMORY_LIMIT=$WF_KUBE_MEMORY_LIMIT" >> $GITHUB_ENV
+          echo "WF_KUBE_MEMORY_LIMIT=${{ inputs.WF_KUBE_MEMORY_LIMIT || inputs.WF_KUBE_MEMORY_REQUEST }}" >> $GITHUB_ENV
       - name: Remove WF_KUBE_CPU_LIMIT when is null
         if: ${{inputs.WF_KUBE_CPU_LIMIT == ''}}
         run: |
           sed -i '/KUBE_CPU_LIMIT/d' ./.kube/deployment-new.yaml
-      - name: Kubernetes Deploy
+      - name: Render manifests with envsubst
         env:
           KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
           KUBE_DOMAIN: ${{ secrets.WF_KUBE_DOMAIN }}
           KUBE_DOMAIN_INTERNAL: ${{ secrets.WF_KUBE_DOMAIN_INTERNAL }}
           KUBECONFIG: .kube/config-${{secrets.WF_KUBE_TYPE}}.yaml
           KUBEDEPLOYMENT: .kube/deployment-${{inputs.WF_KUBE_DEPLOYMENT}}.yaml
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: "${{ secrets.WF_SERVICE_NAME }}_${{ inputs.WF_ENV_TYPE}}_repo"
-          VERSION_TAG: ${{ github.sha }}
           KUBE_MIN_REPLICAS: ${{ inputs.WF_KUBE_MIN_REPLICAS }}
           PUBLIC_HOST: ${{ inputs.WF_PUBLIC_HOST }}
           KUBE_MAX_REPLICAS: ${{ inputs.WF_KUBE_MAX_REPLICAS }}
@@ -171,59 +153,155 @@ jobs:
           KUBE_CPU_LIMIT: ${{ inputs.WF_KUBE_CPU_LIMIT }}
           KUBE_CPU_REQUEST: ${{ inputs.WF_KUBE_CPU_REQUEST }}
           KUBE_NODE_GROUP: ${{ inputs.WF_KUBE_NODE_GROUP }}
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: "${{ secrets.WF_SERVICE_NAME }}"
+          VERSION_TAG: ${{ inputs.WF_IMAGE_VERSION_TAG }}
         run: |
-          echo "Export must be a first line"
-          export PATH=$PATH:$PWD
-          kubectl version
-          echo "Replacing envs from kube manifests"
-          echo "public host ${PUBLIC_HOST}"
-          cat .kube/namespace.yaml | envsubst > namespace.yaml
-          cat .kube/${KUBE_NAME}-env-cm.yaml | envsubst > ${KUBE_NAME}-env-cm.yaml
-          cat ${KUBEDEPLOYMENT} | envsubst > deployment.yaml
-          cat .kube/service.yaml | envsubst > service.yaml
-          cat .kube/ingress.yaml | envsubst > ingress.yaml
-          cat .kube/ingress-internal.yaml | envsubst > ingress-internal.yaml
-          cat .kube/hpa.yaml | envsubst > hpa.yaml
-          echo "Applying namespace"
-          kubectl apply -f namespace.yaml
-          echo "Applying configmap"
-          kubectl apply -f ${KUBE_NAME}-env-cm.yaml
-          echo "Applying deployment"
-          kubectl apply -f deployment.yaml
-          echo "Applying rollout"
-          kubectl rollout restart deployment/${KUBE_NAME} -n ${KUBE_NAME}
-          kubectl rollout status deployment/${KUBE_NAME} -n ${KUBE_NAME}
-          echo "Applying hpa"
-          kubectl apply -f hpa.yaml
-          echo "Applying service"
-          kubectl apply -f service.yaml
-          echo "Applying ingress"
-          kubectl apply -f ingress.yaml
-          echo "Applying ingress internal"
-          kubectl apply -f ingress-internal.yaml
-          echo "URL: https://${KUBE_NAME}${KUBE_DOMAIN}"
-
-      - name: Setting the service visibility
-        if: ${{ inputs.WF_IS_INTERNAL }}
-        id: "set-visibility"
+          mkdir -p rendered
+          for file in .kube/*.yaml; do
+            envsubst < "$file" > "rendered/$(basename $file)"
+          done
+          cat rendered/namespace.yaml
+      - name: Apply manifests
         env:
-          KUBECONFIG: .kube/config-${{secrets.WF_KUBE_TYPE}}.yaml
+          KUBECONFIG: .kube/config-${{ secrets.WF_KUBE_TYPE }}.yaml
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: "${{ secrets.WF_SERVICE_NAME }}"
+          VERSION_TAG: ${{ inputs.WF_IMAGE_VERSION_TAG }}
           KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
-          WHITELIST_SOURCE_RANGE: ${{ secrets.WF_WHITELIST_SOURCE_RANGE}}
         run: |
-          echo "Setting thee path"
           export PATH=$PATH:$PWD
-          kubectl -n ${KUBE_NAME} annotate --overwrite ingress ${KUBE_NAME} ingress.kubernetes.io/whitelist-source-range=${WHITELIST_SOURCE_RANGE}
-          kubectl -n ${KUBE_NAME} annotate --overwrite ingress ${KUBE_NAME} kubernetes.io/whitelist-source-range=${WHITELIST_SOURCE_RANGE}
+          kubectl apply -f rendered/namespace.yaml
+          kubectl apply -f rendered/${KUBE_NAME}-env-cm.yaml
+          kubectl apply -f rendered/deployment-${{ inputs.WF_KUBE_DEPLOYMENT }}.yaml
+          DEPLOY_NAME=$(yq e '.metadata.name' rendered/deployment-${{ inputs.WF_KUBE_DEPLOYMENT }}.yaml)
+          kubectl rollout restart deployment/$DEPLOY_NAME -n $KUBE_NAME
+          kubectl rollout status deployment/$DEPLOY_NAME -n $KUBE_NAME
+          kubectl apply -f rendered/hpa.yaml
+          kubectl apply -f rendered/service.yaml
+          kubectl apply -f rendered/ingress.yaml
+          kubectl apply -f rendered/ingress-internal.yaml
 
-      - name: Create comment
+      - name: Set service visibility (internal ingress whitelist)
+        if: ${{ inputs.WF_IS_INTERNAL }}
+        env:
+          KUBECONFIG: .kube/config-${{ secrets.WF_KUBE_TYPE }}.yaml
+          KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
+          WHITELIST_SOURCE_RANGE: ${{ secrets.WF_WHITELIST_SOURCE_RANGE }}
+        run: |
+          kubectl -n ${KUBE_NAME} annotate --overwrite ingress ${KUBE_NAME} ingress.kubernetes.io/whitelist-source-range=${WHITELIST_SOURCE_RANGE}
+
+      - name: Comment on PR with deployed image
         if: ${{ inputs.WF_SHOW_COMMENT }}
-        id: "create-comment"
         env:
           GH_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
+          ECR_REPOSITORY: "${{ secrets.WF_SERVICE_NAME }}"
         run: |
+          gh pr comment ${{ github.event.pull_request.number }} --body "✅ Deployed image: \`${{ steps.login-ecr.outputs.registry }}/${ECR_REPOSITORY}:${{ inputs.WF_IMAGE_TAG }}\`"
           gh pr comment ${{ github.event.pull_request.number }} --body "Segura o link dessa app review aí ó o/
             -   URL: https://${{ secrets.WF_KUBE_NAME }}${{ secrets.WF_KUBE_DOMAIN }}"
+
+      - name: upsert .deploys/service.json
+        env:
+          IMAGE_DIGEST: ${{ inputs.WF_DIGEST_IMAGE }}
+          FILE: .deploys/service.json
+          ENV: "${{ inputs.WF_ENV_TYPE_DEPLOY }}"
+          GITHUB_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
+          IMAGE_TAG: ${{ inputs.WF_IMAGE_TAG }}
+          VERSION_TAG: "${{ inputs.WF_IMAGE_VERSION_TAG }}"
+          BRANCH: deploy-state
+
+        run: |
+          # Setup Git identity
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+
+          # Worktree cleanup (idempotent)
+          if [ -d "../deploy-worktree" ]; then
+            echo "🧹 Cleaning up existing worktree"
+            git worktree remove --force ../deploy-worktree || true
+          fi
+
+          # Ensure remote branch exists or create from main
+          if ! git show-ref --verify --quiet refs/remotes/origin/$BRANCH; then
+            echo "🆕 Branch '$BRANCH' does not exist remotely. Creating it from main."
+            git fetch origin main
+            git branch "$BRANCH" origin/main
+          else
+            git fetch origin $BRANCH
+          fi
+
+          # Create worktree pointing to the branch
+          git worktree add ../deploy-worktree $BRANCH
+
+          # Prepare local source file for upsert based on branch content
+          mkdir -p "$(dirname "$FILE")"
+          if [ -f "../deploy-worktree/$FILE" ]; then
+            echo "📄 Loading existing $FILE from branch"
+            cp "../deploy-worktree/$FILE" "$FILE"
+          else
+            echo "🆕 Initializing $FILE with empty object"
+            echo "{}" > "$FILE"
+          fi
+
+          # Upsert new environment entry into the file
+          jq --arg env "$ENV" \
+            --arg digest "$IMAGE_DIGEST" \
+            --arg version_tag "$VERSION_TAG" \
+            --arg image_tag "$IMAGE_TAG" \
+            '. + {($env): {digest: $digest, version_tag: $version_tag, image_tag: $image_tag}}' \
+            "$FILE" > "$FILE.tmp" && mv "$FILE.tmp" "$FILE"
+
+          # Copy updated file into the worktree
+          mkdir -p "$(dirname ../deploy-worktree/$FILE)"
+          cp "$FILE" ../deploy-worktree/$FILE
+
+
+
+
+      - name: Handle dev layer vs tracked environments
+        if: ${{ inputs.WF_ENV_TYPE_DEPLOY == 'dev' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: service-${{ secrets.WF_SERVICE_NAME }}-dev-${{ github.event.pull_request.number || github.sha }}
+          path: .deploys/service.json
+
+      - name: Commit & Push deploy state (stg/prod)
+        if: ${{ inputs.WF_ENV_TYPE_DEPLOY != 'dev' }}
+        env:
+          BRANCH: "deploy-state"
+          ENV: "${{ inputs.WF_ENV_TYPE_DEPLOY }}"
+          FILE: ".deploys/service.json"
+        run: |
+          # Setup Git identity
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+
+          # Remove worktree if already exists (idempotency)
+          if [ -d "../deploy-worktree" ]; then
+            echo "🧹 Cleaning up existing worktree"
+            git worktree remove --force ../deploy-worktree || true
+          fi
+
+          # Fetch remote branch into local if needed
+          if ! git show-ref --verify --quiet refs/remotes/origin/$BRANCH; then
+            git fetch origin $BRANCH:$BRANCH || git checkout --orphan $BRANCH
+          else
+            git fetch origin $BRANCH
+          fi
+
+          # Add isolated worktree for that branch
+          git worktree add ../deploy-worktree $BRANCH
+
+          # Copy generated .deploys/service.json into worktree
+          cp "$FILE" ../deploy-worktree/$FILE
+
+          # Commit and push if there are changes
+          cd ../deploy-worktree
+          git add "$FILE"
+          git commit -m "chore(ci): promote $ENV from dev to $ENV [skip ci]" || echo "⚠️ Nothing to commit"
+          git push origin $BRANCH
+
 
       - name: Check if there are commits between staging to main
         id: check_commits

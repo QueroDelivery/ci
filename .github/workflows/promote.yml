@@ -1,0 +1,183 @@
+name: promote
+
+on:
+  workflow_call:
+    inputs:
+      FROM_ENV:
+        type: string
+        required: true
+      TO_ENV:
+        type: string
+        required: true
+      ARTIFACT_ID:
+        type: string
+        required: false  # only used for dev
+      ARTIFACT_RUN_ID:
+        type: string
+        required: false
+    secrets:
+      WF_GITHUB_TOKEN:
+        required: true
+      WF_AWS_ACCESS_KEY_ID:
+        required: true
+      WF_AWS_SECRET_ACCESS_KEY:
+        required: true
+      WF_AWS_REGION:
+        required: true
+
+    outputs:
+      digest:
+        description: "The image digest"
+        value: ${{ jobs.promote.outputs.digest }}
+      image_tag:
+        description: "The image tag"
+        value: ${{ jobs.promote.outputs.image_tag }}
+      version_tag:
+        description: "The version tag (commit sha)"
+        value: ${{ jobs.promote.outputs.version_tag }}
+      service_name:
+        description: "The service name"
+        value: ${{ jobs.promote.outputs.service_name }}
+
+jobs:
+  init-deploy-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout default branch (e.g., main)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.WF_GITHUB_TOKEN }}
+
+      - name: Ensure deploy-state branch exists
+        run: |
+          if git ls-remote --exit-code --heads origin deploy-state; then
+            echo "✅ Branch 'deploy-state' already exists."
+          else
+            echo "🚀 Creating branch 'deploy-state' from current HEAD."
+            git checkout -b deploy-state
+            git push origin deploy-state
+          fi
+
+  promote:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.TO_ENV }}
+
+    outputs:
+      digest: ${{ steps.promote.outputs.digest }}
+      image_tag: ${{ steps.promote.outputs.image_tag }}
+      version_tag: ${{ steps.promote.outputs.version_tag }}
+      service_name: ${{ steps.serviceName.outputs.service_name }}
+
+    steps:
+      - name: Checkout deploy-state branch
+        uses: actions/checkout@v4
+        with:
+          ref: deploy-state
+          token: ${{ secrets.WF_GITHUB_TOKEN }}
+
+      - name: Get service name
+        id: serviceName
+        run: |
+          SERVICE_NAME=$(node -p -e "require('./package.json').name")
+          echo "service_name=$SERVICE_NAME" >> $GITHUB_OUTPUT
+
+      - name: Download dev artifact (only if FROM_ENV is dev)
+        if: ${{ inputs.FROM_ENV == 'dev' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: service-${{ steps.serviceName.outputs.service_name }}-dev-${{ inputs.ARTIFACT_ID }}
+          path: dev-meta
+          github-token: ${{ secrets.WF_GITHUB_TOKEN }}
+          run-id: ${{ inputs.ARTIFACT_RUN_ID }}
+
+      - name: Ensure .deploys/service.json exists
+        run: |
+          mkdir -p .deploys
+          [ -f .deploys/service.json ] || echo '{}' > .deploys/service.json
+
+      - name: Promote image metadata
+        id: promote
+        run: |
+          if [[ "${{ inputs.FROM_ENV }}" == "dev" ]]; then
+            cp dev-meta/service.json from.json
+          else
+            cp .deploys/service.json from.json
+          fi
+
+          echo "📦 Loaded metadata from ${{ inputs.FROM_ENV }}"
+          cat from.json
+
+          DIGEST=$(jq -r '.${{ inputs.FROM_ENV }}.digest' from.json)
+          VERSION_TAG=$(jq -r '.${{ inputs.FROM_ENV }}.version_tag' from.json)
+          IMAGE_TAG=$(jq -r '.${{ inputs.FROM_ENV }}.image_tag' from.json)
+
+          if [[ -z "$DIGEST" || "$DIGEST" == "null" ]]; then
+            echo "❌ Missing digest for ${{ inputs.FROM_ENV }}"
+            exit 1
+          fi
+
+          jq --arg env "${{ inputs.TO_ENV }}" \
+             --arg digest "$DIGEST" \
+             --arg version_tag "${{ inputs.TO_ENV }}" \
+             --arg image_tag "$IMAGE_TAG" \
+             '.[$env] = {digest: $digest, version_tag: $version_tag, image_tag: $image_tag}' \
+             .deploys/service.json > tmp.json && mv tmp.json .deploys/service.json
+
+          echo "✅ Promoted ${{ steps.serviceName.outputs.service_name }} from ${{ inputs.FROM_ENV }} to ${{ inputs.TO_ENV }}"
+          echo "digest=$DIGEST" >> $GITHUB_OUTPUT
+          echo "version_tag=$VERSION_TAG" >> $GITHUB_OUTPUT
+          echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+      
+      - name: Setup AWS & IAM
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.WF_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.WF_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.WF_AWS_REGION }}
+          role-session-name:  ${{ steps.serviceName.outputs.service_name }}_GitHubActions
+      - name: Retag image in ECR using AWS CLI
+        env:
+          REPO: ${{ steps.serviceName.outputs.service_name }}
+          DIGEST: ${{ steps.promote.outputs.digest }}
+          TO_TAG: ${{ inputs.TO_ENV }}
+        run: |
+          echo "🔁 Retagging image in ECR: $REPO from digest $DIGEST to tag $TO_TAG"
+          
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          REGION=***
+
+          # Check if tag already exists and matches digest
+          EXISTING_DIGEST=$(aws ecr describe-images \
+            --repository-name "$REPO" \
+            --image-ids imageTag="$TO_TAG" \
+            --query 'imageDetails[0].imageDigest' \
+            --output text 2>/dev/null)
+
+          if [[ "$EXISTING_DIGEST" == "$DIGEST" ]]; then
+            echo "✅ Tag '$TO_TAG' already points to digest '$DIGEST'. Skipping re-tag."
+            exit 0
+          fi
+
+          # Fetch image manifest
+          MANIFEST=$(aws ecr batch-get-image \
+            --repository-name "$REPO" \
+            --image-ids imageDigest="$DIGEST" \
+            --query 'images[0].imageManifest' \
+            --output text)
+
+          if [[ -z "$MANIFEST" || "$MANIFEST" == "null" ]]; then
+            echo "❌ Failed to retrieve image manifest for digest: $DIGEST"
+            exit 1
+          fi
+
+          # Put image with new tag
+          echo "📤 Putting image with new tag: $TO_TAG"
+          aws ecr put-image \
+            --repository-name "$REPO" \
+            --image-tag "$TO_TAG" \
+            --image-manifest "$MANIFEST"
+
+          echo "✅ Retag successful: $REPO:$TO_TAG"
+
+
