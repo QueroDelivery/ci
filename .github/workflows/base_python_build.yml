@@ -1,0 +1,39 @@
+name: CI-BASE
+
+on:
+  workflow_call:
+
+    inputs:
+      WF_APP_NAME:
+        type: string
+        required: true
+      WF_ENV_TYPE_DEPLOY:
+        type: string
+        required: true
+
+jobs:
+  setup:
+    environment: ${{ inputs.WF_ENV_TYPE_DEPLOY }}
+    name: preparing
+    runs-on: ubuntu-latest
+    continue-on-error: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ inputs.WF_APP_NAME }}:ci-build .
+
+      - name: Save Docker image
+        run: |
+          docker save ${{ inputs.WF_APP_NAME }}:ci-build | gzip > image.tar.gz
+
+      - name: Upload Docker image as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: built-image
+          path: image.tar.gz
