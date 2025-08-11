@@ -9,9 +9,6 @@ on:
       WF_ENV_TYPE_DEPLOY:
         type: string
         required: true
-      WF_NODE_VERSION:
-        type: string
-        required: true
 
     secrets:
       WF_GITHUB_TOKEN:
