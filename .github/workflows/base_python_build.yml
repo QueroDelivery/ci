@@ -4,7 +4,7 @@ on:
   workflow_call:
 
     inputs:
-      WF_APP_NAME:
+      WF_SERVICE_NAME:
         type: string
         required: true
       WF_ENV_TYPE_DEPLOY:
@@ -26,11 +26,11 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t ${{ inputs.WF_APP_NAME }}:ci-build .
+          docker build -t ${{ inputs.WF_SERVICE_NAME }}:ci-build .
 
       - name: Save Docker image
         run: |
-          docker save ${{ inputs.WF_APP_NAME }}:ci-build | gzip > image.tar.gz
+          docker save ${{ inputs.WF_SERVICE_NAME }}:ci-build | gzip > image.tar.gz
 
       - name: Upload Docker image as artifact
         uses: actions/upload-artifact@v4
