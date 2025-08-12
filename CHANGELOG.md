@@ -1,3 +1,11 @@
+## [4.0.2](https://github.com/QueroDelivery/ci/compare/v4.0.1...v4.0.2) (2025-08-12)
+
+
+### Bug Fixes
+
+* error 254 in promote ([dc7745b](https://github.com/QueroDelivery/ci/commit/dc7745bcae5d795640d866b295f0c5cb4bc0fc75))
+* mistake on retag step ([188f088](https://github.com/QueroDelivery/ci/commit/188f088b4a079b15975d00c0398f2756432ec985))
+
 ## [4.0.1](https://github.com/QueroDelivery/ci/compare/v4.0.0...v4.0.1) (2025-08-04)
 
 
