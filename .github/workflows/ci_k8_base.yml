@@ -111,6 +111,15 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+      - name: Override kubefiles
+        run: |
+          FILE=setup/.kube
+          if [[ -d "$FILE" ]]; then
+            echo "$FILE EXIST!" 
+            cp -avf setup/.kube/*.yaml .kube/
+            echo "Kubefiles Override FINISHED" 
+          fi
+
       - name: Fetch environment from SSM
         uses: almerindo/action-env-from-aws-ssm@main
         with:
