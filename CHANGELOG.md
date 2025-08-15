@@ -1,3 +1,10 @@
+## [4.0.3](https://github.com/QueroDelivery/ci/compare/v4.0.2...v4.0.3) (2025-08-15)
+
+
+### Bug Fixes
+
+* add feature back that override kube files when it configured on github ([f7e5b90](https://github.com/QueroDelivery/ci/commit/f7e5b905847f4bbd7b0320ecd95c5b051daf838f))
+
 ## [4.0.2](https://github.com/QueroDelivery/ci/compare/v4.0.1...v4.0.2) (2025-08-12)
 
 
