@@ -6,6 +6,9 @@ on:
       FROM_ENV:
         type: string
         required: true
+      SERVICE_NAME:
+        type: string
+        required: false
       TO_ENV:
         type: string
         required: true
@@ -79,7 +82,11 @@ jobs:
       - name: Get service name
         id: serviceName
         run: |
-          SERVICE_NAME=$(node -p -e "require('./package.json').name")
+          if [[ -n "${{ inputs.SERVICE_NAME }}" ]]; then
+            SERVICE_NAME="${{ inputs.SERVICE_NAME }}"
+          else
+            SERVICE_NAME=$(node -p -e "require('./package.json').name")
+          fi
           echo "service_name=$SERVICE_NAME" >> $GITHUB_OUTPUT
 
       - name: Download dev artifact (only if FROM_ENV is dev)
