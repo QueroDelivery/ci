@@ -1,3 +1,32 @@
+# [4.1.0](https://github.com/QueroDelivery/ci/compare/v4.0.3...v4.1.0) (2025-08-18)
+
+
+### Bug Fixes
+
+* rename prop to keep the same pattern ([27d8039](https://github.com/QueroDelivery/ci/commit/27d8039379c0b04cf1784f7cf52b5d928f1e52b1))
+* rm unnecessary param ([59ba2c8](https://github.com/QueroDelivery/ci/commit/59ba2c897b62f88da0c77481d6a4a294273a4671))
+
+
+### Features
+
+* adding build python apps ([2f8b86c](https://github.com/QueroDelivery/ci/commit/2f8b86ca70d50cf795c3a5ff8a662cb54df00ae2))
+* use service name as input and read from pjson when it doesn't provide ([4b3def7](https://github.com/QueroDelivery/ci/commit/4b3def769dbd4256845dba1205e517e1002a42ab))
+
+## [4.0.3](https://github.com/QueroDelivery/ci/compare/v4.0.2...v4.0.3) (2025-08-15)
+
+
+### Bug Fixes
+
+* add feature back that override kube files when it configured on github ([f7e5b90](https://github.com/QueroDelivery/ci/commit/f7e5b905847f4bbd7b0320ecd95c5b051daf838f))
+
+## [4.0.2](https://github.com/QueroDelivery/ci/compare/v4.0.1...v4.0.2) (2025-08-12)
+
+
+### Bug Fixes
+
+* error 254 in promote ([dc7745b](https://github.com/QueroDelivery/ci/commit/dc7745bcae5d795640d866b295f0c5cb4bc0fc75))
+* mistake on retag step ([188f088](https://github.com/QueroDelivery/ci/commit/188f088b4a079b15975d00c0398f2756432ec985))
+
 ## [4.0.1](https://github.com/QueroDelivery/ci/compare/v4.0.0...v4.0.1) (2025-08-04)
 
 

@@ -6,6 +6,9 @@ on:
       FROM_ENV:
         type: string
         required: true
+      SERVICE_NAME:
+        type: string
+        required: false
       TO_ENV:
         type: string
         required: true
@@ -79,7 +82,11 @@ jobs:
       - name: Get service name
         id: serviceName
         run: |
-          SERVICE_NAME=$(node -p -e "require('./package.json').name")
+          if [[ -n "${{ inputs.SERVICE_NAME }}" ]]; then
+            SERVICE_NAME="${{ inputs.SERVICE_NAME }}"
+          else
+            SERVICE_NAME=$(node -p -e "require('./package.json').name")
+          fi
           echo "service_name=$SERVICE_NAME" >> $GITHUB_OUTPUT
 
       - name: Download dev artifact (only if FROM_ENV is dev)
@@ -142,24 +149,27 @@ jobs:
           DIGEST: ${{ steps.promote.outputs.digest }}
           TO_TAG: ${{ inputs.TO_ENV }}
         run: |
+          #!/bin/bash
+          set -euo pipefail
+
           echo "🔁 Retagging image in ECR: $REPO from digest $DIGEST to tag $TO_TAG"
-          
+
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          REGION=***
+          REGION=${AWS_REGION:-${AWS_DEFAULT_REGION:-"us-east-1"}}
 
           # Check if tag already exists and matches digest
           EXISTING_DIGEST=$(aws ecr describe-images \
             --repository-name "$REPO" \
             --image-ids imageTag="$TO_TAG" \
             --query 'imageDetails[0].imageDigest' \
-            --output text 2>/dev/null)
+            --output text 2>/dev/null || true)
 
           if [[ "$EXISTING_DIGEST" == "$DIGEST" ]]; then
             echo "✅ Tag '$TO_TAG' already points to digest '$DIGEST'. Skipping re-tag."
             exit 0
           fi
 
-          # Fetch image manifest
+          # Fetch image manifest as raw JSON
           MANIFEST=$(aws ecr batch-get-image \
             --repository-name "$REPO" \
             --image-ids imageDigest="$DIGEST" \
@@ -179,5 +189,4 @@ jobs:
             --image-manifest "$MANIFEST"
 
           echo "✅ Retag successful: $REPO:$TO_TAG"
-
 
