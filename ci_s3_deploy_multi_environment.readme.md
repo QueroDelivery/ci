@@ -113,9 +113,7 @@ jobs:
     if: |
       github.event.pull_request.head.ref != 'main' &&
       github.event.pull_request.head.ref != 'stage'
-    uses: QueroDelivery/ci/.github/workflows/ci_s3_deploy_multi_environment.yml@main
-    with:
-      environment_type: clear_preview
+    uses: QueroDelivery/ci/.github/workflows/ci_s3_clear_preview.yml@main
     secrets:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
