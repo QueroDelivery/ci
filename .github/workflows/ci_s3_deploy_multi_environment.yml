@@ -30,7 +30,6 @@ on:
 
 jobs:
   setup_and_upload_build_to_s3:
-    if: inputs.environment_type != 'clear_preview'
     name: Deploy build to S3
     runs-on: ubuntu-latest
     environment:
