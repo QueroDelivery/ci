@@ -1,3 +1,10 @@
+## [4.1.1](https://github.com/QueroDelivery/ci/compare/v4.1.0...v4.1.1) (2025-08-18)
+
+
+### Bug Fixes
+
+* streamline git fetch and commit process in CI workflow ([237e687](https://github.com/QueroDelivery/ci/commit/237e687b76f0e912fbb3edc4915a77fb125d577d))
+
 # [4.1.0](https://github.com/QueroDelivery/ci/compare/v4.0.3...v4.1.0) (2025-08-18)
 
 
