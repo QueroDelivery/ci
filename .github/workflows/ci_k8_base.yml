@@ -292,15 +292,11 @@ jobs:
             git worktree remove --force ../deploy-worktree || true
           fi
 
-          # Fetch remote branch into local if needed
-          if ! git show-ref --verify --quiet refs/remotes/origin/$BRANCH; then
-            git fetch origin $BRANCH:$BRANCH || git checkout --orphan $BRANCH
-          else
-            git fetch origin $BRANCH
-          fi
+          # Fetch latest remote branch
+          git fetch origin $BRANCH || git checkout --orphan $BRANCH
 
           # Add isolated worktree for that branch
-          git worktree add ../deploy-worktree $BRANCH
+          git worktree add ../deploy-worktree FETCH_HEAD
 
           # Ensure destination directory exists
           mkdir -p "$(dirname ../deploy-worktree/$FILE)"
@@ -311,9 +307,13 @@ jobs:
           # Commit and push if there are changes
           cd ../deploy-worktree
           git add "$FILE"
-          git commit -m "chore(ci): promote to $ENV [skip ci]" || echo "⚠️ Nothing to commit"
-          git push origin $BRANCH
-
+          if git commit -m "chore(ci): promote to $ENV [skip ci]"; then
+            # Rebase to preserve remote history
+            git pull --rebase origin $BRANCH
+            git push origin HEAD:$BRANCH
+          else
+            echo "⚠️ Nothing to commit"
+          fi
 
       - name: Check if there are commits between staging to main
         id: check_commits
