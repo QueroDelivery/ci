@@ -3,10 +3,6 @@ name: Build the application, upload to Amazon S3, and invalidate CloudFront cach
 on:
   workflow_call:
     inputs:
-      has_semantic_release:
-        required: false
-        type: boolean
-        default: true
       project_build_envs:
         required: false
         type: string
@@ -14,15 +10,7 @@ on:
         required: true
         type: string
         default: prod
-      run_tests:
-        required: false
-        type: boolean
-        default: true
-      run_lint:
-        required: false
-        type: boolean
-        default: true
-      run_tsc:
+      has_semantic_release:
         required: false
         type: boolean
         default: true
@@ -61,16 +49,12 @@ jobs:
           AWS_REGION: ${{ secrets.AWS_REGION }}
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
 
-  setup_and_upload_build_to_s3:
-    if: inputs.environment_type != 'clear_preview'
-    name: Deploy build to S3
+  setup_and_upload_build_release_to_s3:
+    if: ${{ (inputs.environment_type == 'stage' || inputs.environment_type == 'prod') }}
+    name: Deploy build release to S3
     runs-on: ubuntu-latest
     environment:
-      name: ${{ inputs.environment_type == 'preview' && 'stage' || inputs.environment_type }}
-
-    env:
-      PREVIEW_PREFIX: preview-pr-${{ github.event.pull_request.number }}
-      IS_PREVIEW: ${{ inputs.environment_type == 'preview' }}
+      name: ${{ inputs.environment_type }}
 
     steps:
       - name: Checkout
@@ -94,46 +78,6 @@ jobs:
       - name: Install Dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Commit message lint in Preview
-        if: inputs.run_lint == true && fromJSON(env.IS_PREVIEW)
-        uses: wagoid/commitlint-github-action@v6
-        with:
-          token: ${{ secrets.WF_GITHUB_TOKEN }}
-
-      - name: Typescript check in Preview
-        if: inputs.run_tsc == true && fromJSON(env.IS_PREVIEW)
-        run: yarn tsc --build
-
-      - name: Test coverage in Preview
-        if: inputs.run_tests == true && fromJSON(env.IS_PREVIEW)
-        run: yarn test:ci
-
-      - name: Upload coverage report in Preview
-        if: inputs.run_tests == true && fromJSON(env.IS_PREVIEW)
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: coverage
-
-      - name: Comment coverage report link in Preview
-        if: github.event_name == 'pull_request' && inputs.run_tests == true && fromJSON(env.IS_PREVIEW)
-        uses: actions/github-script@v6
-        with:
-          github-token: ${{ secrets.WF_GITHUB_TOKEN }}
-          script: |
-            const prNumber = context.payload.pull_request.number;
-            const runId = context.runId;
-            const { owner, repo } = context.repo;
-            const artifactUrl = `https://github.com/${owner}/${repo}/actions/runs/${runId}`;
-
-            await github.rest.issues.createComment({
-              issue_number: prNumber,
-              owner,
-              repo,
-              body: `📊 Coverage report uploaded as an artifact. [Click here to view it](${artifactUrl})\n
-              ![Coverage GIF](https://i.giphy.com/XIqCQx02E1U9W.webp)`
-            });
-
       - name: Create .env by "project_build_envs" input
         run: |
           printf "%s" "$PROJECT_ENVS" > .env
@@ -141,8 +85,7 @@ jobs:
         env:
           PROJECT_ENVS: ${{ inputs.project_build_envs }}
 
-      - name: Build release project
-        if: ${{ !fromJSON(env.IS_PREVIEW) }}
+      - name: Build project
         run: |
           export NODE_OPTIONS="--max-old-space-size=4096"
           export VITE_BROWSER_ROUTER_BASENAME="/"
@@ -151,20 +94,8 @@ jobs:
           export NG_APP_BASENAME="/"
           export VUE_APP_BASENAME="/"
           yarn build
-
-      - name: Build preview project
-        if: fromJSON(env.IS_PREVIEW)
-        run: |
-          export NODE_OPTIONS="--max-old-space-size=4096"
-          export VITE_BROWSER_ROUTER_BASENAME="/${{ env.PREVIEW_PREFIX }}"
-          export PUBLIC_URL="/${{ env.PREVIEW_PREFIX }}"
-          export NEXT_PUBLIC_BASENAME="/${{ env.PREVIEW_PREFIX }}"
-          export NG_APP_BASENAME="/${{ env.PREVIEW_PREFIX }}/"
-          export VUE_APP_BASENAME="/${{ env.PREVIEW_PREFIX }}"
-          yarn build
         
-      - name: Upload release to S3
-        if: ${{ !fromJSON(env.IS_PREVIEW) }}
+      - name: Upload to S3
         run: |
           aws s3 sync ./build s3://$S3_BUCKET_NAME --delete \
 
@@ -181,28 +112,8 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
-      
-      - name: Upload preview to S3
-        if: fromJSON(env.IS_PREVIEW)
-        run: |
-          aws s3 sync ./build "s3://${S3_BUCKET_NAME}/${PREVIEW_PREFIX}" --delete \
-
-          aws s3 cp ./build/ "s3://${S3_BUCKET_NAME}/${PREVIEW_PREFIX}" --recursive \
-            --exclude "index.html" \
-            --cache-control "max-age=86400, public" \
-            --metadata-directive REPLACE
-
-          aws s3 cp ./build/index.html "s3://${S3_BUCKET_NAME}/${PREVIEW_PREFIX}/index.html" \
-            --cache-control "no-cache, no-store, must-revalidate" \
-            --metadata-directive REPLACE
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
 
       - name: Verify if has some invalidation with "/*" path
-        if: ${{ !fromJSON(env.IS_PREVIEW) }}
         id: check_full_invalidation
         run: |
           DIST_ID="${CLOUDFRONT_DISTRIBUTION_ID}"
@@ -237,7 +148,7 @@ jobs:
           CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
   
       - name: Invalidate CloudFront cache (index.html ONLY)
-        if: ${{ steps.check_full_invalidation.outputs.has_full_invalidation == 'yes' && !fromJSON(env.IS_PREVIEW) }}
+        if: steps.check_full_invalidation.outputs.has_full_invalidation == 'yes'
         run: |
           aws cloudfront create-invalidation \
             --distribution-id $CLOUDFRONT_DISTRIBUTION_ID --paths "/index.html"
@@ -248,7 +159,7 @@ jobs:
           CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}  
           
       - name: Invalidate CloudFront cache (ALL)
-        if: ${{ steps.check_full_invalidation.outputs.has_full_invalidation == 'no' && !fromJSON(env.IS_PREVIEW) }}
+        if: steps.check_full_invalidation.outputs.has_full_invalidation == 'no'
         run: |
           aws cloudfront create-invalidation \
             --distribution-id $CLOUDFRONT_DISTRIBUTION_ID --paths "/*"
@@ -259,7 +170,6 @@ jobs:
           CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
         
       - name: Get CloudFront Domain Name and Alternate Name
-        if: ${{ !fromJSON(env.IS_PREVIEW) }}
         id: get_cf_domain
         run: |
           DOMAIN_NAME=$(aws cloudfront get-distribution --id $CLOUDFRONT_DISTRIBUTION_ID \
@@ -280,7 +190,7 @@ jobs:
           CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
 
       - name: Output release URL
-        if: ${{ (steps.get_cf_domain.outputs.alternate_name != 'None' || steps.get_cf_domain.outputs.domain_name != '') && !fromJSON(env.IS_PREVIEW) }}
+        if: ${{ (steps.get_cf_domain.outputs.alternate_name != 'None' || steps.get_cf_domain.outputs.domain_name != '') }}
         run: |
           DOMAIN_NAME="${DOMAIN_NAME}"
           ALTERNATE_DOMAIN="${ALTERNATE_DOMAIN}"
@@ -291,15 +201,124 @@ jobs:
             PREVIEW_URL="https://${DOMAIN_NAME}"
           fi
       
-          echo "### 🌐 Preview disponível" >> "$GITHUB_STEP_SUMMARY"
+          echo "### 🌐 Release disponível" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "🔗 $PREVIEW_URL" >> "$GITHUB_STEP_SUMMARY"
         env:
           DOMAIN_NAME: ${{ steps.get_cf_domain.outputs.domain_name }}
           ALTERNATE_DOMAIN: ${{ steps.get_cf_domain.outputs.alternate_name }}
+      
+      - name: Semantic release
+        if: inputs.has_semantic_release == true
+        env:
+          GITHUB_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
+        run: yarn release
 
-      - name: Get S3 website endpoint preview
-        if: github.event_name == 'pull_request' && fromJSON(env.IS_PREVIEW)
+  setup_and_upload_build_preview_to_s3:
+    if: inputs.environment_type == 'preview'
+    name: Deploy build preview to S3
+    runs-on: ubuntu-latest
+    environment:
+      name: 'stage'
+
+    env:
+      PREVIEW_PREFIX: preview-pr-${{ github.event.pull_request.number }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 22
+          cache: 'yarn'
+
+      - name: Cache node_modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            **/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install Dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Commit message lint
+        uses: wagoid/commitlint-github-action@v6
+        with:
+          token: ${{ secrets.WF_GITHUB_TOKEN }}
+
+      - name: Typescript check
+        run: yarn tsc --build
+
+      - name: Test coverage
+        run: yarn test:ci
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage
+
+      - name: Comment coverage report
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.WF_GITHUB_TOKEN }}
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            const runId = context.runId;
+            const { owner, repo } = context.repo;
+            const artifactUrl = `https://github.com/${owner}/${repo}/actions/runs/${runId}`;
+
+            await github.rest.issues.createComment({
+              issue_number: prNumber,
+              owner,
+              repo,
+              body: `📊 Coverage report uploaded as an artifact. [Click here to view it](${artifactUrl})\n
+              ![Coverage GIF](https://i.giphy.com/XIqCQx02E1U9W.webp)`
+            });
+
+      - name: Create .env by "project_build_envs" input
+        run: |
+          printf "%s" "$PROJECT_ENVS" > .env
+          echo "✅ File .env created from input"
+        env:
+          PROJECT_ENVS: ${{ inputs.project_build_envs }}
+
+      - name: Build project
+        run: |
+          export NODE_OPTIONS="--max-old-space-size=4096"
+          export VITE_BROWSER_ROUTER_BASENAME="/${{ env.PREVIEW_PREFIX }}"
+          export PUBLIC_URL="/${{ env.PREVIEW_PREFIX }}"
+          export NEXT_PUBLIC_BASENAME="/${{ env.PREVIEW_PREFIX }}"
+          export NG_APP_BASENAME="/${{ env.PREVIEW_PREFIX }}/"
+          export VUE_APP_BASENAME="/${{ env.PREVIEW_PREFIX }}"
+          yarn build
+      
+      - name: Upload to S3
+        run: |
+          aws s3 sync ./build "s3://${S3_BUCKET_NAME}/${PREVIEW_PREFIX}" --delete \
+
+          aws s3 cp ./build/ "s3://${S3_BUCKET_NAME}/${PREVIEW_PREFIX}" --recursive \
+            --exclude "index.html" \
+            --cache-control "max-age=86400, public" \
+            --metadata-directive REPLACE
+
+          aws s3 cp ./build/index.html "s3://${S3_BUCKET_NAME}/${PREVIEW_PREFIX}/index.html" \
+            --cache-control "no-cache, no-store, must-revalidate" \
+            --metadata-directive REPLACE
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
+
+      - name: Get S3 website endpoint
+        if: github.event_name == 'pull_request'
         id: get_s3_website_endpoint
         run: |
           BUCKET_NAME="${{ secrets.S3_BUCKET_NAME }}"
@@ -310,7 +329,7 @@ jobs:
         
       - name: Output preview URL
         uses: actions/github-script@v6
-        if: github.event_name == 'pull_request' && fromJSON(env.IS_PREVIEW)
+        if: github.event_name == 'pull_request'
         env:
           S3_ENDPOINT: ${{ steps.get_s3_website_endpoint.outputs.website_endpoint }}
           PREVIEW_PREFIX: ${{ env.PREVIEW_PREFIX }}
@@ -329,10 +348,4 @@ jobs:
               repo: context.repo.repo,
               body: `🚀 Preview disponível: [${previewUrl}](${previewUrl})\n
               ![Coverage GIF](https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExZThtYmVtZThra2loajhjbmIzM2ZnNHAxZHQ4aHowcHkzZnV2Nzl5OCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/ukZvSoWXXb3YKNHIsw/giphy.gif)`
-            });        
-        
-      - name: Semantic release
-        if: ${{ inputs.has_semantic_release == true && !fromJSON(env.IS_PREVIEW) }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
-        run: yarn release
+            });

@@ -142,9 +142,6 @@ jobs:
         github.event.pull_request.head.ref != 'stage'
     uses: QueroDelivery/ci/.github/workflows/ci_s3_deploy_multi_environment.yml@main
     with:
-      run_tests: false
-      run_lint: true
-      run_tsc: true
       project_build_envs: ${{ vars.PROJECT_BUILD_ENVS }}
       environment_type: preview
     secrets:
@@ -173,7 +170,7 @@ jobs:
   deploy_build_production_in_s3:
     uses: QueroDelivery/ci/.github/workflows/ci_s3_deploy_multi_environment.yml@main
     with:
-      has_semantic_release: false
+      has_semantic_release: true
       project_build_envs: ${{ vars.PROJECT_BUILD_ENVS }}
       environment_type: prod
     secrets:
@@ -264,9 +261,6 @@ Variables for your `prod` environment:
 
 ## CI inputs
 
-- `run_tests`: Enables or disables running the test suite and uploading the coverage report.  
-- `run_lint`: Enables or disables the commit message linting step.  
-- `run_tsc`: Enables or disables the TypeScript build and type checking step.
 - `has_semantic_release`: Enables or disables the release creation.
 - `project_build_envs`: Receive envs of builded Front-end project.
 - `environment_type`: Define environment, `stage`, `prod`, `preview` or `clear_preview`.
