@@ -1,16 +1,26 @@
-name: Publish builded application and invalidate CloudFront cache.
+name: Build the application, upload to Amazon S3, and invalidate CloudFront cache.
 
 on:
   workflow_call:
     inputs:
+      project_build_envs:
+        required: false
+        type: string
       environment_type:
         required: true
         type: string
-        default: prod
+      node_version: 
+        required: false
+        type: number
+        default: 22
       has_semantic_release:
         required: false
         type: boolean
         default: true
+      is_preview:
+        required: false
+        type: boolean
+        default: false
     secrets:
       AWS_ACCESS_KEY_ID:
         required: true
@@ -25,16 +35,124 @@ on:
       WF_GITHUB_TOKEN:
         required: false
 
+env:
+  APP_PREFIX: ${{ inputs.is_preview && format('preview-pr-{0}', github.event.pull_request.number) || '' }}
+  IS_PREVIEW: ${{ inputs.is_preview }}
+  VITE_BROWSER_ROUTER_BASENAME: ${{ inputs.is_preview && format('/preview-pr-{0}', github.event.pull_request.number) || '/' }}
+  REACT_APP_BROWSER_ROUTER_BASENAME: ${{ inputs.is_preview && format('/preview-pr-{0}', github.event.pull_request.number) || '/' }}
+
 jobs:
+  build_and_upload_to_s3:
+    name: Deploy build to S3
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment_type }}
+
+    steps:
+      - name: Validate environment_type input
+        run: |
+          case "${{ inputs.environment_type }}" in
+            stage|prod)
+              echo "✅ environment_type is valid: ${{ inputs.environment_type }}"
+              ;;
+            *)
+              echo "❌ Invalid environment_type: ${{ inputs.environment_type }}"
+              exit 1
+              ;;
+          esac
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ inputs.node_version }}
+          cache: 'yarn'
+
+      - name: Cache node_modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            **/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install Dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Commit message lint
+        uses: wagoid/commitlint-github-action@v6
+        with:
+          token: ${{ secrets.WF_GITHUB_TOKEN }}
+
+      - name: Typescript check
+        run: yarn tsc --build
+
+      - name: Test coverage
+        run: yarn test:ci
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage
+
+      - name: Comment coverage report
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.WF_GITHUB_TOKEN }}
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            const runId = context.runId;
+            const { owner, repo } = context.repo;
+            const artifactUrl = `https://github.com/${owner}/${repo}/actions/runs/${runId}`;
+
+            await github.rest.issues.createComment({
+              issue_number: prNumber,
+              owner,
+              repo,
+              body: `📊 Coverage report uploaded as an artifact. [Click here to view it](${artifactUrl})\n
+              ![Coverage GIF](https://i.giphy.com/XIqCQx02E1U9W.webp)`
+            });
+
+      - name: Create .env by "project_build_envs" input
+        run: |
+          printf "%s" "$PROJECT_ENVS" > .env
+          echo "✅ File .env created from input"
+        env:
+          PROJECT_ENVS: ${{ inputs.project_build_envs }}
+        
+      - name: Build project
+        run: yarn build
+        
+      - name: Upload to S3
+        run: |
+          aws s3 sync ./build "$S3_BUCKET_NAME" --delete
+      
+          aws s3 cp ./build/ "$S3_BUCKET_NAME" --recursive \
+            --exclude "index.html" \
+            --cache-control "max-age=86400, public" \
+            --metadata-directive REPLACE
+      
+          aws s3 cp ./build/index.html "$S3_BUCKET_NAME/index.html" \
+            --cache-control "no-cache, no-store, must-revalidate" \
+            --metadata-directive REPLACE
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          S3_BUCKET_NAME: ${{ format('s3://{0}/{1}', secrets.S3_BUCKET_NAME, env.APP_PREFIX) }}
+  
   publish_application_preview:
-    if: ${{ inputs.environment_type == 'preview' }}
+    needs: build_and_upload_to_s3
+    if: ${{ inputs.is_preview }}
     name: Publish application preview
     runs-on: ubuntu-latest
     environment:
-      name: 'stage'
-
-    env:
-      PREVIEW_PREFIX: preview-pr-${{ github.event.pull_request.number }}
+      name: ${{ inputs.environment_type }}
 
     steps:
       - name: Get S3 website endpoint
@@ -52,13 +170,13 @@ jobs:
         if: github.event_name == 'pull_request'
         env:
           S3_ENDPOINT: ${{ steps.get_s3_website_endpoint.outputs.website_endpoint }}
-          PREVIEW_PREFIX: ${{ env.PREVIEW_PREFIX }}
+          APP_PREFIX: ${{ env.APP_PREFIX }}
         with:
           github-token: ${{ secrets.WF_GITHUB_TOKEN }}
           script: |
             const prNumber = context.payload.pull_request.number;
             const s3Endpoint = process.env.S3_ENDPOINT;
-            const previewPrefix = process.env.PREVIEW_PREFIX;
+            const previewPrefix = process.env.APP_PREFIX;
       
             const previewUrl = `${s3Endpoint}/${previewPrefix}`;
       
@@ -71,7 +189,8 @@ jobs:
             });
 
   publish_application_and_invalidate_cache:
-    if: ${{ inputs.environment_type == 'stage' || inputs.environment_type == 'prod' }}
+    needs: build_and_upload_to_s3
+    if: ${{ !inputs.is_preview }}
     name: Publish application and invalidate cache
     runs-on: ubuntu-latest
     environment:
@@ -178,3 +297,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
         run: yarn release
+      

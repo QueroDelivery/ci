@@ -29,49 +29,12 @@ To ensure dynamic routing and seamless integration, configure your frontend proj
 
 During the CI build process, the value of the `PREVIEW_PREFIX` environment variable is used to define the **basename** (or base path) of the application — i.e., the subdirectory where the app will be served (e.g., `/preview-123/`).
 
-The following environment variables are exported and customized for each supported framework to ensure proper routing behavior when deployed under a subpath:
+The following environment variables are exported to ensure proper routing behavior when deployed under a subpath:
 
 ```bash
 export VITE_BROWSER_ROUTER_BASENAME="/${{ env.PREVIEW_PREFIX }}"
-export PUBLIC_URL="/${{ env.PREVIEW_PREFIX }}"
-export NEXT_PUBLIC_BASENAME="/${{ env.PREVIEW_PREFIX }}"
-export NG_APP_BASENAME="/${{ env.PREVIEW_PREFIX }}/"
-export VUE_APP_BASENAME="/${{ env.PREVIEW_PREFIX }}"
+export REACT_APP_ROUTER_BASENAME="/${{ env.PREVIEW_PREFIX }}"
 ````
-
-#### 🔹 Vite
-
-* **Variable:** `VITE_BROWSER_ROUTER_BASENAME`
-* **Usage:** Passed to `<BrowserRouter basename={...}>` and "base" property in vite.config
-* **Accessed via:** `import.meta.env.VITE_BROWSER_ROUTER_BASENAME`
-
-#### 🔹 React (Create React App)
-
-* **Variable:** `PUBLIC_URL`
-* **Usage:** Passed to `<BrowserRouter basename={...}>`
-* **Accessed via:** `process.env.PUBLIC_URL`
-
-#### 🔹 Next.js
-
-* **Variable:** `NEXT_PUBLIC_BASENAME`
-* **Usage:** Used for custom route handling or asset paths
-* **Accessed via:** `process.env.NEXT_PUBLIC_BASENAME`
-
-#### 🔹 Angular
-
-* **Variable:** `NG_APP_BASENAME`
-* **Usage:** Used as `APP_BASE_HREF` or passed to `--base-href` during build
-* **Accessed via:** Depends on strategy (recommends `@ngx-env/builder`)
-
-#### 🔹 Vue.js (Vue CLI)
-
-* **Variable:** `VUE_APP_BASENAME`
-* **Usage:** Used to configure `publicPath` in `vue.config.js`
-* **Accessed via:** `process.env.VUE_APP_BASENAME`
-
-### 🛠️ Note
-
-Each variable follows the environment conventions of its respective framework and should be used during build time or app initialization. This ensures the application works correctly when deployed under a subdirectory (`/${PREVIEW_PREFIX}/`).
 
 ### 📌 Why set the basename?
 
@@ -137,24 +100,11 @@ jobs:
     if: |
         github.event.pull_request.head.ref != 'main' &&
         github.event.pull_request.head.ref != 'stage'
-    uses: QueroDelivery/ci/.github/workflows/ci_s3_build.yml@main
+    uses: QueroDelivery/ci/.github/workflows/ci_s3_deploy_multi_environment.yml@main
     with:
       project_build_envs: ${{ vars.PROJECT_BUILD_ENVS }}
-      environment_type: preview
-    secrets:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_REGION: ${{ secrets.AWS_REGION }}
-      S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
-
-  publish_preview_application_and_invalidate_cloudfront_cache:
-    needs: deploy_build_preview_in_s3
-    if: |
-        github.event.pull_request.head.ref != 'main' &&
-        github.event.pull_request.head.ref != 'stage'
-    uses: QueroDelivery/ci/.github/workflows/ci_s3_publish.yml@main
-    with:
-      environment_type: preview
+      environment_type: stage
+      is_preview: true
     secrets:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -179,22 +129,11 @@ on:
 
 jobs:
   deploy_build_production_in_s3:
-    uses: QueroDelivery/ci/.github/workflows/ci_s3_build.yml@main
+    uses: QueroDelivery/ci/.github/workflows/ci_s3_deploy_multi_environment.yml@main
     with:
       project_build_envs: ${{ vars.PROJECT_BUILD_ENVS }}
       environment_type: prod
-    secrets:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_REGION: ${{ secrets.AWS_REGION }}
-      S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
-
-  publish_production_application_and_invalidate_cloudfront_cache:
-    needs: deploy_build_production_in_s3
-    uses: QueroDelivery/ci/.github/workflows/ci_s3_publish.yml@main
-    with:
       has_semantic_release: true
-      environment_type: prod
     secrets:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -219,29 +158,18 @@ on:
 
 jobs:
   deploy_build_stage_in_s3:
-    uses: QueroDelivery/ci/.github/workflows/ci_s3_build.yml@main
+    uses: QueroDelivery/ci/.github/workflows/ci_s3_deploy_multi_environment.yml@main
     with:
       project_build_envs: ${{ vars.PROJECT_BUILD_ENVS }}
       environment_type: stage
+      has_semantic_release: false
     secrets:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_REGION: ${{ secrets.AWS_REGION }}
       S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
-
-  publish_stage_application_and_invalidate_cloudfront_cache:
-      needs: deploy_build_stage_in_s3
-      uses: QueroDelivery/ci/.github/workflows/ci_s3_publish.yml@main
-      with:
-        has_semantic_release: false
-        environment_type: stage
-      secrets:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_REGION: ${{ secrets.AWS_REGION }}
-        S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
-        CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
-        WF_GITHUB_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
+      CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
+      WF_GITHUB_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
 ```
 
 ***
@@ -298,6 +226,7 @@ Variables for your `prod` environment:
 - `project_build_envs`: Receive envs of builded Front-end project.
 - `environment_type`: Define environment, `stage`, `prod`, `preview` or `clear_preview`.
 - `node_version`: Define version of running node.js.
+- `is_preview`: Enables preview conditions to expose pull-request test link.
 
 ## All available flows
 
