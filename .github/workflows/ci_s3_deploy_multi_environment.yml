@@ -1,0 +1,300 @@
+name: Build the application, upload to Amazon S3, and invalidate CloudFront cache.
+
+on:
+  workflow_call:
+    inputs:
+      project_build_envs:
+        required: false
+        type: string
+      environment_type:
+        required: true
+        type: string
+      node_version: 
+        required: false
+        type: number
+        default: 22
+      has_semantic_release:
+        required: false
+        type: boolean
+        default: true
+      is_preview:
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+      AWS_REGION:
+        required: true
+      S3_BUCKET_NAME:
+        required: true
+      CLOUDFRONT_DISTRIBUTION_ID:
+        required: false
+      WF_GITHUB_TOKEN:
+        required: false
+
+env:
+  APP_PREFIX: ${{ inputs.is_preview && format('preview-pr-{0}', github.event.pull_request.number) || '' }}
+  IS_PREVIEW: ${{ inputs.is_preview }}
+  VITE_BROWSER_ROUTER_BASENAME: ${{ inputs.is_preview && format('/preview-pr-{0}', github.event.pull_request.number) || '/' }}
+  REACT_APP_BROWSER_ROUTER_BASENAME: ${{ inputs.is_preview && format('/preview-pr-{0}', github.event.pull_request.number) || '/' }}
+
+jobs:
+  build_and_upload_to_s3:
+    name: Deploy build to S3
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment_type }}
+
+    steps:
+      - name: Validate environment_type input
+        run: |
+          case "${{ inputs.environment_type }}" in
+            stage|prod)
+              echo "✅ environment_type is valid: ${{ inputs.environment_type }}"
+              ;;
+            *)
+              echo "❌ Invalid environment_type: ${{ inputs.environment_type }}"
+              exit 1
+              ;;
+          esac
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ inputs.node_version }}
+          cache: 'yarn'
+
+      - name: Cache node_modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            **/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install Dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Commit message lint
+        uses: wagoid/commitlint-github-action@v6
+        with:
+          token: ${{ secrets.WF_GITHUB_TOKEN }}
+
+      - name: Typescript check
+        run: yarn tsc --build
+
+      - name: Test coverage
+        run: yarn test:ci
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage
+
+      - name: Comment coverage report
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.WF_GITHUB_TOKEN }}
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            const runId = context.runId;
+            const { owner, repo } = context.repo;
+            const artifactUrl = `https://github.com/${owner}/${repo}/actions/runs/${runId}`;
+
+            await github.rest.issues.createComment({
+              issue_number: prNumber,
+              owner,
+              repo,
+              body: `📊 Coverage report uploaded as an artifact. [Click here to view it](${artifactUrl})\n
+              ![Coverage GIF](https://i.giphy.com/XIqCQx02E1U9W.webp)`
+            });
+
+      - name: Create .env by "project_build_envs" input
+        run: |
+          printf "%s" "$PROJECT_ENVS" > .env
+          echo "✅ File .env created from input"
+        env:
+          PROJECT_ENVS: ${{ inputs.project_build_envs }}
+        
+      - name: Build project
+        run: yarn build
+        
+      - name: Upload to S3
+        run: |
+          aws s3 sync ./build "$S3_BUCKET_NAME" --delete
+      
+          aws s3 cp ./build/ "$S3_BUCKET_NAME" --recursive \
+            --exclude "index.html" \
+            --cache-control "max-age=86400, public" \
+            --metadata-directive REPLACE
+      
+          aws s3 cp ./build/index.html "$S3_BUCKET_NAME/index.html" \
+            --cache-control "no-cache, no-store, must-revalidate" \
+            --metadata-directive REPLACE
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          S3_BUCKET_NAME: ${{ format('s3://{0}/{1}', secrets.S3_BUCKET_NAME, env.APP_PREFIX) }}
+  
+  publish_application_preview:
+    needs: build_and_upload_to_s3
+    if: ${{ inputs.is_preview }}
+    name: Publish application preview
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment_type }}
+
+    steps:
+      - name: Get S3 website endpoint
+        if: github.event_name == 'pull_request'
+        id: get_s3_website_endpoint
+        run: |
+          BUCKET_NAME="${{ secrets.S3_BUCKET_NAME }}"
+          AWS_REGION="${{ secrets.AWS_REGION }}"
+      
+          WEBSITE_ENDPOINT="http://${BUCKET_NAME}.s3-website-${AWS_REGION}.amazonaws.com"
+          echo "website_endpoint=$WEBSITE_ENDPOINT" >> "$GITHUB_OUTPUT"
+        
+      - name: Output preview URL
+        uses: actions/github-script@v6
+        if: github.event_name == 'pull_request'
+        env:
+          S3_ENDPOINT: ${{ steps.get_s3_website_endpoint.outputs.website_endpoint }}
+          APP_PREFIX: ${{ env.APP_PREFIX }}
+        with:
+          github-token: ${{ secrets.WF_GITHUB_TOKEN }}
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            const s3Endpoint = process.env.S3_ENDPOINT;
+            const previewPrefix = process.env.APP_PREFIX;
+      
+            const previewUrl = `${s3Endpoint}/${previewPrefix}`;
+      
+            await github.rest.issues.createComment({
+              issue_number: prNumber,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `🚀 Preview disponível: [${previewUrl}](${previewUrl})\n
+              ![Coverage GIF](https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExZThtYmVtZThra2loajhjbmIzM2ZnNHAxZHQ4aHowcHkzZnV2Nzl5OCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/ukZvSoWXXb3YKNHIsw/giphy.gif)`
+            });
+
+  publish_application_and_invalidate_cache:
+    needs: build_and_upload_to_s3
+    if: ${{ !inputs.is_preview }}
+    name: Publish application and invalidate cache
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment_type }}
+
+    steps:
+      - name: Verify if has some invalidation with "/*" path
+        id: check_full_invalidation
+        run: |
+          DIST_ID="${CLOUDFRONT_DISTRIBUTION_ID}"
+          
+          echo "🔍 Searching invalidations"
+          IDS=$(aws cloudfront list-invalidations \
+            --distribution-id "$DIST_ID" \
+            --query "InvalidationList.Items[].Id" \
+            --output text)
+
+          FOUND="no"
+
+          for ID in $IDS; do
+            MATCH=$(aws cloudfront get-invalidation \
+              --distribution-id "$DIST_ID" \
+              --id "$ID" \
+              --query "Invalidation.InvalidationBatch.Paths.Items" \
+              --output text | grep -Fx "/*" || true)
+
+            if [[ "$MATCH" == "/*" ]]; then
+              FOUND="yes"
+              break
+            fi
+          done
+
+          echo "✅ Invalidation founded? $FOUND"
+          echo "has_full_invalidation=$FOUND" >> "$GITHUB_OUTPUT"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
+  
+      - name: Invalidate CloudFront cache (index.html ONLY)
+        if: ${{ steps.check_full_invalidation.outputs.has_full_invalidation == 'yes' }}
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id $CLOUDFRONT_DISTRIBUTION_ID --paths "/index.html"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}  
+          
+      - name: Invalidate CloudFront cache (ALL)
+        if: ${{ steps.check_full_invalidation.outputs.has_full_invalidation == 'no' }}
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id $CLOUDFRONT_DISTRIBUTION_ID --paths "/*"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
+        
+      - name: Get CloudFront Domain Name and Alternate Name
+        id: get_cf_domain
+        run: |
+          DOMAIN_NAME=$(aws cloudfront get-distribution --id $CLOUDFRONT_DISTRIBUTION_ID \
+            --query 'Distribution.DomainName' --output text)
+      
+          ALTERNATE_NAME=$(aws cloudfront get-distribution --id $CLOUDFRONT_DISTRIBUTION_ID \
+            --query 'Distribution.DistributionConfig.Aliases.Items[0]' --output text)
+      
+          echo "Domain name is: $DOMAIN_NAME"
+          echo "Alternate domain (CNAME) is: $ALTERNATE_NAME"
+      
+          echo "domain_name=$DOMAIN_NAME" >> "$GITHUB_OUTPUT"
+          echo "alternate_name=$ALTERNATE_NAME" >> "$GITHUB_OUTPUT"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
+
+      - name: Output release URL
+        if: ${{ (steps.get_cf_domain.outputs.alternate_name != 'None' || steps.get_cf_domain.outputs.domain_name != '') }}
+        run: |
+          DOMAIN_NAME="${DOMAIN_NAME}"
+          ALTERNATE_DOMAIN="${ALTERNATE_DOMAIN}"
+      
+          if [[ -n "$ALTERNATE_DOMAIN" && "$ALTERNATE_DOMAIN" != "None" ]]; then
+            PREVIEW_URL="https://${ALTERNATE_DOMAIN}"
+          else
+            PREVIEW_URL="https://${DOMAIN_NAME}"
+          fi
+      
+          echo "### 🌐 Release disponível" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "🔗 $PREVIEW_URL" >> "$GITHUB_STEP_SUMMARY"
+        env:
+          DOMAIN_NAME: ${{ steps.get_cf_domain.outputs.domain_name }}
+          ALTERNATE_DOMAIN: ${{ steps.get_cf_domain.outputs.alternate_name }}
+      
+      - name: Semantic release
+        if: ${{ inputs.has_semantic_release == true }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
+        run: yarn release
+      
