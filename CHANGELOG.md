@@ -1,3 +1,13 @@
+# [4.2.0](https://github.com/QueroDelivery/ci/compare/v4.1.1...v4.2.0) (2025-08-19)
+
+
+### Features
+
+* **ci-s3:** automates the deployment of static apps to S3 with auto CloudFront cache invalidation ([fddffb8](https://github.com/QueroDelivery/ci/commit/fddffb8579aabc3bba0f37b4b377d55f25ded164))
+* **flows:** adds diagram flows to each step ([e7a1484](https://github.com/QueroDelivery/ci/commit/e7a1484ca10515f725633f1ac830c6767a2d9dd1))
+* **structure:** adds a new structure to enhance handling with environments and conditions ([18cdabe](https://github.com/QueroDelivery/ci/commit/18cdabe8c1823853e98ff7d4a0dd8dab07686855))
+* **structure:** create a new file responsible to clear last uploaded preview ([0736f0a](https://github.com/QueroDelivery/ci/commit/0736f0a6624738f37652c36f94398f9c02a02ee3))
+
 ## [4.1.1](https://github.com/QueroDelivery/ci/compare/v4.1.0...v4.1.1) (2025-08-18)
 
 
