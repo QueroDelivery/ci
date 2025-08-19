@@ -75,7 +75,7 @@ jobs:
           path: coverage
 
       - name: Comment coverage report
-        if: github.event_name == 'pull_request' && inputs.environment_type == 'test'
+        if: github.event_name == 'pull_request'
         uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.WF_GITHUB_TOKEN }}
