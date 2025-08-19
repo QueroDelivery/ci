@@ -1,5 +1,4 @@
 # 🚀 CI Template: Deploy to S3 + CloudFront
-## ci-s3-deploy-multi-environment.yml
 
 This CI pipeline streamlines the **building and deployment of static applications** to an **S3 bucket**, coupled with **automatic CloudFront cache invalidation**.
 
