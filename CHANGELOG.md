@@ -1,3 +1,10 @@
+# [4.3.0](https://github.com/QueroDelivery/ci/compare/v4.2.0...v4.3.0) (2025-08-25)
+
+
+### Features
+
+* **publish:** adds checkout step ([6b96a70](https://github.com/QueroDelivery/ci/commit/6b96a706b588fd85715f0c7515803ea0cfddb606))
+
 # [4.2.0](https://github.com/QueroDelivery/ci/compare/v4.1.1...v4.2.0) (2025-08-19)
 
 
