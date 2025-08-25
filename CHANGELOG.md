@@ -1,3 +1,10 @@
+# [4.4.0](https://github.com/QueroDelivery/ci/compare/v4.3.0...v4.4.0) (2025-08-25)
+
+
+### Features
+
+* **node:** adds logic to install dependencies ([a91f42b](https://github.com/QueroDelivery/ci/commit/a91f42b4565e27d85e1d7e6adbcda8176052a1e3))
+
 # [4.3.0](https://github.com/QueroDelivery/ci/compare/v4.2.0...v4.3.0) (2025-08-25)
 
 
