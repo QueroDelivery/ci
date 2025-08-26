@@ -206,7 +206,7 @@ Secrets for your `prod` environment:
 
 For the CI pipeline to function correctly, you must add the following **variables** to your repository's "Actions" settings to each `environment`:
 
-- Should create `stage` and `prod` variables in GitHub repository -> Settings -> Secrets and variables -> Actions -> Variables.
+- Should create `stage` and `prod` variables in GitHub repository -> Settings -> Secrets and variables -> Actions -> Variables -> New repository variable.
 
 #### Stage Variables
 
