@@ -1,3 +1,10 @@
+# [4.5.0](https://github.com/QueroDelivery/ci/compare/v4.4.0...v4.5.0) (2025-08-26)
+
+
+### Features
+
+* **credentials:** disable persistence ([767786d](https://github.com/QueroDelivery/ci/commit/767786da27826b12610e1aaead31337d47899937))
+
 # [4.4.0](https://github.com/QueroDelivery/ci/compare/v4.3.0...v4.4.0) (2025-08-25)
 
 
