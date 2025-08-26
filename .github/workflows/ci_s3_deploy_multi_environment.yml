@@ -145,52 +145,9 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
           S3_BUCKET_NAME: ${{ format('s3://{0}/{1}', secrets.S3_BUCKET_NAME, env.APP_PREFIX) }}
-  
-  publish_application_preview:
-    needs: build_and_upload_to_s3
-    if: ${{ inputs.is_preview }}
-    name: Publish application preview
-    runs-on: ubuntu-latest
-    environment:
-      name: ${{ inputs.environment_type }}
-
-    steps:
-      - name: Get S3 website endpoint
-        if: github.event_name == 'pull_request'
-        id: get_s3_website_endpoint
-        run: |
-          BUCKET_NAME="${{ secrets.S3_BUCKET_NAME }}"
-          AWS_REGION="${{ secrets.AWS_REGION }}"
-      
-          WEBSITE_ENDPOINT="http://${BUCKET_NAME}.s3-website-${AWS_REGION}.amazonaws.com"
-          echo "website_endpoint=$WEBSITE_ENDPOINT" >> "$GITHUB_OUTPUT"
-        
-      - name: Output preview URL
-        uses: actions/github-script@v6
-        if: github.event_name == 'pull_request'
-        env:
-          S3_ENDPOINT: ${{ steps.get_s3_website_endpoint.outputs.website_endpoint }}
-          APP_PREFIX: ${{ env.APP_PREFIX }}
-        with:
-          github-token: ${{ secrets.WF_GITHUB_TOKEN }}
-          script: |
-            const prNumber = context.payload.pull_request.number;
-            const s3Endpoint = process.env.S3_ENDPOINT;
-            const previewPrefix = process.env.APP_PREFIX;
-      
-            const previewUrl = `${s3Endpoint}/${previewPrefix}`;
-      
-            await github.rest.issues.createComment({
-              issue_number: prNumber,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `🚀 Preview disponível: [${previewUrl}](${previewUrl})\n
-              ![Coverage GIF](https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExZThtYmVtZThra2loajhjbmIzM2ZnNHAxZHQ4aHowcHkzZnV2Nzl5OCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/ukZvSoWXXb3YKNHIsw/giphy.gif)`
-            });
 
   publish_application_and_invalidate_cache:
     needs: build_and_upload_to_s3
-    if: ${{ !inputs.is_preview }}
     name: Publish application and invalidate cache
     runs-on: ubuntu-latest
     environment:
@@ -257,13 +214,15 @@ jobs:
       - name: Invalidate CloudFront cache (index.html ONLY)
         if: ${{ steps.check_full_invalidation.outputs.has_full_invalidation == 'yes' }}
         run: |
+          PREFIX="/${APP_PREFIX#"/"}"
           aws cloudfront create-invalidation \
-            --distribution-id $CLOUDFRONT_DISTRIBUTION_ID --paths "/index.html"
+            --distribution-id $CLOUDFRONT_DISTRIBUTION_ID --paths "$PREFIX/index.html"
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
-          CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}  
+          CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
+          APP_PREFIX: ${{ env.APP_PREFIX }}
           
       - name: Invalidate CloudFront cache (ALL)
         if: ${{ steps.check_full_invalidation.outputs.has_full_invalidation == 'no' }}
@@ -297,7 +256,7 @@ jobs:
           CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
 
       - name: Output release URL
-        if: ${{ (steps.get_cf_domain.outputs.alternate_name != 'None' || steps.get_cf_domain.outputs.domain_name != '') }}
+        if: ${{ (steps.get_cf_domain.outputs.alternate_name != 'None' || steps.get_cf_domain.outputs.domain_name != '') && !inputs.is_preview }}
         run: |
           DOMAIN_NAME="${DOMAIN_NAME}"
           ALTERNATE_DOMAIN="${ALTERNATE_DOMAIN}"
@@ -314,10 +273,36 @@ jobs:
         env:
           DOMAIN_NAME: ${{ steps.get_cf_domain.outputs.domain_name }}
           ALTERNATE_DOMAIN: ${{ steps.get_cf_domain.outputs.alternate_name }}
+  
+      - name: Output preview URL
+        uses: actions/github-script@v6
+        if: ${{ (steps.get_cf_domain.outputs.alternate_name != 'None' || steps.get_cf_domain.outputs.domain_name != '') && github.event_name == 'pull_request' && inputs.is_preview }}
+        env:
+          APP_PREFIX: ${{ env.APP_PREFIX }}
+          DOMAIN_NAME: ${{ steps.get_cf_domain.outputs.domain_name }}
+          ALTERNATE_DOMAIN: ${{ steps.get_cf_domain.outputs.alternate_name }}
+        with:
+          github-token: ${{ secrets.WF_GITHUB_TOKEN }}
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            const previewPrefix = process.env.APP_PREFIX;
+            const domainName = process.env.DOMAIN_NAME;
+            const alternateDomain = process.env.ALTERNATE_DOMAIN;
+
+            const selectedDomain = alternateDomain !== "" && alternateDomain !== "None" ? `https://${alternateDomain}` : `https://${domainName}`;
+      
+            const previewUrl = `${selectedDomain}/${previewPrefix}`;
+      
+            await github.rest.issues.createComment({
+              issue_number: prNumber,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `🚀 Preview disponível: [${previewUrl}](${previewUrl})\n
+              ![Coverage GIF](https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExZThtYmVtZThra2loajhjbmIzM2ZnNHAxZHQ4aHowcHkzZnV2Nzl5OCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/ukZvSoWXXb3YKNHIsw/giphy.gif)`
+            });
       
       - name: Semantic release
-        if: ${{ inputs.has_semantic_release == true }}
+        if: ${{ inputs.has_semantic_release == true && !inputs.is_preview }}
         env:
           GITHUB_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
         run: yarn release
-      
