@@ -206,13 +206,13 @@ Secrets for your `prod` environment:
 
 For the CI pipeline to function correctly, you must add the following **variables** to your repository's "Actions" settings to each `environment`:
 
-- Should create `stage` and `prod` environments in GitHub repository -> Settings -> Secrets and variables -> Actions -> Manage environment variables.
+- Should create `stage` and `prod` variables in GitHub repository -> Settings -> Secrets and variables -> Actions -> Variables -> New repository variable.
 
 #### Stage Variables
 
 Variables for your `stage` environment:
 
-  * `PROJECT_BUILD_ENVS`: Your FRONT-END project envs of `stage` environment.
+  * `STAGE_PROJECT_BUILD_ENVS`: Your FRONT-END project envs of `stage` environment.
 
 #### Production Variables
 
