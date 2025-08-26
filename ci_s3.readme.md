@@ -102,7 +102,7 @@ jobs:
         github.event.pull_request.head.ref != 'stage'
     uses: QueroDelivery/ci/.github/workflows/ci_s3_deploy_multi_environment.yml@main
     with:
-      project_build_envs: ${{ vars.PROJECT_BUILD_ENVS }}
+      project_build_envs: ${{ vars.STAGE_PROJECT_BUILD_ENVS }}
       environment_type: stage
       is_preview: true
     secrets:
@@ -160,7 +160,7 @@ jobs:
   deploy_build_stage_in_s3:
     uses: QueroDelivery/ci/.github/workflows/ci_s3_deploy_multi_environment.yml@main
     with:
-      project_build_envs: ${{ vars.PROJECT_BUILD_ENVS }}
+      project_build_envs: ${{ vars.STAGE_PROJECT_BUILD_ENVS }}
       environment_type: stage
       has_semantic_release: false
     secrets:
