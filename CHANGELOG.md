@@ -1,3 +1,10 @@
+# [4.7.0](https://github.com/QueroDelivery/ci/compare/v4.6.0...v4.7.0) (2025-08-26)
+
+
+### Features
+
+* **readme:** change example workflows of stage environment ([3317735](https://github.com/QueroDelivery/ci/commit/331773549a6a1882bccd3c5ea177ccf8a4b45d99))
+
 # [4.6.0](https://github.com/QueroDelivery/ci/compare/v4.5.0...v4.6.0) (2025-08-26)
 
 
