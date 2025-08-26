@@ -1,3 +1,11 @@
+# [4.6.0](https://github.com/QueroDelivery/ci/compare/v4.5.0...v4.6.0) (2025-08-26)
+
+
+### Features
+
+* **readme:** change s3 readme to use a new method to define variables to each environment ([bb882ce](https://github.com/QueroDelivery/ci/commit/bb882cea5e41e65a0e5bf8c6084acad3e27181a8))
+* **readme:** change s3 readme to use a new method to define variables to each environment ([1fbfd43](https://github.com/QueroDelivery/ci/commit/1fbfd4307b712ea5768aca64f0f596ea41f6c049))
+
 # [4.5.0](https://github.com/QueroDelivery/ci/compare/v4.4.0...v4.5.0) (2025-08-26)
 
 
