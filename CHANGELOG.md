@@ -1,3 +1,10 @@
+# [4.8.0](https://github.com/QueroDelivery/ci/compare/v4.7.0...v4.8.0) (2025-08-27)
+
+
+### Features
+
+* **preview-url:** adds logic to expose preview url with cloudfront domain and reduce unnecessary code ([b4159c6](https://github.com/QueroDelivery/ci/commit/b4159c684e24e85645a5df482fc6d8c96200b582))
+
 # [4.7.0](https://github.com/QueroDelivery/ci/compare/v4.6.0...v4.7.0) (2025-08-26)
 
 
