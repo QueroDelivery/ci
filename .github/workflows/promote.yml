@@ -88,10 +88,10 @@ jobs:
           mkdir -p .deploys
           [ -f .deploys/service.json ] || echo '{}' > .deploys/service.json
 
-      - name: Guardrail - allow only stage -> prod
+      - name: Guardrail - allow only staging -> production
         run: |
-          if [ "${{ inputs.FROM_ENV }}" != "stage" ] || [ "${{ inputs.TO_ENV }}" != "prod" ]; then
-            echo "Promote allowed only from stage -> prod."
+          if [ "${{ inputs.FROM_ENV }}" != "staging" ] || [ "${{ inputs.TO_ENV }}" != "production" ]; then
+            echo "Promote allowed only from staging -> production."
             exit 1
           fi
 
