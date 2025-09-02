@@ -12,12 +12,6 @@ on:
       TO_ENV:
         type: string
         required: true
-      ARTIFACT_ID:
-        type: string
-        required: false  # only used for dev
-      ARTIFACT_RUN_ID:
-        type: string
-        required: false
     secrets:
       WF_GITHUB_TOKEN:
         required: true
@@ -89,28 +83,22 @@ jobs:
           fi
           echo "service_name=$SERVICE_NAME" >> $GITHUB_OUTPUT
 
-      - name: Download dev artifact (only if FROM_ENV is dev)
-        if: ${{ inputs.FROM_ENV == 'dev' }}
-        uses: actions/download-artifact@v4
-        with:
-          name: service-${{ steps.serviceName.outputs.service_name }}-dev-${{ inputs.ARTIFACT_ID }}
-          path: dev-meta
-          github-token: ${{ secrets.WF_GITHUB_TOKEN }}
-          run-id: ${{ inputs.ARTIFACT_RUN_ID }}
-
       - name: Ensure .deploys/service.json exists
         run: |
           mkdir -p .deploys
           [ -f .deploys/service.json ] || echo '{}' > .deploys/service.json
 
+      - name: Guardrail - allow only staging -> prod
+        run: |
+          if [ "${{ inputs.FROM_ENV }}" != "staging" ] || [ "${{ inputs.TO_ENV }}" != "prod" ]; then
+            echo "Promote allowed only from staging -> prod."
+            exit 1
+          fi
+
       - name: Promote image metadata
         id: promote
         run: |
-          if [[ "${{ inputs.FROM_ENV }}" == "dev" ]]; then
-            cp dev-meta/service.json from.json
-          else
-            cp .deploys/service.json from.json
-          fi
+          cp .deploys/service.json from.json
 
           echo "📦 Loaded metadata from ${{ inputs.FROM_ENV }}"
           cat from.json
