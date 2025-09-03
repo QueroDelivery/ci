@@ -1,3 +1,12 @@
+## [4.8.1](https://github.com/QueroDelivery/ci/compare/v4.8.0...v4.8.1) (2025-09-03)
+
+
+### Bug Fixes
+
+* ensure remote branch exists or create from main before adding worktree ([72d12ba](https://github.com/QueroDelivery/ci/commit/72d12ba1e6561b7ced5f3d5dce3d14163d27e564))
+* remove existing local branch if it exists before creating a new one from main ([5985ca2](https://github.com/QueroDelivery/ci/commit/5985ca29fc72377fad34b61bd6764685acd80bcf))
+* streamline branch creation and ensure remote branch is fetched before worktree setup ([0b7511f](https://github.com/QueroDelivery/ci/commit/0b7511f1496167d8838a04993082b2f6f95f9c19))
+
 # [4.8.0](https://github.com/QueroDelivery/ci/compare/v4.7.0...v4.8.0) (2025-08-27)
 
 
