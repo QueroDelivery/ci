@@ -292,11 +292,18 @@ jobs:
             git worktree remove --force ../deploy-worktree || true
           fi
 
-          # Fetch latest remote branch
-          git fetch origin $BRANCH || git checkout --orphan $BRANCH
+          # Ensure remote branch exists or create from main
+          if ! git show-ref --verify --quiet refs/remotes/origin/$BRANCH; then
+            echo "🆕 Branch '$BRANCH' does not exist remotely. Creating it from main."
+            git fetch origin main
+            git branch "$BRANCH" origin/main
+            git push origin $BRANCH
+          else
+            git fetch origin $BRANCH
+          fi
 
           # Add isolated worktree for that branch
-          git worktree add ../deploy-worktree FETCH_HEAD
+          git worktree add ../deploy-worktree $BRANCH
 
           # Ensure destination directory exists
           mkdir -p "$(dirname ../deploy-worktree/$FILE)"
