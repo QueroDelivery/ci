@@ -243,6 +243,7 @@ jobs:
             fi
             
             git branch "$BRANCH" origin/main
+            git push origin $BRANCH
           else
             git fetch origin $BRANCH
           fi
@@ -299,22 +300,8 @@ jobs:
             git worktree remove --force ../deploy-worktree || true
           fi
 
-          # Ensure remote branch exists or create from main
-          if ! git show-ref --verify --quiet refs/remotes/origin/$BRANCH; then
-            echo "🆕 Branch '$BRANCH' does not exist remotely. Creating it from main."
-            git fetch origin main
-            
-            # Check if local branch exists and delete it if it does
-            if git show-ref --verify --quiet refs/heads/$BRANCH; then
-              echo "🗑️ Removing existing local branch '$BRANCH'"
-              git branch -D "$BRANCH"
-            fi
-            
-            git branch "$BRANCH" origin/main
-            git push origin $BRANCH
-          else
-            git fetch origin $BRANCH
-          fi
+          # Fetch latest remote branch (guaranteed to exist from previous step)
+          git fetch origin $BRANCH
 
           # Add isolated worktree for that branch
           git worktree add ../deploy-worktree $BRANCH
