@@ -235,6 +235,13 @@ jobs:
           if ! git show-ref --verify --quiet refs/remotes/origin/$BRANCH; then
             echo "🆕 Branch '$BRANCH' does not exist remotely. Creating it from main."
             git fetch origin main
+            
+            # Check if local branch exists and delete it if it does
+            if git show-ref --verify --quiet refs/heads/$BRANCH; then
+              echo "🗑️ Removing existing local branch '$BRANCH'"
+              git branch -D "$BRANCH"
+            fi
+            
             git branch "$BRANCH" origin/main
           else
             git fetch origin $BRANCH
@@ -296,6 +303,13 @@ jobs:
           if ! git show-ref --verify --quiet refs/remotes/origin/$BRANCH; then
             echo "🆕 Branch '$BRANCH' does not exist remotely. Creating it from main."
             git fetch origin main
+            
+            # Check if local branch exists and delete it if it does
+            if git show-ref --verify --quiet refs/heads/$BRANCH; then
+              echo "🗑️ Removing existing local branch '$BRANCH'"
+              git branch -D "$BRANCH"
+            fi
+            
             git branch "$BRANCH" origin/main
             git push origin $BRANCH
           else
