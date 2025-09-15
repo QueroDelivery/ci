@@ -99,13 +99,22 @@ jobs:
           curl -Lo aws-iam-authenticator https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v0.6.26/aws-iam-authenticator_0.6.26_linux_amd64
           chmod +x aws-iam-authenticator
           sudo mv aws-iam-authenticator /usr/local/bin/
+      - name: Render manifests with envsubst
+        env:
+          KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
+        run: |
+          mkdir -p rendered
+          for file in .kube/*.yaml; do
+            envsubst < "$file" > "rendered/$(basename $file)"
+          done
+
       - name: Apply manifests
         env:
           KUBECONFIG: .kube/config-${{ secrets.WF_KUBE_TYPE }}.yaml
           KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
         run: |
           export PATH=$PATH:$PWD
-          kubectl apply -f ./.kube/${KUBE_NAME}-env-cm.yaml
+          kubectl apply -f ./rendered/${KUBE_NAME}-env-cm.yaml
 
       - name: Commit & push if changed
         working-directory: defs
