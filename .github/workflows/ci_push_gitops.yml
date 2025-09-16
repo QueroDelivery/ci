@@ -114,6 +114,8 @@ jobs:
           KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
         run: |
           export PATH=$PATH:$PWD
+          cat ./rendered/${KUBE_NAME}-env-cm.yaml
+          
           kubectl apply -f ./rendered/${KUBE_NAME}-env-cm.yaml
 
       - name: Commit & push if changed
