@@ -99,106 +99,106 @@ jobs:
           path: .kube
           persist-credentials: false
 
-      - name: Setup AWS & IAM
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.WF_AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.WF_AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.WF_AWS_REGION }}
-          role-session-name: ${{ secrets.WF_SERVICE_NAME }}_GitHubActions
+      # - name: Setup AWS & IAM
+      #   uses: aws-actions/configure-aws-credentials@v4
+      #   with:
+      #     aws-access-key-id: ${{ secrets.WF_AWS_ACCESS_KEY_ID }}
+      #     aws-secret-access-key: ${{ secrets.WF_AWS_SECRET_ACCESS_KEY }}
+      #     aws-region: ${{ secrets.WF_AWS_REGION }}
+      #     role-session-name: ${{ secrets.WF_SERVICE_NAME }}_GitHubActions
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+      # - name: Login to Amazon ECR
+      #   id: login-ecr
+      #   uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Override kubefiles
-        run: |
-          FILE=setup/.kube
-          if [[ -d "$FILE" ]]; then
-            echo "$FILE EXIST!" 
-            cp -avf setup/.kube/*.yaml .kube/
-            echo "Kubefiles Override FINISHED" 
-          fi
+      # - name: Override kubefiles
+      #   run: |
+      #     FILE=setup/.kube
+      #     if [[ -d "$FILE" ]]; then
+      #       echo "$FILE EXIST!" 
+      #       cp -avf setup/.kube/*.yaml .kube/
+      #       echo "Kubefiles Override FINISHED" 
+      #     fi
 
-      - name: Fetch environment from SSM
-        uses: almerindo/action-env-from-aws-ssm@main
-        with:
-          output: ./.kube/${{ secrets.WF_KUBE_NAME }}-env-cm.yaml
-          ssm-path: "/${{ inputs.WF_ENV_TYPE }}/${{ secrets.WF_SERVICE_NAME }}"
-          format: configmap
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.WF_AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.WF_AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: ${{ secrets.WF_AWS_REGION }}
+      # - name: Fetch environment from SSM
+      #   uses: almerindo/action-env-from-aws-ssm@main
+      #   with:
+      #     output: ./.kube/${{ secrets.WF_KUBE_NAME }}-env-cm.yaml
+      #     ssm-path: "/${{ inputs.WF_ENV_TYPE }}/${{ secrets.WF_SERVICE_NAME }}"
+      #     format: configmap
+      #   env:
+      #     AWS_ACCESS_KEY_ID: ${{ secrets.WF_AWS_ACCESS_KEY_ID }}
+      #     AWS_SECRET_ACCESS_KEY: ${{ secrets.WF_AWS_SECRET_ACCESS_KEY }}
+      #     AWS_DEFAULT_REGION: ${{ secrets.WF_AWS_REGION }}
 
-      - name: Setup kubectl
-        run: |
-          curl -LO "https://dl.k8s.io/release/v1.30.6/bin/linux/amd64/kubectl"
-          chmod +x kubectl
-          sudo mv kubectl /usr/local/bin/
-          curl -Lo aws-iam-authenticator https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v0.6.26/aws-iam-authenticator_0.6.26_linux_amd64
-          chmod +x aws-iam-authenticator
-          sudo mv aws-iam-authenticator /usr/local/bin/
+      # - name: Setup kubectl
+      #   run: |
+      #     curl -LO "https://dl.k8s.io/release/v1.30.6/bin/linux/amd64/kubectl"
+      #     chmod +x kubectl
+      #     sudo mv kubectl /usr/local/bin/
+      #     curl -Lo aws-iam-authenticator https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v0.6.26/aws-iam-authenticator_0.6.26_linux_amd64
+      #     chmod +x aws-iam-authenticator
+      #     sudo mv aws-iam-authenticator /usr/local/bin/
 
-      - name: Prepare envs
-        run: |
-          echo "WF_KUBE_MEMORY_LIMIT=${{ inputs.WF_KUBE_MEMORY_LIMIT || inputs.WF_KUBE_MEMORY_REQUEST }}" >> $GITHUB_ENV
-      - name: Remove WF_KUBE_CPU_LIMIT when is null
-        if: ${{inputs.WF_KUBE_CPU_LIMIT == ''}}
-        run: |
-          sed -i '/KUBE_CPU_LIMIT/d' ./.kube/deployment-new.yaml
-      - name: Render manifests with envsubst
-        env:
-          KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
-          KUBE_DOMAIN: ${{ secrets.WF_KUBE_DOMAIN }}
-          KUBE_DOMAIN_INTERNAL: ${{ secrets.WF_KUBE_DOMAIN_INTERNAL }}
-          KUBECONFIG: .kube/config-${{secrets.WF_KUBE_TYPE}}.yaml
-          KUBEDEPLOYMENT: .kube/deployment-${{inputs.WF_KUBE_DEPLOYMENT}}.yaml
-          KUBE_MIN_REPLICAS: ${{ inputs.WF_KUBE_MIN_REPLICAS }}
-          PUBLIC_HOST: ${{ inputs.WF_PUBLIC_HOST }}
-          KUBE_MAX_REPLICAS: ${{ inputs.WF_KUBE_MAX_REPLICAS }}
-          KUBE_MEMORY_LIMIT: ${{ env.WF_KUBE_MEMORY_LIMIT }}
-          KUBE_MEMORY_REQUEST: ${{ inputs.WF_KUBE_MEMORY_REQUEST }}
-          KUBE_CPU_LIMIT: ${{ inputs.WF_KUBE_CPU_LIMIT }}
-          KUBE_CPU_REQUEST: ${{ inputs.WF_KUBE_CPU_REQUEST }}
-          KUBE_NODE_GROUP: ${{ inputs.WF_KUBE_NODE_GROUP }}
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: "${{ secrets.WF_SERVICE_NAME }}"
-          VERSION_TAG: ${{ inputs.WF_IMAGE_VERSION_TAG }}
-        run: |
-          mkdir -p rendered
-          for file in .kube/*.yaml; do
-            envsubst < "$file" > "rendered/$(basename $file)"
-          done
-          cat rendered/namespace.yaml
-      - name: Apply manifests
-        env:
-          KUBECONFIG: .kube/config-${{ secrets.WF_KUBE_TYPE }}.yaml
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: "${{ secrets.WF_SERVICE_NAME }}"
-          VERSION_TAG: ${{ inputs.WF_IMAGE_VERSION_TAG }}
-          KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
-        run: |
-          export PATH=$PATH:$PWD
-          kubectl apply -f rendered/namespace.yaml
-          kubectl apply -f rendered/${KUBE_NAME}-env-cm.yaml
-          kubectl apply -f rendered/deployment-${{ inputs.WF_KUBE_DEPLOYMENT }}.yaml
-          DEPLOY_NAME=$(yq e '.metadata.name' rendered/deployment-${{ inputs.WF_KUBE_DEPLOYMENT }}.yaml)
-          kubectl rollout restart deployment/$DEPLOY_NAME -n $KUBE_NAME
-          kubectl rollout status deployment/$DEPLOY_NAME -n $KUBE_NAME
-          kubectl apply -f rendered/hpa.yaml
-          kubectl apply -f rendered/service.yaml
-          kubectl apply -f rendered/ingress.yaml
-          kubectl apply -f rendered/ingress-internal.yaml
+      # - name: Prepare envs
+      #   run: |
+      #     echo "WF_KUBE_MEMORY_LIMIT=${{ inputs.WF_KUBE_MEMORY_LIMIT || inputs.WF_KUBE_MEMORY_REQUEST }}" >> $GITHUB_ENV
+      # - name: Remove WF_KUBE_CPU_LIMIT when is null
+      #   if: ${{inputs.WF_KUBE_CPU_LIMIT == ''}}
+      #   run: |
+      #     sed -i '/KUBE_CPU_LIMIT/d' ./.kube/deployment-new.yaml
+      # - name: Render manifests with envsubst
+      #   env:
+      #     KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
+      #     KUBE_DOMAIN: ${{ secrets.WF_KUBE_DOMAIN }}
+      #     KUBE_DOMAIN_INTERNAL: ${{ secrets.WF_KUBE_DOMAIN_INTERNAL }}
+      #     KUBECONFIG: .kube/config-${{secrets.WF_KUBE_TYPE}}.yaml
+      #     KUBEDEPLOYMENT: .kube/deployment-${{inputs.WF_KUBE_DEPLOYMENT}}.yaml
+      #     KUBE_MIN_REPLICAS: ${{ inputs.WF_KUBE_MIN_REPLICAS }}
+      #     PUBLIC_HOST: ${{ inputs.WF_PUBLIC_HOST }}
+      #     KUBE_MAX_REPLICAS: ${{ inputs.WF_KUBE_MAX_REPLICAS }}
+      #     KUBE_MEMORY_LIMIT: ${{ env.WF_KUBE_MEMORY_LIMIT }}
+      #     KUBE_MEMORY_REQUEST: ${{ inputs.WF_KUBE_MEMORY_REQUEST }}
+      #     KUBE_CPU_LIMIT: ${{ inputs.WF_KUBE_CPU_LIMIT }}
+      #     KUBE_CPU_REQUEST: ${{ inputs.WF_KUBE_CPU_REQUEST }}
+      #     KUBE_NODE_GROUP: ${{ inputs.WF_KUBE_NODE_GROUP }}
+      #     ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+      #     ECR_REPOSITORY: "${{ secrets.WF_SERVICE_NAME }}"
+      #     VERSION_TAG: ${{ inputs.WF_IMAGE_VERSION_TAG }}
+      #   run: |
+      #     mkdir -p rendered
+      #     for file in .kube/*.yaml; do
+      #       envsubst < "$file" > "rendered/$(basename $file)"
+      #     done
+      #     cat rendered/namespace.yaml
+      # - name: Apply manifests
+      #   env:
+      #     KUBECONFIG: .kube/config-${{ secrets.WF_KUBE_TYPE }}.yaml
+      #     ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+      #     ECR_REPOSITORY: "${{ secrets.WF_SERVICE_NAME }}"
+      #     VERSION_TAG: ${{ inputs.WF_IMAGE_VERSION_TAG }}
+      #     KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
+      #   run: |
+      #     export PATH=$PATH:$PWD
+      #     kubectl apply -f rendered/namespace.yaml
+      #     kubectl apply -f rendered/${KUBE_NAME}-env-cm.yaml
+      #     kubectl apply -f rendered/deployment-${{ inputs.WF_KUBE_DEPLOYMENT }}.yaml
+      #     DEPLOY_NAME=$(yq e '.metadata.name' rendered/deployment-${{ inputs.WF_KUBE_DEPLOYMENT }}.yaml)
+      #     kubectl rollout restart deployment/$DEPLOY_NAME -n $KUBE_NAME
+      #     kubectl rollout status deployment/$DEPLOY_NAME -n $KUBE_NAME
+      #     kubectl apply -f rendered/hpa.yaml
+      #     kubectl apply -f rendered/service.yaml
+      #     kubectl apply -f rendered/ingress.yaml
+      #     kubectl apply -f rendered/ingress-internal.yaml
 
-      - name: Set service visibility (internal ingress whitelist)
-        if: ${{ inputs.WF_IS_INTERNAL }}
-        env:
-          KUBECONFIG: .kube/config-${{ secrets.WF_KUBE_TYPE }}.yaml
-          KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
-          WHITELIST_SOURCE_RANGE: ${{ secrets.WF_WHITELIST_SOURCE_RANGE }}
-        run: |
-          kubectl -n ${KUBE_NAME} annotate --overwrite ingress ${KUBE_NAME} ingress.kubernetes.io/whitelist-source-range=${WHITELIST_SOURCE_RANGE}
+      # - name: Set service visibility (internal ingress whitelist)
+      #   if: ${{ inputs.WF_IS_INTERNAL }}
+      #   env:
+      #     KUBECONFIG: .kube/config-${{ secrets.WF_KUBE_TYPE }}.yaml
+      #     KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
+      #     WHITELIST_SOURCE_RANGE: ${{ secrets.WF_WHITELIST_SOURCE_RANGE }}
+      #   run: |
+      #     kubectl -n ${KUBE_NAME} annotate --overwrite ingress ${KUBE_NAME} ingress.kubernetes.io/whitelist-source-range=${WHITELIST_SOURCE_RANGE}
 
       - name: Comment on PR with deployed image
         if: ${{ inputs.WF_SHOW_COMMENT }}
