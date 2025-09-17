@@ -123,13 +123,21 @@ jobs:
           ENV:       ${{ inputs.WF_ENV_TYPE_DEPLOY }}
           IMAGE_TAG: ${{ inputs.WF_IMAGE_TAG }}
         run: |
+          set -euo pipefail
+          FILE="$SERVICE/$ENV/version-values.yaml"
+
           git config --global user.name  "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config --global --add safe.directory "$PWD"
-          if git diff --quiet -- $SERVICE/$ENV/version-values.yaml; then
+
+          # Always stage the file (handles new or modified files)
+          git add "$FILE"
+
+          # If nothing is staged, there’s nothing to commit (covers first run & subsequent runs)
+          if git diff --cached --quiet -- "$FILE"; then
             echo "No changes to commit."
             exit 0
           fi
-          git add $SERVICE/$ENV/version-values.yaml
+
           git commit -m "chore(${SERVICE}): set ${ENV} image.tag=${IMAGE_TAG}"
           git push origin HEAD
