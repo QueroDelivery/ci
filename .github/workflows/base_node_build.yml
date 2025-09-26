@@ -77,6 +77,10 @@ jobs:
         run: |
           echo "@querodelivery:registry=https://npm.pkg.github.com" > .npmrc
           echo "//npm.pkg.github.com/:_authToken=${{ secrets.WF_NPM_TOKEN }}" >> .npmrc
+          if [ -n "$FONT_AWESOME_TOKEN" ]; then
+            echo "@fortawesome:registry=https://npm.fontawesome.com/" >> .npmrc
+            echo "//npm.fontawesome.com/:_authToken=$FONT_AWESOME_TOKEN" >> .npmrc
+          fi
 
       - name: install packages using yarn.lock
         if: steps.node-modules-cache.outputs.cache-hit != 'true'
