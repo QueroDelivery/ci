@@ -1,3 +1,10 @@
+# [4.9.0](https://github.com/QueroDelivery/ci/compare/v4.8.1...v4.9.0) (2025-09-26)
+
+
+### Features
+
+* add Font Awesome token support to .npmrc configuration ([22918b6](https://github.com/QueroDelivery/ci/commit/22918b6904f28eca43e17c8b1fb5ee6f3fbef999))
+
 ## [4.8.1](https://github.com/QueroDelivery/ci/compare/v4.8.0...v4.8.1) (2025-09-03)
 
 
