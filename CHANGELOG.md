@@ -1,3 +1,10 @@
+## [4.9.1](https://github.com/QueroDelivery/ci/compare/v4.9.0...v4.9.1) (2025-11-12)
+
+
+### Bug Fixes
+
+* update kube folder version to rm tz brazil as default ([35de3f4](https://github.com/QueroDelivery/ci/commit/35de3f4fff4f6b1a0c1dc64524453542356804a8))
+
 # [4.9.0](https://github.com/QueroDelivery/ci/compare/v4.8.1...v4.9.0) (2025-09-26)
 
 
