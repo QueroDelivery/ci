@@ -114,11 +114,16 @@ jobs:
           KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
         run: |
           export PATH=$PATH:$PWD
-          # Validate KUBE_NAME is set
+          # Debug: Check if KUBE_NAME is set (without exposing the value)
           if [ -z "${KUBE_NAME}" ]; then
             echo "❌ ERROR: KUBE_NAME is empty or not set!"
+            echo "🔍 Debug info:"
+            echo "  - WF_KUBE_NAME secret was passed: $([ -n '${{ secrets.WF_KUBE_NAME }}' ] && echo 'YES' || echo 'NO')"
+            echo "  - KUBE_NAME env var length: ${#KUBE_NAME}"
+            echo "  - Make sure the calling workflow passes 'secrets: WF_KUBE_NAME: \${{ secrets.WF_KUBE_NAME }}'"
             exit 1
           fi
+          echo "✅ KUBE_NAME is set (length: ${#KUBE_NAME} characters)"
           # Ensure namespace exists before applying other resources
           # Always create namespace directly using KUBE_NAME to avoid issues with empty names
           echo "Creating namespace: ${KUBE_NAME}"
