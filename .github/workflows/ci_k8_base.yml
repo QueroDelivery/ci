@@ -180,7 +180,15 @@ jobs:
           KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
         run: |
           export PATH=$PATH:$PWD
-          kubectl apply -f rendered/namespace.yaml
+          # Ensure namespace exists before applying other resources
+          if [ -f rendered/namespace.yaml ]; then
+            kubectl apply -f rendered/namespace.yaml
+          else
+            echo "⚠️ namespace.yaml not found, creating namespace directly"
+            kubectl create namespace ${KUBE_NAME} --dry-run=client -o yaml | kubectl apply -f -
+          fi
+          # Wait for namespace to be ready
+          kubectl wait --for=condition=Active namespace/${KUBE_NAME} --timeout=30s || true
           kubectl apply -f rendered/${KUBE_NAME}-env-cm.yaml
           kubectl apply -f rendered/deployment-${{ inputs.WF_KUBE_DEPLOYMENT }}.yaml
           DEPLOY_NAME=$(yq e '.metadata.name' rendered/deployment-${{ inputs.WF_KUBE_DEPLOYMENT }}.yaml)
@@ -272,9 +280,6 @@ jobs:
           # Copy updated file into the worktree
           mkdir -p "$(dirname ../deploy-worktree/$FILE)"
           cp "$FILE" ../deploy-worktree/$FILE
-
-
-
 
       - name: Handle dev layer vs tracked environments
         if: ${{ inputs.WF_ENV_TYPE_DEPLOY == 'dev' }}
