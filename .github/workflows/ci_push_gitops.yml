@@ -1,0 +1,151 @@
+name: CI-PUSH_GITOPS
+
+on:
+  workflow_call:
+    inputs:
+      WF_ENV_TYPE_DEPLOY:
+        type: string
+        required: true
+      WF_ENV_TYPE:
+        type: string
+        required: true
+      WF_IMAGE_TAG:
+        type: string
+        required: true
+    secrets:
+      WF_KUBE_TYPE:
+        required: true
+      WF_AWS_ACCESS_KEY_ID:
+        required: true
+      WF_AWS_SECRET_ACCESS_KEY:
+        required: true
+      WF_AWS_REGION:
+        required: true
+      WF_SERVICE_NAME:
+        required: true
+      WF_KUBE_NAME:
+        required: true
+      WF_GITHUB_TOKEN:
+        required: true
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  deploy:
+    name: Deploy to Kubernetes
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.WF_ENV_TYPE_DEPLOY }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Checkout definitions repo
+        uses: actions/checkout@v4
+        with:
+          repository: QueroDelivery/kube-apps-definitions
+          ref: main
+          token: ${{ secrets.WF_GITHUB_TOKEN }}
+          fetch-depth: 0
+          path: defs
+      - name: Checkout kube manifests
+        uses: actions/checkout@v4
+        with:
+          ref: v1.11.0
+          token: ${{ secrets.WF_GITHUB_TOKEN }}
+          repository: QueroDelivery/kube
+          path: .kube
+          persist-credentials: false
+
+      - name: Replace version-values.yaml (deterministic)
+        working-directory: defs
+        env:
+          SERVICE: ${{ secrets.WF_SERVICE_NAME }} # e.g., ci-using
+          ENV: ${{ inputs.WF_ENV_TYPE_DEPLOY }} # e.g., staging
+          IMAGE_TAG: ${{ inputs.WF_IMAGE_TAG }} # pass this from your build
+        run: |
+          FILE="${SERVICE}/${ENV}/version-values.yaml"
+          mkdir -p "$(dirname "$FILE")"
+          # Write exactly the desired content (quoted to be YAML-safe)
+          cat > "$FILE" <<EOF
+          image:
+            tag: "${IMAGE_TAG}"
+          EOF
+      - name: Setup AWS & IAM
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.WF_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.WF_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.WF_AWS_REGION }}
+          role-session-name: ${{ secrets.WF_SERVICE_NAME }}_GitHubActions
+
+      - name: Fetch environment from SSM
+        uses: almerindo/action-env-from-aws-ssm@main
+        with:
+          output: ./.kube/${{ secrets.WF_KUBE_NAME }}-env-cm.yaml
+          ssm-path: "/${{ inputs.WF_ENV_TYPE }}/${{ secrets.WF_SERVICE_NAME }}"
+          format: configmap
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.WF_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.WF_AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.WF_AWS_REGION }}
+
+      - name: Setup kubectl
+        run: |
+          curl -LO "https://dl.k8s.io/release/v1.30.6/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/
+          curl -Lo aws-iam-authenticator https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v0.6.26/aws-iam-authenticator_0.6.26_linux_amd64
+          chmod +x aws-iam-authenticator
+          sudo mv aws-iam-authenticator /usr/local/bin/
+      - name: Render manifests with envsubst
+        env:
+          KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
+        run: |
+          mkdir -p rendered
+          for file in .kube/*.yaml; do
+            envsubst < "$file" > "rendered/$(basename $file)"
+          done
+
+      - name: Apply manifests
+        env:
+          KUBECONFIG: .kube/config-${{ secrets.WF_KUBE_TYPE }}.yaml
+          KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
+        run: |
+          export PATH=$PATH:$PWD
+          # Ensure namespace exists before applying other resources
+          if [ -f rendered/namespace.yaml ]; then
+            kubectl apply -f rendered/namespace.yaml
+          else
+            echo "⚠️ namespace.yaml not found, creating namespace directly"
+            kubectl create namespace ${KUBE_NAME} --dry-run=client -o yaml | kubectl apply -f -
+          fi
+          # Wait for namespace to be ready
+          kubectl wait --for=condition=Active namespace/${KUBE_NAME} --timeout=30s || true
+
+      - name: Commit & push if changed
+        working-directory: defs
+        env:
+          SERVICE: ${{ secrets.WF_SERVICE_NAME }}
+          ENV: ${{ inputs.WF_ENV_TYPE_DEPLOY }}
+          IMAGE_TAG: ${{ inputs.WF_IMAGE_TAG }}
+        run: |
+          set -euo pipefail
+          FILE="$SERVICE/$ENV/version-values.yaml"
+
+          git config --global user.name  "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global --add safe.directory "$PWD"
+
+          # Always stage the file (handles new or modified files)
+          git add "$FILE"
+
+          # If nothing is staged, there’s nothing to commit (covers first run & subsequent runs)
+          if git diff --cached --quiet -- "$FILE"; then
+            echo "No changes to commit."
+            exit 0
+          fi
+
+          git commit -m "chore(${SERVICE}): set ${ENV} image.tag=${IMAGE_TAG}"
+          git push origin HEAD
