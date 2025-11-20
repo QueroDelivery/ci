@@ -114,13 +114,15 @@ jobs:
           KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
         run: |
           export PATH=$PATH:$PWD
-          # Ensure namespace exists before applying other resources
-          if [ -f rendered/namespace.yaml ]; then
-            kubectl apply -f rendered/namespace.yaml
-          else
-            echo "⚠️ namespace.yaml not found, creating namespace directly"
-            kubectl create namespace ${KUBE_NAME} --dry-run=client -o yaml | kubectl apply -f -
+          # Validate KUBE_NAME is set
+          if [ -z "${KUBE_NAME}" ]; then
+            echo "❌ ERROR: KUBE_NAME is empty or not set!"
+            exit 1
           fi
+          # Ensure namespace exists before applying other resources
+          # Always create namespace directly using KUBE_NAME to avoid issues with empty names
+          echo "Creating namespace: ${KUBE_NAME}"
+          kubectl create namespace ${KUBE_NAME} --dry-run=client -o yaml | kubectl apply -f -
           # Wait for namespace to be ready
           kubectl wait --for=condition=Active namespace/${KUBE_NAME} --timeout=30s || true
 
