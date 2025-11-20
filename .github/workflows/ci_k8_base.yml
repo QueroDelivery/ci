@@ -56,9 +56,6 @@ on:
       WF_IS_INTERNAL:
         type: boolean
         required: false
-      WF_KUBE_NAME:
-        type: string
-        required: true
 
     secrets:
       WF_KUBE_TYPE:
@@ -70,6 +67,8 @@ on:
       WF_AWS_REGION:
         required: true
       WF_SERVICE_NAME:
+        required: true
+      WF_KUBE_NAME:
         required: true
       WF_KUBE_DOMAIN:
         required: true
@@ -124,7 +123,7 @@ jobs:
       - name: Fetch environment from SSM
         uses: almerindo/action-env-from-aws-ssm@main
         with:
-          output: ./.kube/${{ inputs.WF_KUBE_NAME }}-env-cm.yaml
+          output: ./.kube/${{ secrets.WF_KUBE_NAME }}-env-cm.yaml
           ssm-path: "/${{ inputs.WF_ENV_TYPE }}/${{ secrets.WF_SERVICE_NAME }}"
           format: configmap
         env:
@@ -150,7 +149,7 @@ jobs:
           sed -i '/KUBE_CPU_LIMIT/d' ./.kube/deployment-new.yaml
       - name: Render manifests with envsubst
         env:
-          KUBE_NAME: ${{ inputs.WF_KUBE_NAME }}
+          KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
           KUBE_DOMAIN: ${{ secrets.WF_KUBE_DOMAIN }}
           KUBE_DOMAIN_INTERNAL: ${{ secrets.WF_KUBE_DOMAIN_INTERNAL }}
           KUBECONFIG: .kube/config-${{secrets.WF_KUBE_TYPE}}.yaml
@@ -178,16 +177,16 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: "${{ secrets.WF_SERVICE_NAME }}"
           VERSION_TAG: ${{ inputs.WF_IMAGE_VERSION_TAG }}
-          KUBE_NAME: ${{ inputs.WF_KUBE_NAME }}
+          KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
         run: |
           export PATH=$PATH:$PWD
           # Debug: Check if KUBE_NAME is set (without exposing the value)
           if [ -z "${KUBE_NAME}" ]; then
             echo "❌ ERROR: KUBE_NAME is empty or not set!"
             echo "🔍 Debug info:"
-            echo "  - WF_KUBE_NAME input was passed: $([ -n '${{ inputs.WF_KUBE_NAME }}' ] && echo 'YES' || echo 'NO')"
+            echo "  - WF_KUBE_NAME secret was passed: $([ -n '${{ secrets.WF_KUBE_NAME }}' ] && echo 'YES' || echo 'NO')"
             echo "  - KUBE_NAME env var length: ${#KUBE_NAME}"
-            echo "  - Make sure the calling workflow passes 'inputs: WF_KUBE_NAME: <value>' (e.g., from job outputs)"
+            echo "  - Make sure the calling workflow passes 'secrets: WF_KUBE_NAME: \${{ secrets.WF_KUBE_NAME }}'"
             exit 1
           fi
           echo "✅ KUBE_NAME is set (length: ${#KUBE_NAME} characters)"
@@ -211,7 +210,7 @@ jobs:
         if: ${{ inputs.WF_IS_INTERNAL }}
         env:
           KUBECONFIG: .kube/config-${{ secrets.WF_KUBE_TYPE }}.yaml
-          KUBE_NAME: ${{ inputs.WF_KUBE_NAME }}
+          KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
           WHITELIST_SOURCE_RANGE: ${{ secrets.WF_WHITELIST_SOURCE_RANGE }}
         run: |
           kubectl -n ${KUBE_NAME} annotate --overwrite ingress ${KUBE_NAME} ingress.kubernetes.io/whitelist-source-range=${WHITELIST_SOURCE_RANGE}
@@ -224,7 +223,7 @@ jobs:
         run: |
           gh pr comment ${{ github.event.pull_request.number }} --body "✅ Deployed image: \`${{ steps.login-ecr.outputs.registry }}/${ECR_REPOSITORY}:${{ inputs.WF_IMAGE_TAG }}\`"
           gh pr comment ${{ github.event.pull_request.number }} --body "Segura o link dessa app review aí ó o/
-            -   URL: https://${{ inputs.WF_KUBE_NAME }}${{ secrets.WF_KUBE_DOMAIN }}"
+            -   URL: https://${{ secrets.WF_KUBE_NAME }}${{ secrets.WF_KUBE_DOMAIN }}"
 
       - name: upsert .deploys/service.json
         env:
