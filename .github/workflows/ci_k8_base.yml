@@ -167,10 +167,16 @@ jobs:
           VERSION_TAG: ${{ inputs.WF_IMAGE_VERSION_TAG }}
         run: |
           mkdir -p rendered
+          # Export all environment variables for envsubst
+          export KUBE_NAME KUBE_DOMAIN KUBE_DOMAIN_INTERNAL KUBE_MIN_REPLICAS PUBLIC_HOST
+          export KUBE_MAX_REPLICAS KUBE_MEMORY_LIMIT KUBE_MEMORY_REQUEST KUBE_CPU_LIMIT KUBE_CPU_REQUEST
+          export KUBE_NODE_GROUP ECR_REGISTRY ECR_REPOSITORY VERSION_TAG
+
           for file in .kube/*.yaml; do
-            envsubst < "$file" > "rendered/$(basename $file)"
+            if [ -f "$file" ]; then
+              envsubst < "$file" > "rendered/$(basename $file)"
+            fi
           done
-          cat rendered/namespace.yaml
       - name: Apply manifests
         env:
           KUBECONFIG: .kube/config-${{ secrets.WF_KUBE_TYPE }}.yaml
@@ -180,16 +186,23 @@ jobs:
           KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
         run: |
           export PATH=$PATH:$PWD
-          # Apply namespace manifest if it exists (kubectl apply will create it if it doesn't exist)
-          if [ -f rendered/namespace.yaml ]; then
-            echo "Applying namespace manifest..."
-            kubectl apply -f rendered/namespace.yaml || {
-              echo "Failed to apply namespace.yaml, creating namespace directly..."
-              kubectl create namespace ${KUBE_NAME} || true
-            }
+          export KUBE_NAME
+
+          # Validate KUBE_NAME is set
+          if [ -z "${KUBE_NAME}" ]; then
+            echo "ERROR: KUBE_NAME is not set or empty"
+            exit 1
+          fi
+
+          echo "KUBE_NAME=${KUBE_NAME}"
+
+          # Try to apply namespace.yaml if it exists and is not empty
+          if [ -f rendered/namespace.yaml ] && [ -s rendered/namespace.yaml ]; then
+            if ! kubectl apply -f rendered/namespace.yaml 2>/dev/null; then
+              kubectl create namespace ${KUBE_NAME} --dry-run=client -o yaml | kubectl apply -f - || kubectl create namespace ${KUBE_NAME} || true
+            fi
           else
-            echo "namespace.yaml not found, creating namespace directly..."
-            kubectl create namespace ${KUBE_NAME} || true
+            kubectl create namespace ${KUBE_NAME} --dry-run=client -o yaml | kubectl apply -f - || kubectl create namespace ${KUBE_NAME} || true
           fi
           # Wait for namespace to be ready
           kubectl wait --for=condition=Active namespace/${KUBE_NAME} --timeout=30s || true
