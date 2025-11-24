@@ -159,4 +159,6 @@ jobs:
           fi
 
           git commit -m "chore(${SERVICE}): set ${ENV} image.tag=${IMAGE_TAG}"
+          # Rebase to preserve remote history and avoid conflicts
+          git pull --rebase origin main
           git push origin HEAD
