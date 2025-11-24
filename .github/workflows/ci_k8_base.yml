@@ -180,16 +180,34 @@ jobs:
           KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
         run: |
           export PATH=$PATH:$PWD
-          kubectl apply -f rendered/namespace.yaml
-          kubectl apply -f rendered/${KUBE_NAME}-env-cm.yaml
-          kubectl apply -f rendered/deployment-${{ inputs.WF_KUBE_DEPLOYMENT }}.yaml
+          # Apply namespace manifest if it exists (kubectl apply will create it if it doesn't exist)
+          if [ -f rendered/namespace.yaml ]; then
+            echo "Applying namespace manifest..."
+            kubectl apply -f rendered/namespace.yaml || {
+              echo "Failed to apply namespace.yaml, creating namespace directly..."
+              kubectl create namespace ${KUBE_NAME} || true
+            }
+          else
+            echo "namespace.yaml not found, creating namespace directly..."
+            kubectl create namespace ${KUBE_NAME} || true
+          fi
+          # Wait for namespace to be ready
+          kubectl wait --for=condition=Active namespace/${KUBE_NAME} --timeout=30s || true
+          # Verify namespace exists before applying ConfigMap
+          if ! kubectl get namespace ${KUBE_NAME} &>/dev/null; then
+            echo "ERROR: Namespace ${KUBE_NAME} still does not exist after creation attempt"
+            exit 1
+          fi
+          # Apply ConfigMap with explicit namespace
+          kubectl apply -f rendered/${KUBE_NAME}-env-cm.yaml -n ${KUBE_NAME}
+          kubectl apply -f rendered/deployment-${{ inputs.WF_KUBE_DEPLOYMENT }}.yaml -n ${KUBE_NAME}
           DEPLOY_NAME=$(yq e '.metadata.name' rendered/deployment-${{ inputs.WF_KUBE_DEPLOYMENT }}.yaml)
           kubectl rollout restart deployment/$DEPLOY_NAME -n $KUBE_NAME
           kubectl rollout status deployment/$DEPLOY_NAME -n $KUBE_NAME
-          kubectl apply -f rendered/hpa.yaml
-          kubectl apply -f rendered/service.yaml
-          kubectl apply -f rendered/ingress.yaml
-          kubectl apply -f rendered/ingress-internal.yaml
+          kubectl apply -f rendered/hpa.yaml -n ${KUBE_NAME}
+          kubectl apply -f rendered/service.yaml -n ${KUBE_NAME}
+          kubectl apply -f rendered/ingress.yaml -n ${KUBE_NAME}
+          kubectl apply -f rendered/ingress-internal.yaml -n ${KUBE_NAME}
 
       - name: Set service visibility (internal ingress whitelist)
         if: ${{ inputs.WF_IS_INTERNAL }}
@@ -272,9 +290,6 @@ jobs:
           # Copy updated file into the worktree
           mkdir -p "$(dirname ../deploy-worktree/$FILE)"
           cp "$FILE" ../deploy-worktree/$FILE
-
-
-
 
       - name: Handle dev layer vs tracked environments
         if: ${{ inputs.WF_ENV_TYPE_DEPLOY == 'dev' }}
