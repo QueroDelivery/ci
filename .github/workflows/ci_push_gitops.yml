@@ -12,6 +12,9 @@ on:
       WF_IMAGE_TAG:
         type: string
         required: true
+      WF_KUBE_NAME:
+        type: string
+        required: true
     secrets:
       WF_KUBE_TYPE:
         required: true
@@ -22,8 +25,6 @@ on:
       WF_AWS_REGION:
         required: true
       WF_SERVICE_NAME:
-        required: true
-      WF_KUBE_NAME:
         required: true
       WF_GITHUB_TOKEN:
         required: true
@@ -83,7 +84,7 @@ jobs:
       - name: Fetch environment from SSM
         uses: almerindo/action-env-from-aws-ssm@main
         with:
-          output: ./.kube/${{ secrets.WF_KUBE_NAME }}-env-cm.yaml
+          output: ./.kube/${{ inputs.WF_KUBE_NAME }}-env-cm.yaml
           ssm-path: "/${{ inputs.WF_ENV_TYPE }}/${{ secrets.WF_SERVICE_NAME }}"
           format: configmap
         env:
@@ -101,7 +102,7 @@ jobs:
           sudo mv aws-iam-authenticator /usr/local/bin/
       - name: Render manifests with envsubst
         env:
-          KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
+          KUBE_NAME: ${{ inputs.WF_KUBE_NAME }}
         run: |
           mkdir -p rendered
           for file in .kube/*.yaml; do
@@ -111,7 +112,7 @@ jobs:
       - name: Apply manifests
         env:
           KUBECONFIG: .kube/config-${{ secrets.WF_KUBE_TYPE }}.yaml
-          KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
+          KUBE_NAME: ${{ inputs.WF_KUBE_NAME }}
         run: |
           export PATH=$PATH:$PWD
           # Apply namespace manifest if it exists (kubectl apply will create it if it doesn't exist)
