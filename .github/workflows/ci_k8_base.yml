@@ -56,6 +56,9 @@ on:
       WF_IS_INTERNAL:
         type: boolean
         required: false
+      WF_KUBE_NAME:
+        type: string
+        required: true
 
     secrets:
       WF_KUBE_TYPE:
@@ -67,8 +70,6 @@ on:
       WF_AWS_REGION:
         required: true
       WF_SERVICE_NAME:
-        required: true
-      WF_KUBE_NAME:
         required: true
       WF_KUBE_DOMAIN:
         required: true
@@ -123,7 +124,7 @@ jobs:
       - name: Fetch environment from SSM
         uses: almerindo/action-env-from-aws-ssm@main
         with:
-          output: ./.kube/${{ secrets.WF_KUBE_NAME }}-env-cm.yaml
+          output: ./.kube/${{ inputs.WF_KUBE_NAME }}-env-cm.yaml
           ssm-path: "/${{ inputs.WF_ENV_TYPE }}/${{ secrets.WF_SERVICE_NAME }}"
           format: configmap
         env:
@@ -149,7 +150,7 @@ jobs:
           sed -i '/KUBE_CPU_LIMIT/d' ./.kube/deployment-new.yaml
       - name: Render manifests with envsubst
         env:
-          KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
+          KUBE_NAME: ${{ inputs.WF_KUBE_NAME }}
           KUBE_DOMAIN: ${{ secrets.WF_KUBE_DOMAIN }}
           KUBE_DOMAIN_INTERNAL: ${{ secrets.WF_KUBE_DOMAIN_INTERNAL }}
           KUBECONFIG: .kube/config-${{secrets.WF_KUBE_TYPE}}.yaml
@@ -167,35 +168,66 @@ jobs:
           VERSION_TAG: ${{ inputs.WF_IMAGE_VERSION_TAG }}
         run: |
           mkdir -p rendered
+          # Export all environment variables for envsubst
+          export KUBE_NAME KUBE_DOMAIN KUBE_DOMAIN_INTERNAL KUBE_MIN_REPLICAS PUBLIC_HOST
+          export KUBE_MAX_REPLICAS KUBE_MEMORY_LIMIT KUBE_MEMORY_REQUEST KUBE_CPU_LIMIT KUBE_CPU_REQUEST
+          export KUBE_NODE_GROUP ECR_REGISTRY ECR_REPOSITORY VERSION_TAG
+
           for file in .kube/*.yaml; do
-            envsubst < "$file" > "rendered/$(basename $file)"
+            if [ -f "$file" ]; then
+              envsubst < "$file" > "rendered/$(basename $file)"
+            fi
           done
-          cat rendered/namespace.yaml
       - name: Apply manifests
         env:
           KUBECONFIG: .kube/config-${{ secrets.WF_KUBE_TYPE }}.yaml
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: "${{ secrets.WF_SERVICE_NAME }}"
           VERSION_TAG: ${{ inputs.WF_IMAGE_VERSION_TAG }}
-          KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
+          KUBE_NAME: ${{ inputs.WF_KUBE_NAME }}
         run: |
           export PATH=$PATH:$PWD
-          kubectl apply -f rendered/namespace.yaml
-          kubectl apply -f rendered/${KUBE_NAME}-env-cm.yaml
-          kubectl apply -f rendered/deployment-${{ inputs.WF_KUBE_DEPLOYMENT }}.yaml
+          export KUBE_NAME
+
+          # Validate KUBE_NAME is set
+          if [ -z "${KUBE_NAME}" ]; then
+            echo "ERROR: KUBE_NAME is not set or empty"
+            exit 1
+          fi
+
+          echo "KUBE_NAME=${KUBE_NAME}"
+
+          # Try to apply namespace.yaml if it exists and is not empty
+          if [ -f rendered/namespace.yaml ] && [ -s rendered/namespace.yaml ]; then
+            if ! kubectl apply -f rendered/namespace.yaml 2>/dev/null; then
+              kubectl create namespace ${KUBE_NAME} --dry-run=client -o yaml | kubectl apply -f - || kubectl create namespace ${KUBE_NAME} || true
+            fi
+          else
+            kubectl create namespace ${KUBE_NAME} --dry-run=client -o yaml | kubectl apply -f - || kubectl create namespace ${KUBE_NAME} || true
+          fi
+          # Wait for namespace to be ready
+          kubectl wait --for=condition=Active namespace/${KUBE_NAME} --timeout=30s || true
+          # Verify namespace exists before applying ConfigMap
+          if ! kubectl get namespace ${KUBE_NAME} &>/dev/null; then
+            echo "ERROR: Namespace ${KUBE_NAME} still does not exist after creation attempt"
+            exit 1
+          fi
+          # Apply ConfigMap with explicit namespace
+          kubectl apply -f rendered/${KUBE_NAME}-env-cm.yaml -n ${KUBE_NAME}
+          kubectl apply -f rendered/deployment-${{ inputs.WF_KUBE_DEPLOYMENT }}.yaml -n ${KUBE_NAME}
           DEPLOY_NAME=$(yq e '.metadata.name' rendered/deployment-${{ inputs.WF_KUBE_DEPLOYMENT }}.yaml)
           kubectl rollout restart deployment/$DEPLOY_NAME -n $KUBE_NAME
           kubectl rollout status deployment/$DEPLOY_NAME -n $KUBE_NAME
-          kubectl apply -f rendered/hpa.yaml
-          kubectl apply -f rendered/service.yaml
-          kubectl apply -f rendered/ingress.yaml
-          kubectl apply -f rendered/ingress-internal.yaml
+          kubectl apply -f rendered/hpa.yaml -n ${KUBE_NAME}
+          kubectl apply -f rendered/service.yaml -n ${KUBE_NAME}
+          kubectl apply -f rendered/ingress.yaml -n ${KUBE_NAME}
+          kubectl apply -f rendered/ingress-internal.yaml -n ${KUBE_NAME}
 
       - name: Set service visibility (internal ingress whitelist)
         if: ${{ inputs.WF_IS_INTERNAL }}
         env:
           KUBECONFIG: .kube/config-${{ secrets.WF_KUBE_TYPE }}.yaml
-          KUBE_NAME: ${{ secrets.WF_KUBE_NAME }}
+          KUBE_NAME: ${{ inputs.WF_KUBE_NAME }}
           WHITELIST_SOURCE_RANGE: ${{ secrets.WF_WHITELIST_SOURCE_RANGE }}
         run: |
           kubectl -n ${KUBE_NAME} annotate --overwrite ingress ${KUBE_NAME} ingress.kubernetes.io/whitelist-source-range=${WHITELIST_SOURCE_RANGE}
@@ -208,7 +240,7 @@ jobs:
         run: |
           gh pr comment ${{ github.event.pull_request.number }} --body "✅ Deployed image: \`${{ steps.login-ecr.outputs.registry }}/${ECR_REPOSITORY}:${{ inputs.WF_IMAGE_TAG }}\`"
           gh pr comment ${{ github.event.pull_request.number }} --body "Segura o link dessa app review aí ó o/
-            -   URL: https://${{ secrets.WF_KUBE_NAME }}${{ secrets.WF_KUBE_DOMAIN }}"
+            -   URL: https://${{ inputs.WF_KUBE_NAME }}${{ secrets.WF_KUBE_DOMAIN }}"
 
       - name: upsert .deploys/service.json
         env:
@@ -272,9 +304,6 @@ jobs:
           # Copy updated file into the worktree
           mkdir -p "$(dirname ../deploy-worktree/$FILE)"
           cp "$FILE" ../deploy-worktree/$FILE
-
-
-
 
       - name: Handle dev layer vs tracked environments
         if: ${{ inputs.WF_ENV_TYPE_DEPLOY == 'dev' }}
