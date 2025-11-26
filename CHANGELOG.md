@@ -1,3 +1,23 @@
+# [5.0.0](https://github.com/QueroDelivery/ci/compare/v4.9.1...v5.0.0) (2025-11-26)
+
+
+### Bug Fixes
+
+* adjust kube name apply ([cb1776d](https://github.com/QueroDelivery/ci/commit/cb1776dde4bfbeaa5dbcd634e02895fc14b47e32))
+* enhance namespace handling in gitops workflow ([678962f](https://github.com/QueroDelivery/ci/commit/678962f02c8c99eea6f11ad2c9732afc910164fa))
+* ensure namespace exists before applying ConfigMap ([6707228](https://github.com/QueroDelivery/ci/commit/670722886c0e3c3918ffba0248397a143592d696))
+* ensure namespace exists before applying ConfigMap in gitops workflow ([208ceb8](https://github.com/QueroDelivery/ci/commit/208ceb8a1955bbbe88584c2c7d38eef4c99a78ef))
+
+
+### Features
+
+* update workflows to use input for KUBE_NAME ([8a34aea](https://github.com/QueroDelivery/ci/commit/8a34aea7f74ee37a6ad8185ce500c095c71ed33e))
+
+
+### BREAKING CHANGES
+
+* Change the assignment of WF_KUBE_NAME from secret to input.
+
 ## [4.9.1](https://github.com/QueroDelivery/ci/compare/v4.9.0...v4.9.1) (2025-11-12)
 
 
