@@ -66,5 +66,4 @@ flowchart TD
     F --> G[Retag image in ECR]
     G --> H[Push deploy-state]
 ```
-
 The `ci_local.yml` workflow is used only for running semantic-release locally.
