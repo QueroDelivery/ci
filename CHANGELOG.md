@@ -1,3 +1,10 @@
+# [5.1.0](https://github.com/QueroDelivery/ci/compare/v5.0.0...v5.1.0) (2026-01-07)
+
+
+### Features
+
+* add support for creating dotenv from AWS SSM before build ([ef97fa7](https://github.com/QueroDelivery/ci/commit/ef97fa75f1fa540384f72c8ce6700e4ac0c13439))
+
 # [5.0.0](https://github.com/QueroDelivery/ci/compare/v4.9.1...v5.0.0) (2025-11-26)
 
 
