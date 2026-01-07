@@ -19,6 +19,13 @@ on:
       WF_FONT_AWESOME_TOKEN:
         type: string
         required: false
+      WF_CREATE_DOTENV_BEFORE_BUILD:
+        type: boolean
+        default: false
+        required: false
+      WF_ENV_TYPE:
+        type: string
+        required: false
 
     secrets:
       WF_NPM_TOKEN:
@@ -30,6 +37,12 @@ on:
       WF_REGISTRY:
         required: true
       WF_FONT_AWESOME_TOKEN:
+        required: false
+      WF_AWS_ACCESS_KEY_ID:
+        required: false
+      WF_AWS_SECRET_ACCESS_KEY:
+        required: false
+      WF_AWS_REGION:
         required: false
 
     outputs:
@@ -122,6 +135,18 @@ jobs:
         run: |
           SERVICE_NAME=$(node -p -e "require('./package.json').name")
           echo "servicename=$SERVICE_NAME" >> $GITHUB_OUTPUT
+
+      - name: Creating dotenv from aws parameter store
+        uses: almerindo/action-env-from-aws-ssm@main
+        if: ${{ inputs.WF_CREATE_DOTENV_BEFORE_BUILD }}
+        with:
+          output: ./.env
+          ssm-path: "/${{ inputs.WF_ENV_TYPE }}/${{ steps.serviceName.outputs.servicename }}"
+          format: dotenv
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.WF_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.WF_AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.WF_AWS_REGION }}
 
       - name: Build Docker image
         run: |
