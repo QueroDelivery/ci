@@ -223,6 +223,53 @@ jobs:
           kubectl apply -f rendered/ingress.yaml -n ${KUBE_NAME}
           kubectl apply -f rendered/ingress-internal.yaml -n ${KUBE_NAME}
 
+      - name: Wait for SSL certificate secret
+        env:
+          KUBECONFIG: .kube/config-${{ secrets.WF_KUBE_TYPE }}.yaml
+          KUBE_NAME: ${{ inputs.WF_KUBE_NAME }}
+        run: |
+          SECRET_NAME="${KUBE_NAME}.ssl"
+          echo "Waiting for SSL certificate secret '${SECRET_NAME}' to be created..."
+
+          # Check if cert-manager Certificate resource exists (optional check)
+          if kubectl get certificate ${KUBE_NAME} -n ${KUBE_NAME} &>/dev/null; then
+            echo "📋 Found Certificate resource, checking status..."
+            kubectl get certificate ${KUBE_NAME} -n ${KUBE_NAME} -o yaml | grep -A 5 "status:" || true
+          fi
+
+          # Wait up to 5 minutes for the secret to be created by cert-manager
+          for i in {1..60}; do
+            if kubectl get secret ${SECRET_NAME} -n ${KUBE_NAME} &>/dev/null; then
+              echo "✅ SSL certificate secret '${SECRET_NAME}' found!"
+              
+              # Verify the secret has the required keys
+              TLS_CRT=$(kubectl get secret ${SECRET_NAME} -n ${KUBE_NAME} -o jsonpath='{.data.tls\.crt}' 2>/dev/null)
+              TLS_KEY=$(kubectl get secret ${SECRET_NAME} -n ${KUBE_NAME} -o jsonpath='{.data.tls\.key}' 2>/dev/null)
+              
+              if [ -n "$TLS_CRT" ] && [ -n "$TLS_KEY" ]; then
+                echo "✅ SSL certificate secret contains valid TLS data"
+                break
+              else
+                echo "⚠️ Secret exists but missing TLS data, waiting..."
+              fi
+            else
+              echo "⏳ Waiting for secret '${SECRET_NAME}'... (${i}/60)"
+            fi
+            
+            if [ $i -eq 60 ]; then
+              echo "⚠️ WARNING: SSL certificate secret '${SECRET_NAME}' was not created after 5 minutes."
+              echo "This may be normal if cert-manager is still processing the certificate request."
+              echo "The certificate will be created automatically by cert-manager when ready."
+              echo ""
+              echo "To debug, check:"
+              echo "  - kubectl get certificate -n ${KUBE_NAME}"
+              echo "  - kubectl get certificaterequest -n ${KUBE_NAME}"
+              echo "  - kubectl get secret -n ${KUBE_NAME} | grep ssl"
+            else
+              sleep 5
+            fi
+          done
+
       - name: Set service visibility (internal ingress whitelist)
         if: ${{ inputs.WF_IS_INTERNAL }}
         env:
