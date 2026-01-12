@@ -9,7 +9,7 @@ on:
       environment_type:
         required: true
         type: string
-      node_version: 
+      node_version:
         required: false
         type: number
         default: 22
@@ -62,13 +62,13 @@ jobs:
           esac
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: ${{ inputs.node_version }}
-          cache: 'yarn'
+          cache: "yarn"
 
       - name: Cache node_modules
         uses: actions/cache@v3
@@ -124,19 +124,19 @@ jobs:
           echo "✅ File .env created from input"
         env:
           PROJECT_ENVS: ${{ inputs.project_build_envs }}
-        
+
       - name: Build project
         run: yarn build
-        
+
       - name: Upload to S3
         run: |
           aws s3 sync ./build "$S3_BUCKET_NAME" --delete
-      
+
           aws s3 cp ./build/ "$S3_BUCKET_NAME" --recursive \
             --exclude "index.html" \
             --cache-control "max-age=86400, public" \
             --metadata-directive REPLACE
-      
+
           aws s3 cp ./build/index.html "$S3_BUCKET_NAME/index.html" \
             --cache-control "no-cache, no-store, must-revalidate" \
             --metadata-directive REPLACE
@@ -155,7 +155,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
 
@@ -163,7 +163,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ inputs.node_version }}
-          cache: 'yarn'
+          cache: "yarn"
 
       - name: Cache node_modules
         uses: actions/cache@v3
@@ -181,7 +181,7 @@ jobs:
         id: check_full_invalidation
         run: |
           DIST_ID="${CLOUDFRONT_DISTRIBUTION_ID}"
-          
+
           echo "🔍 Searching invalidations"
           IDS=$(aws cloudfront list-invalidations \
             --distribution-id "$DIST_ID" \
@@ -210,7 +210,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
           CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
-  
+
       - name: Invalidate CloudFront cache (index.html ONLY)
         if: ${{ steps.check_full_invalidation.outputs.has_full_invalidation == 'yes' }}
         run: |
@@ -223,7 +223,7 @@ jobs:
           AWS_REGION: ${{ secrets.AWS_REGION }}
           CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
           APP_PREFIX: ${{ env.APP_PREFIX }}
-          
+
       - name: Invalidate CloudFront cache (ALL)
         if: ${{ steps.check_full_invalidation.outputs.has_full_invalidation == 'no' }}
         run: |
@@ -234,19 +234,19 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
           CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
-        
+
       - name: Get CloudFront Domain Name and Alternate Name
         id: get_cf_domain
         run: |
           DOMAIN_NAME=$(aws cloudfront get-distribution --id $CLOUDFRONT_DISTRIBUTION_ID \
             --query 'Distribution.DomainName' --output text)
-      
+
           ALTERNATE_NAME=$(aws cloudfront get-distribution --id $CLOUDFRONT_DISTRIBUTION_ID \
             --query 'Distribution.DistributionConfig.Aliases.Items[0]' --output text)
-      
+
           echo "Domain name is: $DOMAIN_NAME"
           echo "Alternate domain (CNAME) is: $ALTERNATE_NAME"
-      
+
           echo "domain_name=$DOMAIN_NAME" >> "$GITHUB_OUTPUT"
           echo "alternate_name=$ALTERNATE_NAME" >> "$GITHUB_OUTPUT"
         env:
@@ -260,20 +260,20 @@ jobs:
         run: |
           DOMAIN_NAME="${DOMAIN_NAME}"
           ALTERNATE_DOMAIN="${ALTERNATE_DOMAIN}"
-      
+
           if [[ -n "$ALTERNATE_DOMAIN" && "$ALTERNATE_DOMAIN" != "None" ]]; then
             PREVIEW_URL="https://${ALTERNATE_DOMAIN}"
           else
             PREVIEW_URL="https://${DOMAIN_NAME}"
           fi
-      
+
           echo "### 🌐 Release disponível" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "🔗 $PREVIEW_URL" >> "$GITHUB_STEP_SUMMARY"
         env:
           DOMAIN_NAME: ${{ steps.get_cf_domain.outputs.domain_name }}
           ALTERNATE_DOMAIN: ${{ steps.get_cf_domain.outputs.alternate_name }}
-  
+
       - name: Output preview URL
         uses: actions/github-script@v6
         if: ${{ (steps.get_cf_domain.outputs.alternate_name != 'None' || steps.get_cf_domain.outputs.domain_name != '') && github.event_name == 'pull_request' && inputs.is_preview }}
@@ -290,9 +290,9 @@ jobs:
             const alternateDomain = process.env.ALTERNATE_DOMAIN;
 
             const selectedDomain = alternateDomain !== "" && alternateDomain !== "None" ? `https://${alternateDomain}` : `https://${domainName}`;
-      
+
             const previewUrl = `${selectedDomain}/${previewPrefix}`;
-      
+
             await github.rest.issues.createComment({
               issue_number: prNumber,
               owner: context.repo.owner,
@@ -300,7 +300,7 @@ jobs:
               body: `🚀 Preview disponível: [${previewUrl}](${previewUrl})\n
               ![Coverage GIF](https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExZThtYmVtZThra2loajhjbmIzM2ZnNHAxZHQ4aHowcHkzZnV2Nzl5OCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/ukZvSoWXXb3YKNHIsw/giphy.gif)`
             });
-      
+
       - name: Semantic release
         if: ${{ inputs.has_semantic_release == true && !inputs.is_preview }}
         env:
