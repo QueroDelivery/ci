@@ -11,7 +11,7 @@ on:
         required: true
       WF_PUBLISH_CODE_COVERAGE:
         type: string
-        default: false
+        default: "false"
         required: false
       WF_BACKSTAGE_URL:
         type: string
@@ -101,8 +101,69 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.WF_NPM_TOKEN }}
         run: yarn --frozen-lockfile
 
+      - name: Getting SERVICE_NAME
+        id: serviceName
+        run: |
+          SERVICE_NAME=$(node -p -e "require('./package.json').name")
+          echo "servicename=$SERVICE_NAME" >> $GITHUB_OUTPUT
+
+      - name: Upload node_modules and .npmrc as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-setup
+          path: |
+            node_modules
+            .npmrc
+          retention-days: 1
+
+  lint:
+    environment: ${{ inputs.WF_ENV_TYPE_DEPLOY }}
+    name: linting
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.WF_NODE_VERSION }}
+          cache: "yarn"
+          registry-url: ${{ secrets.WF_REGISTRY }}
+
+      - name: Download node_modules and .npmrc
+        uses: actions/download-artifact@v4
+        with:
+          name: node-setup
+          path: .
+
       - name: linting
         run: yarn lint
+
+  test:
+    environment: ${{ inputs.WF_ENV_TYPE_DEPLOY }}
+    name: testing
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.WF_NODE_VERSION }}
+          cache: "yarn"
+          registry-url: ${{ secrets.WF_REGISTRY }}
+
+      - name: Download node_modules and .npmrc
+        uses: actions/download-artifact@v4
+        with:
+          name: node-setup
+          path: .
 
       - name: testing
         env:
@@ -124,24 +185,52 @@ jobs:
             fi
           fi
 
+  release:
+    environment: ${{ inputs.WF_ENV_TYPE_DEPLOY }}
+    name: release
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.WF_NODE_VERSION }}
+          cache: "yarn"
+          registry-url: ${{ secrets.WF_REGISTRY }}
+
+      - name: Download node_modules and .npmrc
+        uses: actions/download-artifact@v4
+        with:
+          name: node-setup
+          path: .
+
       - name: Release
         env:
           NPM_TOKEN: ${{ secrets.WF_NPM_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
         run: yarn release
 
-      - name: Getting SERVICE_NAME
-        id: serviceName
-        run: |
-          SERVICE_NAME=$(node -p -e "require('./package.json').name")
-          echo "servicename=$SERVICE_NAME" >> $GITHUB_OUTPUT
+  build:
+    environment: ${{ inputs.WF_ENV_TYPE_DEPLOY }}
+    name: building
+    runs-on: ubuntu-latest
+    needs: [setup, release]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Creating dotenv from aws parameter store
         uses: almerindo/action-env-from-aws-ssm@main
         if: ${{ inputs.WF_CREATE_DOTENV_BEFORE_BUILD }}
         with:
           output: ./.env
-          ssm-path: "/${{ inputs.WF_ENV_TYPE }}/${{ steps.serviceName.outputs.servicename }}"
+          ssm-path: "/${{ inputs.WF_ENV_TYPE }}/${{ needs.setup.outputs.output1 }}"
           format: dotenv
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.WF_AWS_ACCESS_KEY_ID }}
@@ -150,11 +239,11 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t ${{ steps.serviceName.outputs.servicename }}:ci-build .
+          docker build -t ${{ needs.setup.outputs.output1 }}:ci-build .
 
       - name: Save Docker image
         run: |
-          docker save ${{ steps.serviceName.outputs.servicename }}:ci-build | gzip > image.tar.gz
+          docker save ${{ needs.setup.outputs.output1 }}:ci-build | gzip > image.tar.gz
 
       - name: Upload Docker image as artifact
         uses: actions/upload-artifact@v4
