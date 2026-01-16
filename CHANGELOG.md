@@ -1,3 +1,10 @@
+## [5.1.1](https://github.com/QueroDelivery/ci/compare/v5.1.0...v5.1.1) (2026-01-16)
+
+
+### Bug Fixes
+
+* use head -n 1 to select first image ID in ECR workflow ([3dcff4b](https://github.com/QueroDelivery/ci/commit/3dcff4ba6476d1fe72cf8f79110b4c9650d23be4))
+
 # [5.1.0](https://github.com/QueroDelivery/ci/compare/v5.0.0...v5.1.0) (2026-01-07)
 
 
