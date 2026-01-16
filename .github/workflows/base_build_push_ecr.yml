@@ -69,7 +69,7 @@ jobs:
           VERSION_TAG: ${{ github.sha }}
         run: |
           gunzip -c image.tar.gz | docker load
-          IMAGE_ID=$(docker images -q)
+          IMAGE_ID=$(docker images -q | head -n 1)
           PR_NUMBER=${{ github.event.pull_request.number }}
 
           # Tag with PR number (if available)
@@ -88,7 +88,7 @@ jobs:
             echo "⚠️ Skipping tag with ENV_TYPE_DEPLOY=dev"
           fi
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$VERSION_TAG" >> $GITHUB_OUTPUT
-          
+
 
           DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' $IMAGE_ID | cut -d'@' -f2)
           echo "digest=$DIGEST" >> $GITHUB_OUTPUT
