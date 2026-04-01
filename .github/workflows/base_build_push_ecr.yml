@@ -34,7 +34,7 @@ on:
 jobs:
   setup:
     name: push-to-ecr
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-larger
     environment: ${{ inputs.WF_ENV_TYPE_DEPLOY }}
     outputs:
       servicename: ${{ steps.service-name.outputs.servicename }}
