@@ -34,7 +34,7 @@ on:
 jobs:
   setup:
     name: push-to-ecr
-    runs-on: [self-hosted, macOS, X64]
+    runs-on: ubuntu-latest-4xlarge
     environment: ${{ inputs.WF_ENV_TYPE_DEPLOY }}
     outputs:
       servicename: ${{ steps.service-name.outputs.servicename }}
