@@ -56,7 +56,7 @@ jobs:
     name: preparing
     env:
       FONT_AWESOME_TOKEN: ${{ secrets.WF_FONT_AWESOME_TOKEN }}
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux-local]
     continue-on-error: false
     outputs:
       output1: ${{ steps.serviceName.outputs.servicename }}
