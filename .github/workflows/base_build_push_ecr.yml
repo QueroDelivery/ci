@@ -34,7 +34,7 @@ on:
 jobs:
   setup:
     name: push-to-ecr
-    runs-on: [self-hosted, macOS]
+    runs-on: [self-hosted, linux-local]
     environment: ${{ inputs.WF_ENV_TYPE_DEPLOY }}
     outputs:
       servicename: ${{ steps.service-name.outputs.servicename }}
