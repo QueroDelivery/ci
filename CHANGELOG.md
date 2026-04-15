@@ -1,3 +1,10 @@
+# [5.2.0](https://github.com/QueroDelivery/ci/compare/v5.1.1...v5.2.0) (2026-04-15)
+
+
+### Features
+
+* **ci_k8_base:** add WF_GITOPS_MODE for ArgoCD-managed services (v5.2.0) ([121fe60](https://github.com/QueroDelivery/ci/commit/121fe608244d35db4660a01220245da0fc790d66))
+
 ## [5.1.1](https://github.com/QueroDelivery/ci/compare/v5.1.0...v5.1.1) (2026-01-16)
 
 
