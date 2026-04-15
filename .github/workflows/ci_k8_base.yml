@@ -3,6 +3,18 @@ name: CI-K8-BASE
 on:
   workflow_call:
     inputs:
+
+      # ── Mode ──────────────────────────────────────────────────────────────
+      WF_GITOPS_MODE:
+        description: >
+          When true, ArgoCD manages the deploy — kubectl steps are skipped.
+          Only deploy-state tracking and PR creation run.
+          When false (default), the full kubectl pipeline runs (v5.1.1 behaviour).
+        type: boolean
+        required: false
+        default: false
+
+      # ── Image ─────────────────────────────────────────────────────────────
       WF_IMAGE_TAG:
         type: string
         required: true
@@ -12,21 +24,28 @@ on:
       WF_DIGEST_IMAGE:
         type: string
         required: true
+
+      # ── Environment ───────────────────────────────────────────────────────
       WF_ENV_TYPE_DEPLOY:
         type: string
         required: true
       WF_ENV_TYPE:
+        description: "Kubernetes env type (stage, prod). Not required in gitops mode."
         type: string
-        required: true
+        required: false
+
+      # ── Kubernetes sizing (not required in gitops mode) ───────────────────
       WF_PUBLIC_HOST:
         type: string
         required: false
       WF_KUBE_MIN_REPLICAS:
         type: string
-        required: true
+        required: false
+        default: "1"
       WF_KUBE_MAX_REPLICAS:
         type: string
-        required: true
+        required: false
+        default: "2"
       WF_KUBE_MEMORY_LIMIT:
         type: string
         required: false
@@ -43,40 +62,53 @@ on:
         default: 85m
       WF_KUBE_NODE_GROUP:
         type: string
-        required: true
+        required: false
+        default: ng-apps
       WF_KUBE_DEPLOYMENT:
         type: string
-        required: true
+        required: false
+        default: new
+
+      # ── Kubernetes name (optional in gitops mode) ─────────────────────────
+      WF_KUBE_NAME:
+        description: "Kubernetes deployment name. Not required in gitops mode."
+        type: string
+        required: false
+
+      # ── Flags ─────────────────────────────────────────────────────────────
       WF_SHOW_COMMENT:
+        description: "Post a PR comment with the deployed image URL. Only relevant in non-gitops mode."
         type: boolean
         required: false
+        default: false
       WF_CREATE_PR_IN_MAIN:
         type: boolean
         required: false
+        default: false
       WF_IS_INTERNAL:
         type: boolean
         required: false
-      WF_KUBE_NAME:
-        type: string
-        required: true
+        default: false
 
     secrets:
-      WF_KUBE_TYPE:
-        required: true
-      WF_AWS_ACCESS_KEY_ID:
-        required: true
-      WF_AWS_SECRET_ACCESS_KEY:
-        required: true
-      WF_AWS_REGION:
+      WF_GITHUB_TOKEN:
         required: true
       WF_SERVICE_NAME:
         required: true
+
+      # ── Only required in non-gitops mode ──────────────────────────────────
+      WF_KUBE_TYPE:
+        required: false
+      WF_AWS_ACCESS_KEY_ID:
+        required: false
+      WF_AWS_SECRET_ACCESS_KEY:
+        required: false
+      WF_AWS_REGION:
+        required: false
       WF_KUBE_DOMAIN:
-        required: true
+        required: false
       WF_KUBE_DOMAIN_INTERNAL:
-        required: true
-      WF_GITHUB_TOKEN:
-        required: true
+        required: false
       WF_WHITELIST_SOURCE_RANGE:
         required: false
 
@@ -85,13 +117,17 @@ jobs:
     name: Deploy to Kubernetes
     runs-on: ubuntu-latest
     environment: ${{ inputs.WF_ENV_TYPE_DEPLOY }}
+
     steps:
+      # ── Always ──────────────────────────────────────────────────────────────
       - name: Checkout source
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      # ── kubectl mode only ────────────────────────────────────────────────────
       - name: Checkout kube manifests
+        if: ${{ !inputs.WF_GITOPS_MODE }}
         uses: actions/checkout@v4
         with:
           ref: v1.11.1
@@ -101,6 +137,7 @@ jobs:
           persist-credentials: false
 
       - name: Setup AWS & IAM
+        if: ${{ !inputs.WF_GITOPS_MODE }}
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.WF_AWS_ACCESS_KEY_ID }}
@@ -109,19 +146,22 @@ jobs:
           role-session-name: ${{ secrets.WF_SERVICE_NAME }}_GitHubActions
 
       - name: Login to Amazon ECR
+        if: ${{ !inputs.WF_GITOPS_MODE }}
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Override kubefiles
+        if: ${{ !inputs.WF_GITOPS_MODE }}
         run: |
           FILE=setup/.kube
           if [[ -d "$FILE" ]]; then
-            echo "$FILE EXIST!" 
+            echo "$FILE EXIST!"
             cp -avf setup/.kube/*.yaml .kube/
-            echo "Kubefiles Override FINISHED" 
+            echo "Kubefiles Override FINISHED"
           fi
 
       - name: Fetch environment from SSM
+        if: ${{ !inputs.WF_GITOPS_MODE }}
         uses: almerindo/action-env-from-aws-ssm@main
         with:
           output: ./.kube/${{ inputs.WF_KUBE_NAME }}-env-cm.yaml
@@ -133,6 +173,7 @@ jobs:
           AWS_DEFAULT_REGION: ${{ secrets.WF_AWS_REGION }}
 
       - name: Setup kubectl
+        if: ${{ !inputs.WF_GITOPS_MODE }}
         run: |
           curl -LO "https://dl.k8s.io/release/v1.30.6/bin/linux/amd64/kubectl"
           chmod +x kubectl
@@ -142,19 +183,23 @@ jobs:
           sudo mv aws-iam-authenticator /usr/local/bin/
 
       - name: Prepare envs
+        if: ${{ !inputs.WF_GITOPS_MODE }}
         run: |
           echo "WF_KUBE_MEMORY_LIMIT=${{ inputs.WF_KUBE_MEMORY_LIMIT || inputs.WF_KUBE_MEMORY_REQUEST }}" >> $GITHUB_ENV
+
       - name: Remove WF_KUBE_CPU_LIMIT when is null
-        if: ${{inputs.WF_KUBE_CPU_LIMIT == ''}}
+        if: ${{ !inputs.WF_GITOPS_MODE && inputs.WF_KUBE_CPU_LIMIT == '' }}
         run: |
           sed -i '/KUBE_CPU_LIMIT/d' ./.kube/deployment-new.yaml
+
       - name: Render manifests with envsubst
+        if: ${{ !inputs.WF_GITOPS_MODE }}
         env:
           KUBE_NAME: ${{ inputs.WF_KUBE_NAME }}
           KUBE_DOMAIN: ${{ secrets.WF_KUBE_DOMAIN }}
           KUBE_DOMAIN_INTERNAL: ${{ secrets.WF_KUBE_DOMAIN_INTERNAL }}
-          KUBECONFIG: .kube/config-${{secrets.WF_KUBE_TYPE}}.yaml
-          KUBEDEPLOYMENT: .kube/deployment-${{inputs.WF_KUBE_DEPLOYMENT}}.yaml
+          KUBECONFIG: .kube/config-${{ secrets.WF_KUBE_TYPE }}.yaml
+          KUBEDEPLOYMENT: .kube/deployment-${{ inputs.WF_KUBE_DEPLOYMENT }}.yaml
           KUBE_MIN_REPLICAS: ${{ inputs.WF_KUBE_MIN_REPLICAS }}
           PUBLIC_HOST: ${{ inputs.WF_PUBLIC_HOST }}
           KUBE_MAX_REPLICAS: ${{ inputs.WF_KUBE_MAX_REPLICAS }}
@@ -168,7 +213,6 @@ jobs:
           VERSION_TAG: ${{ inputs.WF_IMAGE_VERSION_TAG }}
         run: |
           mkdir -p rendered
-          # Export all environment variables for envsubst
           export KUBE_NAME KUBE_DOMAIN KUBE_DOMAIN_INTERNAL KUBE_MIN_REPLICAS PUBLIC_HOST
           export KUBE_MAX_REPLICAS KUBE_MEMORY_LIMIT KUBE_MEMORY_REQUEST KUBE_CPU_LIMIT KUBE_CPU_REQUEST
           export KUBE_NODE_GROUP ECR_REGISTRY ECR_REPOSITORY VERSION_TAG
@@ -178,7 +222,9 @@ jobs:
               envsubst < "$file" > "rendered/$(basename $file)"
             fi
           done
+
       - name: Apply manifests
+        if: ${{ !inputs.WF_GITOPS_MODE }}
         env:
           KUBECONFIG: .kube/config-${{ secrets.WF_KUBE_TYPE }}.yaml
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -189,7 +235,6 @@ jobs:
           export PATH=$PATH:$PWD
           export KUBE_NAME
 
-          # Validate KUBE_NAME is set
           if [ -z "${KUBE_NAME}" ]; then
             echo "ERROR: KUBE_NAME is not set or empty"
             exit 1
@@ -197,7 +242,6 @@ jobs:
 
           echo "KUBE_NAME=${KUBE_NAME}"
 
-          # Try to apply namespace.yaml if it exists and is not empty
           if [ -f rendered/namespace.yaml ] && [ -s rendered/namespace.yaml ]; then
             if ! kubectl apply -f rendered/namespace.yaml 2>/dev/null; then
               kubectl create namespace ${KUBE_NAME} --dry-run=client -o yaml | kubectl apply -f - || kubectl create namespace ${KUBE_NAME} || true
@@ -205,14 +249,14 @@ jobs:
           else
             kubectl create namespace ${KUBE_NAME} --dry-run=client -o yaml | kubectl apply -f - || kubectl create namespace ${KUBE_NAME} || true
           fi
-          # Wait for namespace to be ready
+
           kubectl wait --for=condition=Active namespace/${KUBE_NAME} --timeout=30s || true
-          # Verify namespace exists before applying ConfigMap
+
           if ! kubectl get namespace ${KUBE_NAME} &>/dev/null; then
             echo "ERROR: Namespace ${KUBE_NAME} still does not exist after creation attempt"
             exit 1
           fi
-          # Apply ConfigMap with explicit namespace
+
           kubectl apply -f rendered/${KUBE_NAME}-env-cm.yaml -n ${KUBE_NAME}
           kubectl apply -f rendered/deployment-${{ inputs.WF_KUBE_DEPLOYMENT }}.yaml -n ${KUBE_NAME}
           DEPLOY_NAME=$(yq e '.metadata.name' rendered/deployment-${{ inputs.WF_KUBE_DEPLOYMENT }}.yaml)
@@ -224,7 +268,7 @@ jobs:
           kubectl apply -f rendered/ingress-internal.yaml -n ${KUBE_NAME}
 
       - name: Set service visibility (internal ingress whitelist)
-        if: ${{ inputs.WF_IS_INTERNAL }}
+        if: ${{ !inputs.WF_GITOPS_MODE && inputs.WF_IS_INTERNAL }}
         env:
           KUBECONFIG: .kube/config-${{ secrets.WF_KUBE_TYPE }}.yaml
           KUBE_NAME: ${{ inputs.WF_KUBE_NAME }}
@@ -232,17 +276,18 @@ jobs:
         run: |
           kubectl -n ${KUBE_NAME} annotate --overwrite ingress ${KUBE_NAME} ingress.kubernetes.io/whitelist-source-range=${WHITELIST_SOURCE_RANGE}
 
+      # ── Always (post-deploy) ─────────────────────────────────────────────────
       - name: Comment on PR with deployed image
-        if: ${{ inputs.WF_SHOW_COMMENT }}
+        if: ${{ !inputs.WF_GITOPS_MODE && inputs.WF_SHOW_COMMENT }}
         env:
           GH_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
           ECR_REPOSITORY: "${{ secrets.WF_SERVICE_NAME }}"
         run: |
-          gh pr comment ${{ github.event.pull_request.number }} --body "✅ Deployed image: \`${{ steps.login-ecr.outputs.registry }}/${ECR_REPOSITORY}:${{ inputs.WF_IMAGE_TAG }}\`"
+          gh pr comment ${{ github.event.pull_request.number }} --body "Deployed image: \`${{ steps.login-ecr.outputs.registry }}/${ECR_REPOSITORY}:${{ inputs.WF_IMAGE_TAG }}\`"
           gh pr comment ${{ github.event.pull_request.number }} --body "Segura o link dessa app review aí ó o/
             -   URL: https://${{ inputs.WF_KUBE_NAME }}${{ secrets.WF_KUBE_DOMAIN }}"
 
-      - name: upsert .deploys/service.json
+      - name: Upsert .deploys/service.json
         env:
           IMAGE_DIGEST: ${{ inputs.WF_DIGEST_IMAGE }}
           FILE: .deploys/service.json
@@ -251,49 +296,34 @@ jobs:
           IMAGE_TAG: ${{ inputs.WF_IMAGE_TAG }}
           VERSION_TAG: "${{ inputs.WF_IMAGE_VERSION_TAG }}"
           BRANCH: deploy-state
-
         run: |
-          # Setup Git identity
           git config user.name "github-actions"
           git config user.email "actions@github.com"
 
-          # Worktree cleanup (idempotent)
           if [ -d "../deploy-worktree" ]; then
-            echo "🧹 Cleaning up existing worktree"
             git worktree remove --force ../deploy-worktree || true
           fi
 
-          # Ensure remote branch exists or create from main
           if ! git show-ref --verify --quiet refs/remotes/origin/$BRANCH; then
-            echo "🆕 Branch '$BRANCH' does not exist remotely. Creating it from main."
             git fetch origin main
-            
-            # Check if local branch exists and delete it if it does
             if git show-ref --verify --quiet refs/heads/$BRANCH; then
-              echo "🗑️ Removing existing local branch '$BRANCH'"
               git branch -D "$BRANCH"
             fi
-            
             git branch "$BRANCH" origin/main
             git push origin $BRANCH
           else
             git fetch origin $BRANCH
           fi
 
-          # Create worktree pointing to the branch
           git worktree add ../deploy-worktree $BRANCH
 
-          # Prepare local source file for upsert based on branch content
           mkdir -p "$(dirname "$FILE")"
           if [ -f "../deploy-worktree/$FILE" ]; then
-            echo "📄 Loading existing $FILE from branch"
             cp "../deploy-worktree/$FILE" "$FILE"
           else
-            echo "🆕 Initializing $FILE with empty object"
             echo "{}" > "$FILE"
           fi
 
-          # Upsert new environment entry into the file
           jq --arg env "$ENV" \
             --arg digest "$IMAGE_DIGEST" \
             --arg version_tag "$VERSION_TAG" \
@@ -301,7 +331,6 @@ jobs:
             '. + {($env): {digest: $digest, version_tag: $version_tag, image_tag: $image_tag}}' \
             "$FILE" > "$FILE.tmp" && mv "$FILE.tmp" "$FILE"
 
-          # Copy updated file into the worktree
           mkdir -p "$(dirname ../deploy-worktree/$FILE)"
           cp "$FILE" ../deploy-worktree/$FILE
 
@@ -315,60 +344,46 @@ jobs:
       - name: Commit & Push deploy state (stg/prod)
         if: ${{ inputs.WF_ENV_TYPE_DEPLOY != 'dev' }}
         env:
-          BRANCH: "deploy-state"
+          BRANCH: deploy-state
           ENV: "${{ inputs.WF_ENV_TYPE_DEPLOY }}"
-          FILE: ".deploys/service.json"
+          FILE: .deploys/service.json
         run: |
-          # Setup Git identity
           git config user.name "github-actions"
           git config user.email "actions@github.com"
 
-          # Remove worktree if already exists (idempotency)
           if [ -d "../deploy-worktree" ]; then
-            echo "🧹 Cleaning up existing worktree"
             git worktree remove --force ../deploy-worktree || true
           fi
 
-          # Fetch latest remote branch (guaranteed to exist from previous step)
           git fetch origin $BRANCH
-
-          # Add isolated worktree for that branch
           git worktree add ../deploy-worktree $BRANCH
 
-          # Ensure destination directory exists
           mkdir -p "$(dirname ../deploy-worktree/$FILE)"
-
-          # Copy generated .deploys/service.json into worktree
           cp "$FILE" ../deploy-worktree/$FILE
 
-          # Commit and push if there are changes
           cd ../deploy-worktree
           git add "$FILE"
           if git commit -m "chore(ci): promote to $ENV [skip ci]"; then
-            # Rebase to preserve remote history
             git pull --rebase origin $BRANCH
             git push origin HEAD:$BRANCH
           else
-            echo "⚠️ Nothing to commit"
+            echo "Nothing to commit"
           fi
 
       - name: Check if there are commits between staging to main
         id: check_commits
-        if: ${{ inputs.WF_CREATE_PR_IN_MAIN}}
+        if: ${{ inputs.WF_CREATE_PR_IN_MAIN }}
         run: |
           if [ "$(git rev-list --count 'origin/main..HEAD')" -eq 0 ]; then
-            echo "No commits to create pull request for."
             echo "commits_head_main=false" >> $GITHUB_OUTPUT
           else
-            echo "Commits found. Ready to create pull request."
             echo "commits_head_main=true" >> $GITHUB_OUTPUT
           fi
 
       - name: Create Pull Request for prod
-        if: ${{ inputs.WF_CREATE_PR_IN_MAIN && steps.check_commits.outputs.commits_head_main == 'true'}}
-        id: "open-pr"
+        if: ${{ inputs.WF_CREATE_PR_IN_MAIN && steps.check_commits.outputs.commits_head_main == 'true' }}
         env:
           GH_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
         run: |
-          echo "Creating the PR Deply in prod"
-          gh pr edit stage -b "Pull request body" -t 'Deploy in prod'  && gh pr reopen stage || gh pr create --base "main" --title "Deploy in prod" --body "Pull request body"
+          gh pr edit stage -b "Pull request body" -t 'Deploy in prod' && gh pr reopen stage || \
+          gh pr create --base "main" --title "Deploy in prod" --body "Pull request body"
