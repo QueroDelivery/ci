@@ -16,9 +16,6 @@ on:
       WF_BACKSTAGE_URL:
         type: string
         required: false
-      WF_FONT_AWESOME_TOKEN:
-        type: string
-        required: false
       WF_CREATE_DOTENV_BEFORE_BUILD:
         type: boolean
         default: false
