@@ -1,3 +1,10 @@
+## [5.2.1](https://github.com/QueroDelivery/ci/compare/v5.2.0...v5.2.1) (2026-05-04)
+
+
+### Bug Fixes
+
+* **ci:** remove Font Awesome token from workflow_call inputs ([4b0e7df](https://github.com/QueroDelivery/ci/commit/4b0e7df08a3d6d8a737befc2dd21662643fad98d))
+
 # [5.2.0](https://github.com/QueroDelivery/ci/compare/v5.1.1...v5.2.0) (2026-04-15)
 
 
