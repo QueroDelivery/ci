@@ -1,6 +1,7 @@
 name: CI-BASE
 
 on:
+
   workflow_call:
 
     inputs:
@@ -10,6 +11,18 @@ on:
       WF_ENV_TYPE_DEPLOY:
         type: string
         required: true
+      WF_CODEARTIFACT_DOMAIN:
+        type: string
+        required: false
+        default: ""
+      WF_CODEARTIFACT_REPOSITORY:
+        type: string
+        required: false
+        default: ""
+
+    secrets:
+      WF_AWS_CODEARTIFACT_ROLE_ARN:
+        required: false
 
 jobs:
   setup:
@@ -17,6 +30,10 @@ jobs:
     name: preparing
     runs-on: ubuntu-latest
     continue-on-error: false
+    permissions:
+      id-token: write
+      contents: read
+      actions: write
 
     steps:
       - name: Checkout
@@ -24,9 +41,48 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Build Docker image
+      - name: Configure AWS credentials (OIDC)
+        if: inputs.WF_CODEARTIFACT_DOMAIN != ''
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.WF_AWS_CODEARTIFACT_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Authenticate CodeArtifact
+        if: inputs.WF_CODEARTIFACT_DOMAIN != ''
         run: |
-          docker build -t ${{ inputs.WF_SERVICE_NAME }}:ci-build .
+          aws codeartifact login \
+            --tool pip \
+            --domain ${{ inputs.WF_CODEARTIFACT_DOMAIN }} \
+            --repository ${{ inputs.WF_CODEARTIFACT_REPOSITORY }}
+          pip config set global.extra-index-url https://pypi.org/simple/
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        if: inputs.WF_CODEARTIFACT_DOMAIN != ''
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          tags: ${{ inputs.WF_SERVICE_NAME }}:ci-build
+          load: true
+          provenance: false
+          secret-files: |
+            pip_conf=${{ env.HOME }}/.config/pip/pip.conf
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build Docker image
+        if: inputs.WF_CODEARTIFACT_DOMAIN == ''
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          tags: ${{ inputs.WF_SERVICE_NAME }}:ci-build
+          load: true
+          provenance: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Save Docker image
         run: |
