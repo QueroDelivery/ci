@@ -56,6 +56,7 @@ jobs:
             --domain ${{ inputs.WF_CODEARTIFACT_DOMAIN }} \
             --repository ${{ inputs.WF_CODEARTIFACT_REPOSITORY }}
           pip config set global.extra-index-url https://pypi.org/simple/
+          echo "PIP_CONF=$HOME/.config/pip/pip.conf" >> $GITHUB_ENV
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -69,7 +70,7 @@ jobs:
           load: true
           provenance: false
           secret-files: |
-            pip_conf=${{ env.HOME }}/.config/pip/pip.conf
+            pip_conf=${{ env.PIP_CONF }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
