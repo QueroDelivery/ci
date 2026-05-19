@@ -60,7 +60,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build Docker image
+      - name: Build Docker image (with CodeArtifact)
         if: inputs.WF_CODEARTIFACT_DOMAIN != ''
         uses: docker/build-push-action@v6
         with:
@@ -73,7 +73,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build Docker image
+      - name: Build Docker image (public PyPI only)
         if: inputs.WF_CODEARTIFACT_DOMAIN == ''
         uses: docker/build-push-action@v6
         with:
