@@ -1,3 +1,10 @@
+# [5.3.0](https://github.com/QueroDelivery/ci/compare/v5.2.1...v5.3.0) (2026-05-19)
+
+
+### Features
+
+* **ci:** migrate base_python_build to Buildx and build-push-action ([16aac0c](https://github.com/QueroDelivery/ci/commit/16aac0ca0772f583f7f7e71a7bb7b1efbd583592))
+
 ## [5.2.1](https://github.com/QueroDelivery/ci/compare/v5.2.0...v5.2.1) (2026-05-04)
 
 
