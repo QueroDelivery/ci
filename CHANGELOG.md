@@ -1,3 +1,10 @@
+## [5.3.1](https://github.com/QueroDelivery/ci/compare/v5.3.0...v5.3.1) (2026-05-19)
+
+
+### Bug Fixes
+
+* **ci:** export PIP_CONF path via GITHUB_ENV to fix secret not found in Docker build ([f66a69d](https://github.com/QueroDelivery/ci/commit/f66a69d0a00c0f9593fcf67d427805c82ad38e04))
+
 # [5.3.0](https://github.com/QueroDelivery/ci/compare/v5.2.1...v5.3.0) (2026-05-19)
 
 
