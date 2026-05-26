@@ -71,8 +71,6 @@ jobs:
           provenance: false
           secret-files: |
             pip_conf=${{ env.PIP_CONF }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Build Docker image (public PyPI only)
         if: inputs.WF_CODEARTIFACT_DOMAIN == ''
@@ -82,8 +80,6 @@ jobs:
           tags: ${{ inputs.WF_SERVICE_NAME }}:ci-build
           load: true
           provenance: false
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Save Docker image
         run: |
