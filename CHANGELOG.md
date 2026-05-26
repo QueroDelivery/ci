@@ -1,3 +1,10 @@
+## [5.3.2](https://github.com/QueroDelivery/ci/compare/v5.3.1...v5.3.2) (2026-05-26)
+
+
+### Bug Fixes
+
+* remove docker buildx cache of base python build ([86b44ea](https://github.com/QueroDelivery/ci/commit/86b44ea2e137e4986d5bb1639605692ab0b7fc5d))
+
 ## [5.3.1](https://github.com/QueroDelivery/ci/compare/v5.3.0...v5.3.1) (2026-05-19)
 
 
