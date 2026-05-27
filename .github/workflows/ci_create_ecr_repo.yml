@@ -1,0 +1,32 @@
+name: CI-CREATE-ECR-REPO
+
+on:
+  workflow_call:
+    inputs:
+      WF_SERVICE_NAME:
+        type: string
+        required: true
+    secrets:
+      WF_AWS_ACCESS_KEY_ID:
+        required: true
+      WF_AWS_SECRET_ACCESS_KEY:
+        required: true
+
+jobs:
+  create-ecr-repo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.WF_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.WF_AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Criar repositório ECR (idempotente)
+        run: |
+          aws ecr create-repository \
+            --repository-name "${{ inputs.WF_SERVICE_NAME }}" \
+            --region us-east-1 \
+            --image-scanning-configuration scanOnPush=true \
+            2>/dev/null || true
