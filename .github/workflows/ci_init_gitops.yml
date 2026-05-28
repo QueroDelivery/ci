@@ -74,11 +74,16 @@ jobs:
               cat > "$SERVICE/$ENV/ingress-values.yaml" << EOF
           ingress:
             public:
+              annotations:
+                cert-manager.io/cluster-issuer: letsencrypt-stg-wildcard
+                kubernetes.io/tls-acme: "true"
+                kubernetes.io/ssl-redirect: "true"
               hosts:
                 - host: $SERVICE.stg.services.quero.io
               tls:
                 - hosts:
                   - $SERVICE.stg.services.quero.io
+                  secretName: $SERVICE.ssl
             internal:
               hosts:
                 - host: $SERVICE.stg.services.local.quero.io
@@ -87,11 +92,16 @@ jobs:
               cat > "$SERVICE/$ENV/ingress-values.yaml" << EOF
           ingress:
             public:
+              annotations:
+                cert-manager.io/cluster-issuer: letsencrypt-prd-wildcard
+                kubernetes.io/tls-acme: "true"
+                kubernetes.io/ssl-redirect: "true"
               hosts:
                 - host: $SERVICE.services.quero.io
               tls:
                 - hosts:
                   - $SERVICE.services.quero.io
+                  secretName: $SERVICE.ssl
             internal:
               hosts:
                 - host: $SERVICE.services.local.quero.io
