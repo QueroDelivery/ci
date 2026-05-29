@@ -1,3 +1,11 @@
+## [5.4.1](https://github.com/QueroDelivery/ci/compare/v5.4.0...v5.4.1) (2026-05-29)
+
+
+### Bug Fixes
+
+* **gitops:** adjust resource limits and requests for ingress configuration ([aede8cc](https://github.com/QueroDelivery/ci/commit/aede8ccbab4a3cbc193e6600d13b4ac5544f9a66))
+* **gitops:** usar certificado wildcard compartilhado no ingress bootstrap ([03dc91d](https://github.com/QueroDelivery/ci/commit/03dc91d8776bc42ab03108e2a383af622adfe7c5))
+
 # [5.4.0](https://github.com/QueroDelivery/ci/compare/v5.3.2...v5.4.0) (2026-05-29)
 
 
