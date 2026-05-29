@@ -59,11 +59,11 @@ jobs:
               enabled: true
           resources:
             limits:
-              cpu: 330m
-              memory: 512Mi
+              cpu: 200m
+              memory: 256Mi
             requests:
-              cpu: 165m
-              memory: 512Mi
+              cpu: 150m
+              memory: 256Mi
           EOF
             CHANGED=true
           fi
@@ -113,7 +113,7 @@ jobs:
             limits:
               memory: 256Mi
             requests:
-              cpu: 100m
+              cpu: 150m
               memory: 256Mi
           autoscaling:
             minReplicas: 1
