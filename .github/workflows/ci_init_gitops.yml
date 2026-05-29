@@ -59,11 +59,11 @@ jobs:
               enabled: true
           resources:
             limits:
-              cpu: 330m
-              memory: 512Mi
+              cpu: 200m
+              memory: 256Mi
             requests:
-              cpu: 165m
-              memory: 512Mi
+              cpu: 150m
+              memory: 256Mi
           EOF
             CHANGED=true
           fi
@@ -75,15 +75,13 @@ jobs:
           ingress:
             public:
               annotations:
-                cert-manager.io/cluster-issuer: letsencrypt-stg-wildcard
-                kubernetes.io/tls-acme: "true"
                 kubernetes.io/ssl-redirect: "true"
               hosts:
                 - host: $SERVICE.stg.services.quero.io
               tls:
                 - hosts:
                   - $SERVICE.stg.services.quero.io
-                  secretName: $SERVICE.ssl
+                  secretName: wildcard-tls-secret-stg
             internal:
               hosts:
                 - host: $SERVICE.stg.services.local.quero.io
@@ -93,15 +91,13 @@ jobs:
           ingress:
             public:
               annotations:
-                cert-manager.io/cluster-issuer: letsencrypt-prd-wildcard
-                kubernetes.io/tls-acme: "true"
                 kubernetes.io/ssl-redirect: "true"
               hosts:
                 - host: $SERVICE.services.quero.io
               tls:
                 - hosts:
                   - $SERVICE.services.quero.io
-                  secretName: $SERVICE.ssl
+                  secretName: wildcard-tls-secret-prd
             internal:
               hosts:
                 - host: $SERVICE.services.local.quero.io
@@ -117,7 +113,7 @@ jobs:
             limits:
               memory: 256Mi
             requests:
-              cpu: 100m
+              cpu: 150m
               memory: 256Mi
           autoscaling:
             minReplicas: 1
