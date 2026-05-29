@@ -1,3 +1,15 @@
+# [5.4.0](https://github.com/QueroDelivery/ci/compare/v5.3.2...v5.4.0) (2026-05-29)
+
+
+### Bug Fixes
+
+* **gitops:** add cert-manager annotations and secretName to ingress bootstrap ([48fef38](https://github.com/QueroDelivery/ci/commit/48fef38a118f036c56c74ef175d2b2371707ab86))
+
+
+### Features
+
+* **gitops:** add reusable workflows for bootstrap, ECR and GitOps init ([714e66c](https://github.com/QueroDelivery/ci/commit/714e66c5fad812427d9a4a7e4031dc5506013d1f))
+
 ## [5.3.2](https://github.com/QueroDelivery/ci/compare/v5.3.1...v5.3.2) (2026-05-26)
 
 
