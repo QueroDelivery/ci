@@ -1,0 +1,137 @@
+name: CI-INIT-GITOPS
+
+on:
+  workflow_call:
+    inputs:
+      WF_SERVICE_NAME:
+        type: string
+        required: true
+      WF_ENV_TYPE_DEPLOY:
+        type: string
+        required: true
+        description: "staging or production"
+    secrets:
+      WF_GITHUB_TOKEN:
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  init-gitops:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout kube-apps-definitions
+        uses: actions/checkout@v4
+        with:
+          repository: QueroDelivery/kube-apps-definitions
+          token: ${{ secrets.WF_GITHUB_TOKEN }}
+
+      - name: Inicializar arquivos GitOps (idempotente)
+        env:
+          SERVICE: ${{ inputs.WF_SERVICE_NAME }}
+          ENV: ${{ inputs.WF_ENV_TYPE_DEPLOY }}
+        run: |
+          set -euo pipefail
+          CHANGED=false
+
+          if [[ "$ENV" == "staging" && ! -f "$SERVICE/base.yaml" ]]; then
+            mkdir -p "$SERVICE"
+            cat > "$SERVICE/base.yaml" << EOF
+          nameOverride: ""
+          fullnameOverride: ""
+          appserverLabel: "node-14"
+          replicaCount: 1
+          image:
+            registry: "650363809795.dkr.ecr.us-east-1.amazonaws.com"
+            repository: "$SERVICE"
+          useExternalConfig: true
+          autoscaling:
+            enabled: true
+            minReplicas: 1
+            maxReplicas: 1
+            targetCPUUtilizationPercentage: 80
+            targetMemoryUtilizationPercentage: 80
+          ingress:
+            public:
+              enabled: true
+            internal:
+              enabled: true
+          resources:
+            limits:
+              cpu: 330m
+              memory: 512Mi
+            requests:
+              cpu: 165m
+              memory: 512Mi
+          EOF
+            CHANGED=true
+          fi
+
+          if [[ ! -f "$SERVICE/$ENV/ingress-values.yaml" ]]; then
+            mkdir -p "$SERVICE/$ENV"
+            if [[ "$ENV" == "staging" ]]; then
+              cat > "$SERVICE/$ENV/ingress-values.yaml" << EOF
+          ingress:
+            public:
+              annotations:
+                cert-manager.io/cluster-issuer: letsencrypt-stg-wildcard
+                kubernetes.io/tls-acme: "true"
+                kubernetes.io/ssl-redirect: "true"
+              hosts:
+                - host: $SERVICE.stg.services.quero.io
+              tls:
+                - hosts:
+                  - $SERVICE.stg.services.quero.io
+                  secretName: $SERVICE.ssl
+            internal:
+              hosts:
+                - host: $SERVICE.stg.services.local.quero.io
+          EOF
+            else
+              cat > "$SERVICE/$ENV/ingress-values.yaml" << EOF
+          ingress:
+            public:
+              annotations:
+                cert-manager.io/cluster-issuer: letsencrypt-prd-wildcard
+                kubernetes.io/tls-acme: "true"
+                kubernetes.io/ssl-redirect: "true"
+              hosts:
+                - host: $SERVICE.services.quero.io
+              tls:
+                - hosts:
+                  - $SERVICE.services.quero.io
+                  secretName: $SERVICE.ssl
+            internal:
+              hosts:
+                - host: $SERVICE.services.local.quero.io
+          EOF
+            fi
+            CHANGED=true
+          fi
+
+          if [[ ! -f "$SERVICE/$ENV/override-values.yaml" ]]; then
+            mkdir -p "$SERVICE/$ENV"
+            cat > "$SERVICE/$ENV/override-values.yaml" << 'EOF'
+          resources:
+            limits:
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 256Mi
+          autoscaling:
+            minReplicas: 1
+            maxReplicas: 1
+          EOF
+            CHANGED=true
+          fi
+
+          if [[ "$CHANGED" == "true" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add "$SERVICE/"
+            git commit -m "chore($SERVICE): inicializar definições GitOps de $ENV"
+            git push origin HEAD || (git pull --rebase origin main && git push origin HEAD)
+          else
+            echo "Arquivos de $ENV já existem — nenhuma inicialização necessária."
+          fi

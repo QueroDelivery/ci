@@ -1,0 +1,27 @@
+name: CI-ENSURE-MAIN-BRANCH
+
+on:
+  workflow_call:
+    secrets:
+      WF_GITHUB_TOKEN:
+        required: true
+
+jobs:
+  ensure-main-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.WF_GITHUB_TOKEN }}
+
+      - name: Criar branch main se não existir
+        run: |
+          if ! git ls-remote --heads origin main | grep -q 'refs/heads/main'; then
+            git checkout -b main
+            git push origin main
+            echo "Branch main criada a partir de stage."
+          else
+            echo "Branch main já existe."
+          fi
