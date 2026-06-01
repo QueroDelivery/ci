@@ -90,3 +90,4 @@ jobs:
         with:
           name: built-image
           path: image.tar.gz
+          retention-days: 1
