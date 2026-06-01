@@ -1,3 +1,10 @@
+## [5.4.2](https://github.com/QueroDelivery/ci/compare/v5.4.1...v5.4.2) (2026-06-01)
+
+
+### Bug Fixes
+
+* **ci:** reduzir retenção de artefatos de build para 1 dia ([8e7e350](https://github.com/QueroDelivery/ci/commit/8e7e3508a1846a9ad46ab9cb3e31212b22013bb3))
+
 ## [5.4.1](https://github.com/QueroDelivery/ci/compare/v5.4.0...v5.4.1) (2026-05-29)
 
 
