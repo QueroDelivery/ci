@@ -1,3 +1,10 @@
+# [5.5.0](https://github.com/QueroDelivery/ci/compare/v5.4.2...v5.5.0) (2026-06-03)
+
+
+### Features
+
+* **docs:** remove trailing period in README ci_local note ([0de3ea4](https://github.com/QueroDelivery/ci/commit/0de3ea4c24f2485b39035772c5c35ec95593490e)), closes [#92](https://github.com/QueroDelivery/ci/issues/92)
+
 ## [5.4.2](https://github.com/QueroDelivery/ci/compare/v5.4.1...v5.4.2) (2026-06-01)
 
 
