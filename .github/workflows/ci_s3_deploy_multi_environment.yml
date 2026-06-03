@@ -40,6 +40,7 @@ env:
   IS_PREVIEW: ${{ inputs.is_preview }}
   VITE_BROWSER_ROUTER_BASENAME: ${{ inputs.is_preview && format('/preview-pr-{0}', github.event.pull_request.number) || '/' }}
   REACT_APP_BROWSER_ROUTER_BASENAME: ${{ inputs.is_preview && format('/preview-pr-{0}', github.event.pull_request.number) || '/' }}
+  GH_TOKEN_CI: ${{ secrets.WF_GITHUB_TOKEN }}
 
 jobs:
   build_and_upload_to_s3:
