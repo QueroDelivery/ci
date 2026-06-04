@@ -119,6 +119,12 @@ jobs:
               ![Coverage GIF](https://i.giphy.com/XIqCQx02E1U9W.webp)`
             });
 
+      - name: Semantic release
+        if: ${{ inputs.has_semantic_release == true && !inputs.is_preview }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
+        run: yarn release
+
       - name: Create .env by "project_build_envs" input
         run: |
           printf "%s" "$PROJECT_ENVS" > .env
@@ -155,29 +161,6 @@ jobs:
       name: ${{ inputs.environment_type }}
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ inputs.node_version }}
-          cache: "yarn"
-
-      - name: Cache node_modules
-        uses: actions/cache@v3
-        with:
-          path: |
-            **/node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
-      - name: Install Dependencies
-        run: yarn install --frozen-lockfile
-
       - name: Verify if has some invalidation with "/*" path
         id: check_full_invalidation
         run: |
@@ -301,9 +284,3 @@ jobs:
               body: `🚀 Preview disponível: [${previewUrl}](${previewUrl})\n
               ![Coverage GIF](https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExZThtYmVtZThra2loajhjbmIzM2ZnNHAxZHQ4aHowcHkzZnV2Nzl5OCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/ukZvSoWXXb3YKNHIsw/giphy.gif)`
             });
-
-      - name: Semantic release
-        if: ${{ inputs.has_semantic_release == true && !inputs.is_preview }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
-        run: yarn release
