@@ -1,3 +1,10 @@
+## [5.5.1](https://github.com/QueroDelivery/ci/compare/v5.5.0...v5.5.1) (2026-06-04)
+
+
+### Bug Fixes
+
+* **ci:** run semantic-release before S3 build ([896d3e2](https://github.com/QueroDelivery/ci/commit/896d3e235143974102e6544906a481b78002d116))
+
 # [5.5.0](https://github.com/QueroDelivery/ci/compare/v5.4.2...v5.5.0) (2026-06-03)
 
 
