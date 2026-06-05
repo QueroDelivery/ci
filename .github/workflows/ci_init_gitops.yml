@@ -111,6 +111,7 @@ jobs:
             cat > "$SERVICE/$ENV/override-values.yaml" << 'EOF'
           resources:
             limits:
+              cpu: 150m
               memory: 256Mi
             requests:
               cpu: 150m
