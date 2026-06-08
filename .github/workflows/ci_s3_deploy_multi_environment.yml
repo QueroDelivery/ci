@@ -21,6 +21,10 @@ on:
         required: false
         type: boolean
         default: false
+      create_pr_in_main:
+        required: false
+        type: boolean
+        default: false
     secrets:
       AWS_ACCESS_KEY_ID:
         required: true
@@ -152,6 +156,37 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
           S3_BUCKET_NAME: ${{ format('s3://{0}/{1}', secrets.S3_BUCKET_NAME, env.APP_PREFIX) }}
+
+      - name: Check if there are commits between stage and main
+        id: check_commits
+        if: ${{ inputs.create_pr_in_main && inputs.environment_type == 'stage' && !inputs.is_preview }}
+        run: |
+          git fetch origin main stage
+          if [ "$(git rev-list --count origin/main..origin/stage)" -eq 0 ]; then
+            echo "commits_ahead=false" >> $GITHUB_OUTPUT
+          else
+            echo "commits_ahead=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check if PR already exists
+        id: check_pr
+        if: ${{ inputs.create_pr_in_main && inputs.environment_type == 'stage' && !inputs.is_preview && steps.check_commits.outputs.commits_ahead == 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
+        run: |
+          pr_exists=$(gh pr list --base main --head stage --state open --json number --jq '. | length')
+          echo "pr_exists=$pr_exists" >> $GITHUB_OUTPUT
+
+      - name: Create Pull Request for prod
+        if: ${{ inputs.create_pr_in_main && inputs.environment_type == 'stage' && !inputs.is_preview && steps.check_commits.outputs.commits_ahead == 'true' && steps.check_pr.outputs.pr_exists == '0' }}
+        env:
+          GH_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
+        run: |
+          gh pr create \
+            --base main \
+            --head stage \
+            --title "Deploy in prod" \
+            --body "Pull request body"
 
   publish_application_and_invalidate_cache:
     needs: build_and_upload_to_s3
