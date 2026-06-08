@@ -1,3 +1,10 @@
+# [5.6.0](https://github.com/QueroDelivery/ci/compare/v5.5.1...v5.6.0) (2026-06-08)
+
+
+### Features
+
+* **ci:** add optional auto PR creation from stage to main on S3 deploy ([dcfe005](https://github.com/QueroDelivery/ci/commit/dcfe005c7e51a6e57ec070c02b62bc7a4a9c43b4))
+
 ## [5.5.1](https://github.com/QueroDelivery/ci/compare/v5.5.0...v5.5.1) (2026-06-04)
 
 
