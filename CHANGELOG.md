@@ -1,3 +1,10 @@
+## [5.6.2](https://github.com/QueroDelivery/ci/compare/v5.6.1...v5.6.2) (2026-06-22)
+
+
+### Bug Fixes
+
+* **ci:** pass WF_GITHUB_TOKEN to checkout for git fetch and PR creation ([697bc55](https://github.com/QueroDelivery/ci/commit/697bc55f50b7831bcce46dbb786a199580b8cbb5))
+
 ## [5.6.1](https://github.com/QueroDelivery/ci/compare/v5.6.0...v5.6.1) (2026-06-18)
 
 
