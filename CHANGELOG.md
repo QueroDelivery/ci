@@ -1,3 +1,10 @@
+## [5.6.1](https://github.com/QueroDelivery/ci/compare/v5.6.0...v5.6.1) (2026-06-18)
+
+
+### Bug Fixes
+
+* **ci:** simplify CloudFront cache invalidation to single /* path ([39106e9](https://github.com/QueroDelivery/ci/commit/39106e9440dd8f1acbe11096035542cf4ef84f12))
+
 # [5.6.0](https://github.com/QueroDelivery/ci/compare/v5.5.1...v5.6.0) (2026-06-08)
 
 
