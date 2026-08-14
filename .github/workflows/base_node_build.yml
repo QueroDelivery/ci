@@ -130,14 +130,8 @@ jobs:
             fi
           fi
 
-      # Roda ANTES do Release de proposito. A validacao autoritativa precisa da
-      # imagem, que so existe depois do semantic-release — e acusar um worker
-      # declarado errado depois de ja ter publicado uma versao nao serve. Esta
-      # checagem e barata e falha rapido; a autoritativa e o job
-      # validate-workers, sobre a imagem construida.
-      #
-      # Servico sem .quero/workers/ nao paga nada: emite has_workers=false e os
-      # jobs de worker sao pulados. Adotar a convencao e criar o arquivo.
+      # Precisa continuar ANTES do Release: a validacao autoritativa depende da
+      # imagem, que so existe depois do semantic-release.
       - name: Validating workers declaration
         id: workers
         run: |
@@ -196,8 +190,6 @@ jobs:
             entrypoints+=("$entrypoint")
           done
 
-          # Um servico, uma imagem, um entrypoint: entrypoints divergentes
-          # significam que uma das declaracoes esta errada.
           unique_entrypoints="$(printf '%s\n' "${entrypoints[@]}" | sort -u | wc -l | xargs)"
           if [ "$unique_entrypoints" != "1" ]; then
             echo "::error::workers declaram entrypoints diferentes: $(printf '%s ' "${entrypoints[@]}")"
@@ -254,9 +246,8 @@ jobs:
           path: image.tar.gz
           retention-days: 1
 
-  # Validacao autoritativa: pergunta a IMAGEM QUE VAI SUBIR quais workers ela
-  # aceita, em vez de inferir do fonte. Roda no mesmo run porque o artefato
-  # built-image e por run.
+  # Pergunta a imagem que vai subir quais workers ela aceita, em vez de inferir
+  # do fonte. Mesmo run: o artefato built-image e por run.
   validate-workers:
     name: validating workers against the built image
     needs: setup
@@ -279,9 +270,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          # --entrypoint node ignora o CMD da imagem, seja ele qual for.
-          # A ultima linha da saida e o JSON: qualquer agente de instrumentacao
-          # que escreva antes nao invalida a leitura.
+          # --entrypoint ignora o CMD da imagem; tail -1 ignora o que um agente
+          # de instrumentacao escreva em stdout antes do JSON.
           output="$(docker run --rm --entrypoint node "$IMAGE" "$ENTRYPOINT" --list)"
           actual="$(printf '%s' "$output" | tail -1)"
 
@@ -302,11 +292,8 @@ jobs:
             exit 1
           fi
 
-  # Compara a declaracao com o que o Deployment de fato manda rodar. E este par
-  # que gera CrashLoopBackOff, e ele mora em outro repositorio.
-  #
-  # Bloqueia no push (stage/main) e apenas avisa em PR: defs/main e alvo movel, e
-  # o PR de um dev nao pode ficar vermelho por mudanca pendente de outra pessoa.
+  # Avisa em PR em vez de bloquear porque defs/main e alvo movel: o PR de um dev
+  # nao pode ficar vermelho por mudanca pendente de outra pessoa.
   validate-workers-defs:
     name: validating workers against kube-apps-definitions
     needs: setup
@@ -337,7 +324,6 @@ jobs:
           declared="$(printf '%s' "$DECLARED" | jq -r '.[]')"
           failed=0
 
-          # Declarado sem pasta nos defs: o worker nunca sobe.
           for name in $declared; do
             if [ ! -d "defs/$SERVICE-worker-$name" ]; then
               echo "::$LEVEL::worker \"$name\" declarado sem pasta em kube-apps-definitions ($SERVICE-worker-$name). O deploy dele vai falhar."
@@ -345,8 +331,6 @@ jobs:
             fi
           done
 
-          # Pasta nos defs sem worker declarado: o pod roda um nome que o
-          # entrypoint nao conhece e reinicia para sempre.
           shopt -s nullglob
           for dir in defs/"$SERVICE"-worker-*; do
             name="$(basename "$dir")"

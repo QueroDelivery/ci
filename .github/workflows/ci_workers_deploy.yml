@@ -1,19 +1,10 @@
 name: CI-WORKERS-DEPLOY
 
-# Deploy dos workers declarados em .quero/workers/ do servico.
+# Deploy dos workers declarados em .quero/workers/ do servico: um job por
+# worker, derivado da declaracao. Escreve apenas o version-values.yaml — os
+# recursos do worker moram no kube-apps-definitions.
 #
-# Um job por worker, derivado da declaracao — adicionar um worker nao adiciona
-# uma linha de workflow em serviço nenhum.
-#
-# Nao chama o ci_push_gitops: o worker roda a MESMA imagem, no MESMO namespace e
-# com o MESMO ConfigMap do serviço (via envFromConfigMaps no values do worker).
-# Repetir o apply do ConfigMap e o setup de kubectl por worker seria trabalho
-# redundante e exigiria as credenciais da AWS aqui. O deploy de um worker e
-# exatamente uma coisa: apontar a pasta dele no kube-apps-definitions para a
-# imagem nova.
-#
-# Os recursos do worker (cpu, memoria, probes, replicas) NAO vem daqui: moram no
-# kube-apps-definitions, que continua sendo do DevOps.
+# Ver a secao "Workers convention" no README.
 
 on:
   workflow_call:
@@ -47,8 +38,8 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ inputs.WF_ENV_TYPE_DEPLOY }}
     strategy:
-      # Serial de proposito: os jobs comitam no mesmo repositorio de
-      # definitions, e push concorrente vira conflito de rebase.
+      # Serial: os jobs comitam no mesmo repositorio, e push concorrente vira
+      # conflito de rebase.
       max-parallel: 1
       fail-fast: false
       matrix:
@@ -72,9 +63,6 @@ jobs:
         run: |
           set -euo pipefail
 
-          # A pasta e criada pelo DevOps (ou pelo PR que o template do Backstage
-          # abre). Ausente, o deploy falha alto em vez de criar uma app
-          # incompleta que o ArgoCD tentaria sincronizar.
           if [ ! -d "$APP/$ENV" ]; then
             echo "::error::$APP/$ENV nao existe em kube-apps-definitions. Crie a pasta do worker antes de deployar."
             exit 1
