@@ -130,82 +130,84 @@ jobs:
             fi
           fi
 
-      # Precisa continuar ANTES do Release: a validacao autoritativa depende da
+      # Antes do Release de proposito: a validacao autoritativa depende da
       # imagem, que so existe depois do semantic-release.
       - name: Validating workers declaration
         id: workers
         run: |
           set -euo pipefail
+          shopt -s nullglob
 
           if [ ! -d .quero/workers ]; then
-            echo "has_workers=false" >> "$GITHUB_OUTPUT"
-            echo "workers=[]" >> "$GITHUB_OUTPUT"
+            {
+              echo "has_workers=false"
+              echo "workers=[]"
+            } >> "$GITHUB_OUTPUT"
             echo "Sem .quero/workers/: nada a validar."
             exit 0
           fi
 
-          shopt -s nullglob
           files=(.quero/workers/*.yaml)
 
+          # Pasta sem .yaml e quase sempre extensao errada: seguir em silencio
+          # faria o worker nunca ser deployado, sem nada no log.
           if [ ${#files[@]} -eq 0 ]; then
             echo "::error::.quero/workers/ existe mas nao declara nenhum worker"
             exit 1
           fi
 
-          field() {
-            grep -E "^$2:[[:space:]]*" "$1" | head -1 \
-              | sed -E "s/^$2:[[:space:]]*//" | tr -d "\"'" | xargs || true
-          }
-
+          failed=0
           names=()
           entrypoints=()
-          failed=0
+
+          fail() {
+            echo "::error file=$1::$2"
+            failed=1
+          }
 
           for file in "${files[@]}"; do
-            base="$(basename "$file" .yaml)"
-            name="$(field "$file" name)"
-            description="$(field "$file" description)"
-            owner="$(field "$file" owner)"
-            entrypoint="$(field "$file" entrypoint)"
+            expected="$(basename "$file" .yaml)"
 
-            if [ -z "$name" ] || [ "$name" != "$base" ]; then
-              echo "::error file=$file::name deve existir e ser igual ao nome do arquivo ($base), veio \"$name\""
-              failed=1
-              continue
+            IFS='|' read -r name description owner entrypoint <<< "$(
+              yq e '[.name // "", .description // "", .owner // "", .entrypoint // ""] | join("|")' "$file"
+            )"
+
+            if [ "$name" != "$expected" ]; then
+              fail "$file" "name deve ser \"$expected\", veio \"$name\""
             fi
 
             for required in description owner entrypoint; do
-              if [ -z "$(field "$file" "$required")" ]; then
-                echo "::error file=$file::campo obrigatorio ausente: $required"
-                failed=1
+              if [ -z "${!required}" ]; then
+                fail "$file" "campo obrigatorio ausente: $required"
               fi
             done
 
             if [ ! -f "src/workers/$name.worker.ts" ] && [ ! -f "src/workers/$name.worker.js" ]; then
-              echo "::error file=$file::worker declarado sem implementacao: src/workers/$name.worker.ts nao existe"
-              failed=1
+              fail "$file" "sem implementacao: src/workers/$name.worker.ts nao existe"
             fi
 
             names+=("$name")
             entrypoints+=("$entrypoint")
           done
 
-          unique_entrypoints="$(printf '%s\n' "${entrypoints[@]}" | sort -u | wc -l | xargs)"
-          if [ "$unique_entrypoints" != "1" ]; then
-            echo "::error::workers declaram entrypoints diferentes: $(printf '%s ' "${entrypoints[@]}")"
+          # Um entrypoint por servico: o deploy roda sempre o mesmo comando e
+          # muda so o argv.
+          if [ "$(printf '%s\n' "${entrypoints[@]}" | sort -u | wc -l)" -ne 1 ]; then
+            echo "::error::workers declaram entrypoints diferentes: ${entrypoints[*]}"
             failed=1
           fi
 
-          if [ "$failed" != "0" ]; then
-            exit 1
-          fi
+          [ "$failed" = 0 ] || exit 1
 
-          workers_json="$(printf '%s\n' "${names[@]}" | jq -R . | jq -sc 'sort')"
+          workers="$(printf '%s\n' "${names[@]}" | jq -Rsc 'split("\n") | map(select(. != "")) | sort')"
 
-          echo "has_workers=true" >> "$GITHUB_OUTPUT"
-          echo "workers=$workers_json" >> "$GITHUB_OUTPUT"
-          echo "entrypoint=${entrypoints[0]}" >> "$GITHUB_OUTPUT"
-          echo "Workers declarados: $workers_json"
+          {
+            echo "has_workers=true"
+            echo "workers=$workers"
+            echo "entrypoint=${entrypoints[0]}"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "Workers declarados: $workers"
 
       - name: Release
         env:
@@ -247,7 +249,7 @@ jobs:
           retention-days: 1
 
   # Pergunta a imagem que vai subir quais workers ela aceita, em vez de inferir
-  # do fonte. Mesmo run: o artefato built-image e por run.
+  # do fonte. Mesmo run, porque o artefato built-image e por run.
   validate-workers:
     name: validating workers against the built image
     needs: setup
@@ -270,25 +272,23 @@ jobs:
         run: |
           set -euo pipefail
 
-          # --entrypoint ignora o CMD da imagem; tail -1 ignora o que um agente
-          # de instrumentacao escreva em stdout antes do JSON.
+          # --entrypoint ignora o CMD da imagem; tail -1 descarta o que um
+          # agente de instrumentacao escreva em stdout antes do JSON.
           output="$(docker run --rm --entrypoint node "$IMAGE" "$ENTRYPOINT" --list)"
-          actual="$(printf '%s' "$output" | tail -1)"
 
-          if ! printf '%s' "$actual" | jq -e 'type == "array"' > /dev/null 2>&1; then
+          if ! actual="$(printf '%s' "$output" | tail -1 | jq -Sce 'sort')"; then
             echo "::error::--list nao retornou um array JSON. Saida completa:"
             printf '%s\n' "$output"
             exit 1
           fi
 
-          expected="$(printf '%s' "$DECLARED" | jq -Sc 'sort')"
-          got="$(printf '%s' "$actual" | jq -Sc 'sort')"
+          expected="$(jq -Sc 'sort' <<< "$DECLARED")"
 
           echo "declarado em .quero/workers/: $expected"
-          echo "aceito pela imagem:            $got"
+          echo "aceito pela imagem:            $actual"
 
-          if [ "$expected" != "$got" ]; then
-            echo "::error::declaracao e codigo divergem. Um worker declarado sem implementacao sobe pod em CrashLoopBackOff; um worker implementado sem declaracao nao e deployado."
+          if [ "$expected" != "$actual" ]; then
+            echo "::error::declaracao e codigo divergem. Worker declarado sem implementacao sobe pod em CrashLoopBackOff; worker implementado sem declaracao nao e deployado."
             exit 1
           fi
 
@@ -308,42 +308,27 @@ jobs:
           token: ${{ secrets.WF_GITHUB_TOKEN }}
           path: defs
 
-      - name: Compare the declaration with the deployed command
+      - name: Compare the declaration with the deployed folders
         env:
           SERVICE: ${{ needs.setup.outputs.output1 }}
           DECLARED: ${{ needs.setup.outputs.workers }}
+          LEVEL: ${{ github.event_name == 'push' && 'error' || 'warning' }}
         run: |
           set -euo pipefail
 
-          if [ "${{ github.event_name }}" = "push" ]; then
-            LEVEL=error
-          else
-            LEVEL=warning
-          fi
+          jq -r '.[]' <<< "$DECLARED" | sort > declared.txt
 
-          declared="$(printf '%s' "$DECLARED" | jq -r '.[]')"
-          failed=0
+          find defs -maxdepth 1 -type d -name "$SERVICE-worker-*" -exec basename {} \; \
+            | sed "s|^$SERVICE-worker-||" | sort > deployed.txt
 
-          for name in $declared; do
-            if [ ! -d "defs/$SERVICE-worker-$name" ]; then
-              echo "::$LEVEL::worker \"$name\" declarado sem pasta em kube-apps-definitions ($SERVICE-worker-$name). O deploy dele vai falhar."
-              failed=1
-            fi
-          done
+          comm -23 declared.txt deployed.txt \
+            | sed "s|.*|::$LEVEL::worker \"&\" declarado sem a pasta $SERVICE-worker-& em kube-apps-definitions. O deploy dele vai falhar.|"
 
-          shopt -s nullglob
-          for dir in defs/"$SERVICE"-worker-*; do
-            name="$(basename "$dir")"
-            name="${name#"$SERVICE"-worker-}"
+          comm -13 declared.txt deployed.txt \
+            | sed "s|.*|::$LEVEL::kube-apps-definitions tem $SERVICE-worker-&, que nao esta declarado em .quero/workers/. Esse pod sobe em CrashLoopBackOff.|"
 
-            if ! printf '%s' "$DECLARED" | jq -e --arg n "$name" 'index($n) != null' > /dev/null; then
-              echo "::$LEVEL::kube-apps-definitions tem $(basename "$dir"), mas \"$name\" nao esta declarado em .quero/workers/. Esse pod sobe em CrashLoopBackOff."
-              failed=1
-            fi
-          done
-
-          if [ "$failed" = "0" ]; then
+          if cmp -s declared.txt deployed.txt; then
             echo "Declaracao e kube-apps-definitions estao de acordo."
-          elif [ "$LEVEL" = "error" ]; then
+          elif [ "$LEVEL" = error ]; then
             exit 1
           fi
