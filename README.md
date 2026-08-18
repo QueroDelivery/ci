@@ -40,7 +40,9 @@ Promotes an image from one environment to another.
 ### CI-WORKERS-DEPLOY (`.github/workflows/ci_workers_deploy.yml`)
 Deploys the workers a service declares in `.quero/workers/`, one job per worker, derived from the declaration — adding a worker adds no workflow line to any service.
 
-It does **not** call `CI-PUSH_GITOPS`: a worker runs the same image, in the same namespace and with the same ConfigMap as its service, so it only needs its image tag bumped in `kube-apps-definitions`. Worker sizing (cpu, memory, probes, replicas) stays in `kube-apps-definitions`, owned by DevOps.
+It does **not** call `CI-PUSH_GITOPS`, which derives both the definitions folder and the SSM path from the service name — a worker needs them to differ. Worker sizing (cpu, memory, probes, replicas) stays in `kube-apps-definitions`, owned by DevOps.
+
+> **Open point.** The stg ApplicationSet sets `destination.namespace: '{{path.basename}}'`, so `<service>-worker-<name>` lands in a namespace of its own and does not see the service's ConfigMap. This workflow only writes `version-values.yaml`; something still has to create `<service>-worker-<name>-env-cm` from the service's SSM path before the first deploy.
 
 The matrix is serial on purpose: the jobs commit to the same definitions repo, and concurrent pushes turn into rebase conflicts.
 
@@ -69,15 +71,6 @@ Three things are checked, in this order:
 3. **The declaration against `kube-apps-definitions`** (`validate-workers-defs`). Read-only: DevOps keeps the pen. A declared worker with no folder never deploys; a folder with no declaration means a pod running a name the entrypoint does not know, which is `CrashLoopBackOff` forever. Blocking on push, warning on pull request, because `defs/main` is a moving target and a developer's PR should not go red over someone else's pending change.
 
 The `--list` contract lives in `@querodelivery/qd-packages` (`WorkerBootstrap`): it prints the registry as JSON and exits before touching Mongo, Redis or the broker, so it answers with no environment configured.
-
-## Tests
-
-The bash inside the workflows is tested. The tests extract the scripts from the workflow files themselves, so there is no copy to fall out of sync:
-
-```bash
-yarn install
-yarn test
-```
 
 ## Sequence overview
 
