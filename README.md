@@ -72,6 +72,15 @@ Three things are checked, in this order:
 
 The `--list` contract lives in `@querodelivery/qd-packages` (`WorkerBootstrap`): it prints the registry as JSON and exits before touching Mongo, Redis or the broker, so it answers with no environment configured.
 
+## Tests
+
+The bash inside the workflows is tested. The tests extract the scripts from the workflow files themselves, so there is no copy to fall out of sync:
+
+```bash
+yarn install
+yarn test
+```
+
 ## Sequence overview
 
 ```mermaid
