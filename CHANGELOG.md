@@ -1,3 +1,11 @@
+# [5.7.0](https://github.com/QueroDelivery/ci/compare/v5.6.2...v5.7.0) (2026-08-19)
+
+
+### Features
+
+* **base:** refuse a build whose declared workers do not exist ([8920955](https://github.com/QueroDelivery/ci/commit/89209556f4c1dc066c38430cc3d13e6510d3e464))
+* **workers:** deploy every declared worker from one matrix job ([ee85ca0](https://github.com/QueroDelivery/ci/commit/ee85ca0ce69797ac7631a33e0a9ddb870820b4cf))
+
 ## [5.6.2](https://github.com/QueroDelivery/ci/compare/v5.6.1...v5.6.2) (2026-06-22)
 
 
