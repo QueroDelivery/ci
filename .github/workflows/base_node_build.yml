@@ -46,6 +46,12 @@ on:
       servicename:
         description: "The service name"
         value: ${{ jobs.setup.outputs.output1 }}
+      has_workers:
+        description: "true when the service declares workers in .quero/workers/"
+        value: ${{ jobs.setup.outputs.has_workers }}
+      workers:
+        description: "JSON array with the declared worker names"
+        value: ${{ jobs.setup.outputs.workers }}
 
 jobs:
   setup:
@@ -57,6 +63,9 @@ jobs:
     continue-on-error: false
     outputs:
       output1: ${{ steps.serviceName.outputs.servicename }}
+      has_workers: ${{ steps.workers.outputs.has_workers }}
+      workers: ${{ steps.workers.outputs.workers }}
+      workers_entrypoint: ${{ steps.workers.outputs.entrypoint }}
 
     steps:
       - name: Checkout
@@ -121,6 +130,85 @@ jobs:
             fi
           fi
 
+      # Antes do Release de proposito: a validacao autoritativa depende da
+      # imagem, que so existe depois do semantic-release.
+      - name: Validating workers declaration
+        id: workers
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          if [ ! -d .quero/workers ]; then
+            {
+              echo "has_workers=false"
+              echo "workers=[]"
+            } >> "$GITHUB_OUTPUT"
+            echo "Sem .quero/workers/: nada a validar."
+            exit 0
+          fi
+
+          files=(.quero/workers/*.yaml)
+
+          # Pasta sem .yaml e quase sempre extensao errada: seguir em silencio
+          # faria o worker nunca ser deployado, sem nada no log.
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "::error::.quero/workers/ existe mas nao declara nenhum worker"
+            exit 1
+          fi
+
+          failed=0
+          names=()
+          entrypoints=()
+
+          fail() {
+            echo "::error file=$1::$2"
+            failed=1
+          }
+
+          for file in "${files[@]}"; do
+            expected="$(basename "$file" .yaml)"
+
+            IFS='|' read -r name description owner entrypoint <<< "$(
+              yq e '[.name // "", .description // "", .owner // "", .entrypoint // ""] | join("|")' "$file"
+            )"
+
+            if [ "$name" != "$expected" ]; then
+              fail "$file" "name deve ser \"$expected\", veio \"$name\""
+            fi
+
+            for required in description owner entrypoint; do
+              if [ -z "${!required}" ]; then
+                fail "$file" "campo obrigatorio ausente: $required"
+              fi
+            done
+
+            if [ ! -f "src/workers/$name.worker.ts" ] && [ ! -f "src/workers/$name.worker.js" ]; then
+              fail "$file" "sem implementacao: src/workers/$name.worker.ts nao existe"
+            fi
+
+            names+=("$name")
+            entrypoints+=("$entrypoint")
+          done
+
+          # Um entrypoint por servico: o deploy roda sempre o mesmo comando e
+          # muda so o argv.
+          if [ "$(printf '%s\n' "${entrypoints[@]}" | sort -u | wc -l)" -ne 1 ]; then
+            echo "::error::workers declaram entrypoints diferentes: ${entrypoints[*]}"
+            failed=1
+          fi
+
+          [ "$failed" = 0 ] || exit 1
+
+          workers="$(printf '%s\n' "${names[@]}" | jq -Rsc 'split("\n") | map(select(. != "")) | sort')"
+
+          {
+            echo "has_workers=true"
+            echo "workers=$workers"
+            echo "entrypoint=${entrypoints[0]}"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "Workers declarados: $workers"
+
       - name: Release
         env:
           NPM_TOKEN: ${{ secrets.WF_NPM_TOKEN }}
@@ -159,3 +247,88 @@ jobs:
           name: built-image
           path: image.tar.gz
           retention-days: 1
+
+  # Pergunta a imagem que vai subir quais workers ela aceita, em vez de inferir
+  # do fonte. Mesmo run, porque o artefato built-image e por run.
+  validate-workers:
+    name: validating workers against the built image
+    needs: setup
+    if: needs.setup.outputs.has_workers == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download built image
+        uses: actions/download-artifact@v4
+        with:
+          name: built-image
+
+      - name: Load built image
+        run: docker load --input image.tar.gz
+
+      - name: Compare the image registry with the declaration
+        env:
+          IMAGE: ${{ needs.setup.outputs.output1 }}:ci-build
+          ENTRYPOINT: ${{ needs.setup.outputs.workers_entrypoint }}
+          DECLARED: ${{ needs.setup.outputs.workers }}
+        run: |
+          set -euo pipefail
+
+          # --entrypoint ignora o CMD da imagem; tail -1 descarta o que um
+          # agente de instrumentacao escreva em stdout antes do JSON.
+          output="$(docker run --rm --entrypoint node "$IMAGE" "$ENTRYPOINT" --list)"
+
+          if ! actual="$(printf '%s' "$output" | tail -1 | jq -Sce 'sort')"; then
+            echo "::error::--list nao retornou um array JSON. Saida completa:"
+            printf '%s\n' "$output"
+            exit 1
+          fi
+
+          expected="$(jq -Sc 'sort' <<< "$DECLARED")"
+
+          echo "declarado em .quero/workers/: $expected"
+          echo "aceito pela imagem:            $actual"
+
+          if [ "$expected" != "$actual" ]; then
+            echo "::error::declaracao e codigo divergem. Worker declarado sem implementacao sobe pod em CrashLoopBackOff; worker implementado sem declaracao nao e deployado."
+            exit 1
+          fi
+
+  # Avisa em PR em vez de bloquear porque defs/main e alvo movel: o PR de um dev
+  # nao pode ficar vermelho por mudanca pendente de outra pessoa.
+  validate-workers-defs:
+    name: validating workers against kube-apps-definitions
+    needs: setup
+    if: needs.setup.outputs.has_workers == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout definitions repo
+        uses: actions/checkout@v4
+        with:
+          repository: QueroDelivery/kube-apps-definitions
+          ref: main
+          token: ${{ secrets.WF_GITHUB_TOKEN }}
+          path: defs
+
+      - name: Compare the declaration with the deployed folders
+        env:
+          SERVICE: ${{ needs.setup.outputs.output1 }}
+          DECLARED: ${{ needs.setup.outputs.workers }}
+          LEVEL: ${{ github.event_name == 'push' && 'error' || 'warning' }}
+        run: |
+          set -euo pipefail
+
+          jq -r '.[]' <<< "$DECLARED" | sort > declared.txt
+
+          find defs -maxdepth 1 -type d -name "$SERVICE-worker-*" -exec basename {} \; \
+            | sed "s|^$SERVICE-worker-||" | sort > deployed.txt
+
+          comm -23 declared.txt deployed.txt \
+            | sed "s|.*|::$LEVEL::worker \"&\" declarado sem a pasta $SERVICE-worker-& em kube-apps-definitions. O deploy dele vai falhar.|"
+
+          comm -13 declared.txt deployed.txt \
+            | sed "s|.*|::$LEVEL::kube-apps-definitions tem $SERVICE-worker-&, que nao esta declarado em .quero/workers/. Esse pod sobe em CrashLoopBackOff.|"
+
+          if cmp -s declared.txt deployed.txt; then
+            echo "Declaracao e kube-apps-definitions estao de acordo."
+          elif [ "$LEVEL" = error ]; then
+            exit 1
+          fi

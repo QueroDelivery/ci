@@ -1,0 +1,85 @@
+name: CI-WORKERS-DEPLOY
+
+# Deploy dos workers declarados em .quero/workers/: um job por worker, derivado
+# da declaracao. Escreve apenas o version-values.yaml — os recursos do worker
+# moram no kube-apps-definitions.
+#
+# Ver a secao "Workers convention" no README.
+
+on:
+  workflow_call:
+    inputs:
+      WF_SERVICE_NAME:
+        description: "Service name, as emitted by base_node_build"
+        type: string
+        required: true
+      WF_ENV_TYPE_DEPLOY:
+        description: "Environment folder in kube-apps-definitions (staging, production)"
+        type: string
+        required: true
+      WF_IMAGE_TAG:
+        description: "Image tag to deploy, the same one used by the API"
+        type: string
+        required: true
+      WF_WORKERS:
+        description: "JSON array with the worker names, as emitted by base_node_build"
+        type: string
+        required: true
+    secrets:
+      WF_GITHUB_TOKEN:
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    name: deploying worker ${{ matrix.worker }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.WF_ENV_TYPE_DEPLOY }}
+    strategy:
+      # Serial: os jobs comitam no mesmo repositorio, e push concorrente vira
+      # conflito de rebase.
+      max-parallel: 1
+      fail-fast: false
+      matrix:
+        worker: ${{ fromJSON(inputs.WF_WORKERS) }}
+    steps:
+      - name: Checkout definitions repo
+        uses: actions/checkout@v4
+        with:
+          repository: QueroDelivery/kube-apps-definitions
+          ref: main
+          token: ${{ secrets.WF_GITHUB_TOKEN }}
+          fetch-depth: 0
+          path: defs
+
+      - name: Set the worker image tag
+        working-directory: defs
+        env:
+          APP: ${{ inputs.WF_SERVICE_NAME }}-worker-${{ matrix.worker }}
+          ENV: ${{ inputs.WF_ENV_TYPE_DEPLOY }}
+          IMAGE_TAG: ${{ inputs.WF_IMAGE_TAG }}
+        run: |
+          set -euo pipefail
+
+          if [ ! -d "$APP/$ENV" ]; then
+            echo "::error::$APP/$ENV nao existe em kube-apps-definitions. Crie a pasta do worker antes de deployar."
+            exit 1
+          fi
+
+          FILE="$APP/$ENV/version-values.yaml"
+          printf 'image:\n  tag: "%s"\n' "$IMAGE_TAG" > "$FILE"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$FILE"
+
+          if git diff --cached --quiet; then
+            echo "Nada a comitar."
+            exit 0
+          fi
+
+          git commit -m "chore($APP): set $ENV image.tag=$IMAGE_TAG"
+          git pull --rebase origin main
+          git push origin HEAD
