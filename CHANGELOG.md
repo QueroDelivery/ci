@@ -1,3 +1,10 @@
+## [5.7.1](https://github.com/QueroDelivery/ci/compare/v5.7.0...v5.7.1) (2026-08-20)
+
+
+### Bug Fixes
+
+* **workers:** read the worker list from the calling repository ([d95504a](https://github.com/QueroDelivery/ci/commit/d95504ac430990c82e3c3785168914e313e09522))
+
 # [5.7.0](https://github.com/QueroDelivery/ci/compare/v5.6.2...v5.7.0) (2026-08-19)
 
 
