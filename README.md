@@ -62,7 +62,23 @@ entrypoint: dist/src/worker.js
 
 The deployed command is derived from it as `node <entrypoint> <name>`, and the app in `kube-apps-definitions` is `<service>-worker-<name>`.
 
-**Adopting the convention is creating the file.** No service workflow changes: `CI-BASE` detects the directory and skips every worker job when it is absent, so a service with no worker pays nothing.
+**Adopting the convention is creating the file.** `CI-BASE` detects the directory and skips every worker job when it is absent, so a service with no worker pays nothing.
+
+The only wiring a service adds is the deploy call, once per environment, next to the api deploy:
+
+```yaml
+  deploy-workers-stg:
+    needs: publish-ecr-stage
+    uses: QueroDelivery/ci/.github/workflows/ci_workers_deploy.yml@v5.7.1
+    with:
+      WF_SERVICE_NAME: ${{ needs.publish-ecr-stage.outputs.servicename }}
+      WF_ENV_TYPE_DEPLOY: staging
+      WF_IMAGE_TAG: ${{ needs.publish-ecr-stage.outputs.version_tag }}
+    secrets:
+      WF_GITHUB_TOKEN: ${{ secrets.GH_TOKEN_CI }}
+```
+
+`CI-WORKERS-DEPLOY` reads `.quero/workers/` from the calling repository, so the list is never repeated in the service — a worker added or removed changes one file. `WF_WORKERS` remains for a caller that already holds the list, such as the `workers` output of `CI-BASE`, and skips the extra checkout.
 
 Three things are checked, in this order:
 
