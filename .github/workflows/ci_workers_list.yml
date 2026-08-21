@@ -1,0 +1,44 @@
+name: CI-WORKERS-LIST
+
+on:
+  workflow_call:
+    outputs:
+      has_workers:
+        description: "true when the caller declares workers in .quero/workers/"
+        value: ${{ jobs.list.outputs.has_workers }}
+      workers:
+        description: "JSON array with the declared worker names"
+        value: ${{ jobs.list.outputs.workers }}
+
+jobs:
+  list:
+    name: listing the declared workers
+    runs-on: ubuntu-latest
+    outputs:
+      has_workers: ${{ steps.workers.outputs.has_workers }}
+      workers: ${{ steps.workers.outputs.workers }}
+    steps:
+      # Sem `repository`, o checkout traz o repo que chamou.
+      - uses: actions/checkout@v4
+
+      - name: Reading the workers declaration
+        id: workers
+        run: |
+          set -euo pipefail
+
+          if [ -d .quero/workers ]; then
+            workers="$(find .quero/workers -maxdepth 1 -name '*.yaml' \
+              -exec basename {} .yaml \; \
+              | jq -Rsc 'split("\n") | map(select(. != "")) | sort')"
+          else
+            workers='[]'
+          fi
+
+          if [ "$workers" = "[]" ]; then
+            echo "has_workers=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_workers=true" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "workers=$workers" >> "$GITHUB_OUTPUT"
+          echo "Workers declarados: $workers"

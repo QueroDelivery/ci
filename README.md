@@ -46,6 +46,9 @@ It does **not** call `CI-PUSH_GITOPS`, which derives both the definitions folder
 
 The matrix is serial on purpose: the jobs commit to the same definitions repo, and concurrent pushes turn into rebase conflicts.
 
+### CI-WORKERS-LIST (`.github/workflows/ci_workers_list.yml`)
+Emits the list of workers declared in `.quero/workers/` of the calling repository. For callers that do not go through `CI-BASE` — the push to `main` deploys from `promote.yml`, which does not carry that list.
+
 ### CI-LOCAL (`.github/workflows/ci_local.yml`)
 Runs semantic-release on the `main` branch. It is mainly used locally to generate releases.
 
