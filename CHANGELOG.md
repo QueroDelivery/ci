@@ -1,3 +1,10 @@
+## [5.7.2](https://github.com/QueroDelivery/ci/compare/v5.7.1...v5.7.2) (2026-08-21)
+
+
+### Bug Fixes
+
+* **workers:** emit the declared worker list to callers without CI-BASE ([0adca5d](https://github.com/QueroDelivery/ci/commit/0adca5d300a01e5816a4b32a5316fc4383124adc))
+
 ## [5.7.1](https://github.com/QueroDelivery/ci/compare/v5.7.0...v5.7.1) (2026-08-20)
 
 
