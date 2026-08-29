@@ -1,0 +1,148 @@
+name: CI-BUILD-PUSH-TO-S3
+
+on:
+  workflow_call:
+    inputs:
+      WF_NODE_VERSION:
+        type: string
+        required: true
+      WF_ENV_TYPE_DEPLOY:
+        type: string
+        required: true
+      WF_PUBLISH_CODE_COVERAGE:
+        type: string
+        default: false
+        required: false
+      WF_BACKSTAGE_URL:
+        type: string
+        required: false
+
+    secrets:
+      WF_NPM_TOKEN:
+        required: true
+      WF_NPM_USER:
+        required: true
+      WF_GITHUB_TOKEN:
+        required: true
+      WF_REGISTRY:
+        required: true
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+      AWS_REGION:
+        required: true
+      S3_BUCKET_NAME:
+        required: true
+      CLOUDFRONT_DISTRIBUTION_ID:
+        required: true
+
+    outputs:
+      servicename:
+        description: "The service name"
+        value: ${{ jobs.setup.outputs.output1 }}
+
+jobs:
+  setup:
+    environment: ${{inputs.WF_ENV_TYPE_DEPLOY}}
+    name: preparing
+    runs-on: ubuntu-latest
+    continue-on-error: false
+    outputs:
+      output1: ${{ steps.serviceName.outputs.servicename }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: ${{ inputs.WF_NODE_VERSION }}
+          cache: "yarn"
+          registry-url: ${{secrets.WF_REGISTRY}}
+
+      - name: Cache NPM dependencies
+        id: node-modules-cache
+        uses: actions/cache@v3
+        env:
+          cache-name: node-modules-cache
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-
+            ${{ runner.os }}-build-
+            ${{ runner.os }}-
+
+      - name: Install packages using yarn.lock
+        if: steps.node-modules-cache.outputs.cache-hit != 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.WF_NPM_TOKEN }}
+        run: |
+          yarn --frozen-lockfile
+
+      - name: Linting
+        run: |
+          yarn lint
+
+      - name: Testing
+        env:
+          RUN_PUBLISH_COVERAGE: ${{inputs.WF_PUBLISH_CODE_COVERAGE}}
+          BACKSTAGE_URL: ${{inputs.WF_BACKSTAGE_URL}}
+        run: |
+          yarn test:ci
+          COMPONENT_NAME=`node -p -e "require('./package.json').name"`
+          FILE=coverage/int/cobertura-coverage.xml
+          if $RUN_PUBLISH_COVERAGE; then
+            if [ -f "$FILE" ]; then
+              curl --request POST \
+              --url ''$BACKSTAGE_URL'/api/code-coverage/report?entity=component%3Adefault%2F'$COMPONENT_NAME'&coverageType=cobertura' \
+              --header 'Content-Type: text/xml' \
+              --data @$FILE  
+              echo "Sending coverage report to quero developer portal"
+            else
+               echo "::warning:: $FILE does not exist, code coverage not sent to quero developer portal"
+            fi
+          fi
+
+      - name: Release
+        env:
+          NPM_TOKEN: ${{ secrets.WF_NPM_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
+        run: |
+          yarn release
+
+      - name: Getting SERVICE_NAME
+        id: serviceName
+        run: |
+          export SERVICE_NAME=`node -p -e "require('./package.json').name"`
+          echo "servicename=$SERVICE_NAME" >> $GITHUB_OUTPUT
+
+      - name: Build the frontend
+        run: yarn build
+
+      - name: Install AWS CLI
+        run: |
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          sudo ./aws/install
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Deploy to S3
+        run: |
+          aws s3 sync ./dist s3://${{ secrets.S3_BUCKET_NAME }} --delete
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+
+      - name: Invalidate CloudFront
+        run: |
+          aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
