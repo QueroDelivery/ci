@@ -3,9 +3,6 @@ name: Build the application, upload to Amazon S3, and invalidate CloudFront cach
 on:
   workflow_call:
     inputs:
-      project_build_envs:
-        required: false
-        type: string
       environment_type:
         required: true
         type: string
@@ -42,8 +39,8 @@ on:
 env:
   APP_PREFIX: ${{ inputs.is_preview && format('preview-pr-{0}', github.event.pull_request.number) || '' }}
   IS_PREVIEW: ${{ inputs.is_preview }}
-  VITE_BROWSER_ROUTER_BASENAME: ${{ inputs.is_preview && format('/preview-pr-{0}', github.event.pull_request.number) || '/' }}
-  REACT_APP_BROWSER_ROUTER_BASENAME: ${{ inputs.is_preview && format('/preview-pr-{0}', github.event.pull_request.number) || '/' }}
+  VITE_BROWSER_ROUTER_BASENAME: ${{ inputs.is_preview && format('/preview-pr-{0}/', github.event.pull_request.number) || '/' }}
+  REACT_APP_BROWSER_ROUTER_BASENAME: ${{ inputs.is_preview && format('/preview-pr-{0}/', github.event.pull_request.number) || '/' }}
   GH_TOKEN_CI: ${{ secrets.WF_GITHUB_TOKEN }}
 
 jobs:
@@ -57,7 +54,7 @@ jobs:
       - name: Validate environment_type input
         run: |
           case "${{ inputs.environment_type }}" in
-            stage|prod)
+            stage|prod|preview)
               echo "✅ environment_type is valid: ${{ inputs.environment_type }}"
               ;;
             *)
@@ -121,8 +118,7 @@ jobs:
               issue_number: prNumber,
               owner,
               repo,
-              body: `📊 Coverage report uploaded as an artifact. [Click here to view it](${artifactUrl})\n
-              ![Coverage GIF](https://i.giphy.com/XIqCQx02E1U9W.webp)`
+              body: `📊 Coverage report uploaded as an artifact. [Click here to view it](${artifactUrl})`
             });
 
       - name: Semantic release
@@ -131,33 +127,44 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
         run: yarn release
 
-      - name: Create .env by "project_build_envs" input
+      - name: Get SERVICE_NAME
+        id: serviceName
         run: |
-          printf "%s" "$PROJECT_ENVS" > .env
-          echo "✅ File .env created from input"
+          SERVICE_NAME=$(node -p -e "require('./package.json').name")
+          echo "servicename=$SERVICE_NAME" >> $GITHUB_OUTPUT 
+
+      - name: Create .env file from aws parameter store
+        uses: almerindo/action-env-from-aws-ssm@main
+        with:
+          output: ./.env
+          ssm-path: "/${{ inputs.environment_type == 'preview' && 'stage' || inputs.environment_type }}/${{ steps.serviceName.outputs.servicename }}"
+          format: dotenv
         env:
-          PROJECT_ENVS: ${{ inputs.project_build_envs }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
 
       - name: Build project
         run: yarn build
 
       - name: Upload to S3
         run: |
-          aws s3 sync ./build "$S3_BUCKET_NAME" --delete
-
-          aws s3 cp ./build/ "$S3_BUCKET_NAME" --recursive \
+          aws s3 sync ./build/assets "$S3_BUCKET_NAME/assets" \
+            --cache-control "public, max-age=31536000, immutable"
+          
+          aws s3 sync ./build "$S3_BUCKET_NAME" \
+            --exclude "assets/*" \
             --exclude "index.html" \
-            --cache-control "max-age=86400, public" \
-            --metadata-directive REPLACE
-
+            --cache-control "public, max-age=86400"
+          
           aws s3 cp ./build/index.html "$S3_BUCKET_NAME/index.html" \
-            --cache-control "no-cache, no-store, must-revalidate" \
+            --cache-control "no-cache" \
             --metadata-directive REPLACE
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
-          S3_BUCKET_NAME: ${{ format('s3://{0}/{1}', secrets.S3_BUCKET_NAME, env.APP_PREFIX) }}
+          S3_BUCKET_NAME: ${{ env.APP_PREFIX != '' && format('s3://{0}/{1}', secrets.S3_BUCKET_NAME, env.APP_PREFIX) || format('s3://{0}', secrets.S3_BUCKET_NAME) }}
 
       - name: Check if there are commits between stage and main
         id: check_commits
@@ -200,8 +207,17 @@ jobs:
     steps:
       - name: Invalidate CloudFront cache
         run: |
+          PREFIX="${{ env.APP_PREFIX }}"
+          
+          if [ -n "$PREFIX" ]; then
+            INVALIDATION_PATH="/${PREFIX}/index.html"
+          else
+            INVALIDATION_PATH="/index.html"
+          fi
+          
           aws cloudfront create-invalidation \
-            --distribution-id $CLOUDFRONT_DISTRIBUTION_ID --paths "/*"
+            --distribution-id $CLOUDFRONT_DISTRIBUTION_ID \
+            --paths "$INVALIDATION_PATH"
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -264,12 +280,11 @@ jobs:
 
             const selectedDomain = alternateDomain !== "" && alternateDomain !== "None" ? `https://${alternateDomain}` : `https://${domainName}`;
 
-            const previewUrl = `${selectedDomain}/${previewPrefix}`;
+            const previewUrl = `${selectedDomain}/${previewPrefix}/`;
 
             await github.rest.issues.createComment({
               issue_number: prNumber,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `🚀 Preview disponível: [${previewUrl}](${previewUrl})\n
-              ![Coverage GIF](https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExZThtYmVtZThra2loajhjbmIzM2ZnNHAxZHQ4aHowcHkzZnV2Nzl5OCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/ukZvSoWXXb3YKNHIsw/giphy.gif)`
+              body: `🚀 Preview disponível: [${previewUrl}](${previewUrl})`
             });
