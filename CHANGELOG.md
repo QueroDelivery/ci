@@ -1,3 +1,12 @@
+# [5.8.0](https://github.com/QueroDelivery/ci/compare/v5.7.2...v5.8.0) (2026-09-22)
+
+
+### Features
+
+* **s3:** drop trailing slash from preview basename and URL ([5e35151](https://github.com/QueroDelivery/ci/commit/5e3515172465f1afd976f540485af9d20e92cba7))
+* **s3:** invalidate CloudFront when clearing preview objects ([2da630e](https://github.com/QueroDelivery/ci/commit/2da630e1ce846b26237691bffcc47658c0639b85))
+* **s3:** load build env from SSM and tighten preview cache ([6bcced1](https://github.com/QueroDelivery/ci/commit/6bcced1d9f0d945bf38ce567f217c3915ab5bd39))
+
 ## [5.7.2](https://github.com/QueroDelivery/ci/compare/v5.7.1...v5.7.2) (2026-08-21)
 
 
