@@ -39,8 +39,8 @@ on:
 env:
   APP_PREFIX: ${{ inputs.is_preview && format('preview-pr-{0}', github.event.pull_request.number) || '' }}
   IS_PREVIEW: ${{ inputs.is_preview }}
-  VITE_BROWSER_ROUTER_BASENAME: ${{ inputs.is_preview && format('/preview-pr-{0}/', github.event.pull_request.number) || '/' }}
-  REACT_APP_BROWSER_ROUTER_BASENAME: ${{ inputs.is_preview && format('/preview-pr-{0}/', github.event.pull_request.number) || '/' }}
+  VITE_BROWSER_ROUTER_BASENAME: ${{ inputs.is_preview && format('/preview-pr-{0}', github.event.pull_request.number) || '/' }}
+  REACT_APP_BROWSER_ROUTER_BASENAME: ${{ inputs.is_preview && format('/preview-pr-{0}', github.event.pull_request.number) || '/' }}
   GH_TOKEN_CI: ${{ secrets.WF_GITHUB_TOKEN }}
 
 jobs:
@@ -280,7 +280,7 @@ jobs:
 
             const selectedDomain = alternateDomain !== "" && alternateDomain !== "None" ? `https://${alternateDomain}` : `https://${domainName}`;
 
-            const previewUrl = `${selectedDomain}/${previewPrefix}/`;
+            const previewUrl = `${selectedDomain}/${previewPrefix}`;
 
             await github.rest.issues.createComment({
               issue_number: prNumber,
