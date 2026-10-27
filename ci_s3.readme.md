@@ -57,6 +57,20 @@ The app may break when accessed from a subdirectory:
 #### 🔁 Always match the deployed subpath
 Avoid broken links and routing issues by ensuring the subpath used in your configuration matches the one used during deployment — **regardless of the framework or setup** you're using.
 
+### 🌍 Subdomain previews (`preview_mode: subdomain`)
+
+With `preview_mode: subdomain`, each pull request is served at the root of its own host instead of a subpath:
+
+```
+https://<app>-pr-<N>.stg.preview.quero.io
+```
+
+  * `<app>` comes from the `name` in `package.json`, without the npm scope, lowercased, with any character outside `a-z0-9-` replaced by `-` (`@querodelivery/qd-plan` → `qd-plan`).
+  * The build runs with basename `/`, so no subpath configuration is needed.
+  * Files are uploaded to `<app>/preview-pr-<N>/` in the shared preview bucket. A CloudFront Function on the shared distribution maps the host back to that folder.
+  * Use the same `preview_mode` in the deploy and clear workflows, and point `S3_BUCKET_NAME` and `CLOUDFRONT_DISTRIBUTION_ID` to the shared preview bucket and distribution.
+  * Auth callbacks and API CORS must accept the preview host, and the app must build URLs from `window.location.origin` rather than hardcoded paths.
+
 ## GitHub Actions Workflow Files
 
 To set up the CI/CD pipeline, you need to create a `.github/workflows` folder in the root of your repository. Inside this folder, add the following workflow files:
@@ -76,11 +90,14 @@ jobs:
       github.event.pull_request.head.ref != 'main' &&
       github.event.pull_request.head.ref != 'stage'
     uses: QueroDelivery/ci/.github/workflows/ci_s3_clear_preview.yml@main
+    with:
+      preview_mode: subdomain # optional, defaults to subpath
     secrets:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_REGION: ${{ secrets.AWS_REGION }}
       S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
+      CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
 ```
 
 ***
@@ -105,6 +122,7 @@ jobs:
       project_build_envs: ${{ vars.STAGE_PROJECT_BUILD_ENVS }}
       environment_type: stage
       is_preview: true
+      preview_mode: subdomain # optional, defaults to subpath
     secrets:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -227,6 +245,8 @@ Variables for your `prod` environment:
 - `environment_type`: Define environment, `stage`, `prod`, `preview` or `clear_preview`.
 - `node_version`: Define version of running node.js.
 - `is_preview`: Enables preview conditions to expose pull-request test link.
+- `preview_mode`: `subpath` (default, `/preview-pr-N`) or `subdomain` (`<app>-pr-N.<preview_base_domain>`). Also accepted by `ci_s3_clear_preview.yml`.
+- `preview_base_domain`: Domain covered by the shared preview wildcard. Defaults to `stg.preview.quero.io`.
 
 ## All available flows
 

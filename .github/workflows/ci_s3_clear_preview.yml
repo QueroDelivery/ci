@@ -2,6 +2,12 @@ name: Remove uploaded preview in S3.
 
 on:
   workflow_call:
+    inputs:
+      preview_mode:
+        description: "subpath (preview-pr-N) or subdomain (<app>/preview-pr-N, app from package.json)"
+        required: false
+        type: string
+        default: subpath
     secrets:
       AWS_ACCESS_KEY_ID:
         required: true
@@ -25,9 +31,23 @@ jobs:
         PREVIEW_PREFIX: preview-pr-${{ github.event.pull_request.number }}
 
     steps:
+      - name: Checkout
+        if: ${{ inputs.preview_mode == 'subdomain' }}
+        uses: actions/checkout@v4
+
+      - name: Resolve app prefix
+        id: appPrefix
+        run: |
+          PREFIX="$PREVIEW_PREFIX"
+          if [ "${{ inputs.preview_mode }}" = "subdomain" ]; then
+            APP_NAME=$(node -p "require('./package.json').name.replace(/^@[^/]+\//, '').toLowerCase().replace(/[^a-z0-9-]/g, '-')")
+            PREFIX="$APP_NAME/$PREVIEW_PREFIX"
+          fi
+          echo "app_prefix=$PREFIX" >> $GITHUB_OUTPUT
+
       - name: Remove preview folder from S3
         run: |
-          aws s3 rm "s3://${{ secrets.S3_BUCKET_NAME }}/${{ env.PREVIEW_PREFIX }}" --recursive
+          aws s3 rm "s3://${{ secrets.S3_BUCKET_NAME }}/${{ steps.appPrefix.outputs.app_prefix }}" --recursive
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -37,7 +57,7 @@ jobs:
         run: |
           aws cloudfront create-invalidation \
             --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
-            --paths "/${{ env.PREVIEW_PREFIX }}/*"
+            --paths "/${{ steps.appPrefix.outputs.app_prefix }}/*"
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
