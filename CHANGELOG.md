@@ -1,3 +1,10 @@
+# [5.9.0](https://github.com/QueroDelivery/ci/compare/v5.8.0...v5.9.0) (2026-10-27)
+
+
+### Features
+
+* **s3:** add subdomain preview mode ([a99a147](https://github.com/QueroDelivery/ci/commit/a99a147d2f668c7e344cdaa81501418728fe51ef))
+
 # [5.8.0](https://github.com/QueroDelivery/ci/compare/v5.7.2...v5.8.0) (2026-09-22)
 
 
