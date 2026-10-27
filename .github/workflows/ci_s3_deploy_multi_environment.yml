@@ -22,6 +22,16 @@ on:
         required: false
         type: boolean
         default: false
+      preview_mode:
+        description: "subpath (/preview-pr-N) or subdomain (<app>-pr-N.<preview_base_domain>, app from package.json)"
+        required: false
+        type: string
+        default: subpath
+      preview_base_domain:
+        description: "Domain covered by the shared preview wildcard"
+        required: false
+        type: string
+        default: stg.preview.quero.io
     secrets:
       AWS_ACCESS_KEY_ID:
         required: true
@@ -39,8 +49,8 @@ on:
 env:
   APP_PREFIX: ${{ inputs.is_preview && format('preview-pr-{0}', github.event.pull_request.number) || '' }}
   IS_PREVIEW: ${{ inputs.is_preview }}
-  VITE_BROWSER_ROUTER_BASENAME: ${{ inputs.is_preview && format('/preview-pr-{0}', github.event.pull_request.number) || '/' }}
-  REACT_APP_BROWSER_ROUTER_BASENAME: ${{ inputs.is_preview && format('/preview-pr-{0}', github.event.pull_request.number) || '/' }}
+  VITE_BROWSER_ROUTER_BASENAME: ${{ inputs.is_preview && inputs.preview_mode != 'subdomain' && format('/preview-pr-{0}', github.event.pull_request.number) || '/' }}
+  REACT_APP_BROWSER_ROUTER_BASENAME: ${{ inputs.is_preview && inputs.preview_mode != 'subdomain' && format('/preview-pr-{0}', github.event.pull_request.number) || '/' }}
   GH_TOKEN_CI: ${{ secrets.WF_GITHUB_TOKEN }}
 
 jobs:
@@ -49,6 +59,9 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: ${{ inputs.environment_type }}
+    outputs:
+      app_name: ${{ steps.appPrefix.outputs.app_name }}
+      app_prefix: ${{ steps.appPrefix.outputs.app_prefix }}
 
     steps:
       - name: Validate environment_type input
@@ -59,6 +72,17 @@ jobs:
               ;;
             *)
               echo "❌ Invalid environment_type: ${{ inputs.environment_type }}"
+              exit 1
+              ;;
+          esac
+
+      - name: Validate preview_mode input
+        run: |
+          case "${{ inputs.preview_mode }}" in
+            subpath|subdomain)
+              ;;
+            *)
+              echo "❌ Invalid preview_mode: ${{ inputs.preview_mode }}"
               exit 1
               ;;
           esac
@@ -131,7 +155,18 @@ jobs:
         id: serviceName
         run: |
           SERVICE_NAME=$(node -p -e "require('./package.json').name")
-          echo "servicename=$SERVICE_NAME" >> $GITHUB_OUTPUT 
+          echo "servicename=$SERVICE_NAME" >> $GITHUB_OUTPUT
+
+      - name: Resolve app prefix
+        id: appPrefix
+        run: |
+          PREFIX="$APP_PREFIX"
+          if [ "${{ inputs.is_preview }}" = "true" ] && [ "${{ inputs.preview_mode }}" = "subdomain" ]; then
+            APP_NAME=$(node -p "require('./package.json').name.replace(/^@[^/]+\//, '').toLowerCase().replace(/[^a-z0-9-]/g, '-')")
+            PREFIX="$APP_NAME/$APP_PREFIX"
+            echo "app_name=$APP_NAME" >> $GITHUB_OUTPUT
+          fi
+          echo "app_prefix=$PREFIX" >> $GITHUB_OUTPUT
 
       - name: Create .env file from aws parameter store
         uses: almerindo/action-env-from-aws-ssm@main
@@ -164,7 +199,7 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
-          S3_BUCKET_NAME: ${{ env.APP_PREFIX != '' && format('s3://{0}/{1}', secrets.S3_BUCKET_NAME, env.APP_PREFIX) || format('s3://{0}', secrets.S3_BUCKET_NAME) }}
+          S3_BUCKET_NAME: ${{ steps.appPrefix.outputs.app_prefix != '' && format('s3://{0}/{1}', secrets.S3_BUCKET_NAME, steps.appPrefix.outputs.app_prefix) || format('s3://{0}', secrets.S3_BUCKET_NAME) }}
 
       - name: Check if there are commits between stage and main
         id: check_commits
@@ -207,7 +242,7 @@ jobs:
     steps:
       - name: Invalidate CloudFront cache
         run: |
-          PREFIX="${{ env.APP_PREFIX }}"
+          PREFIX="${{ needs.build_and_upload_to_s3.outputs.app_prefix }}"
           
           if [ -n "$PREFIX" ]; then
             INVALIDATION_PATH="/${PREFIX}/index.html"
@@ -231,7 +266,7 @@ jobs:
             --query 'Distribution.DomainName' --output text)
 
           ALTERNATE_NAME=$(aws cloudfront get-distribution --id $CLOUDFRONT_DISTRIBUTION_ID \
-            --query 'Distribution.DistributionConfig.Aliases.Items[0]' --output text)
+            --query "Distribution.DistributionConfig.Aliases.Items[?!starts_with(@, '*.')] | [0]" --output text)
 
           echo "Domain name is: $DOMAIN_NAME"
           echo "Alternate domain (CNAME) is: $ALTERNATE_NAME"
@@ -270,6 +305,9 @@ jobs:
           APP_PREFIX: ${{ env.APP_PREFIX }}
           DOMAIN_NAME: ${{ steps.get_cf_domain.outputs.domain_name }}
           ALTERNATE_DOMAIN: ${{ steps.get_cf_domain.outputs.alternate_name }}
+          PREVIEW_MODE: ${{ inputs.preview_mode }}
+          PREVIEW_BASE_DOMAIN: ${{ inputs.preview_base_domain }}
+          APP_NAME: ${{ needs.build_and_upload_to_s3.outputs.app_name }}
         with:
           github-token: ${{ secrets.WF_GITHUB_TOKEN }}
           script: |
@@ -280,7 +318,9 @@ jobs:
 
             const selectedDomain = alternateDomain !== "" && alternateDomain !== "None" ? `https://${alternateDomain}` : `https://${domainName}`;
 
-            const previewUrl = `${selectedDomain}/${previewPrefix}`;
+            const previewUrl = process.env.PREVIEW_MODE === "subdomain"
+              ? `https://${process.env.APP_NAME}-pr-${prNumber}.${process.env.PREVIEW_BASE_DOMAIN}`
+              : `${selectedDomain}/${previewPrefix}`;
 
             await github.rest.issues.createComment({
               issue_number: prNumber,
