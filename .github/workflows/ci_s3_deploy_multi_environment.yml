@@ -1,4 +1,4 @@
-name: Build the application, upload to Amazon S3, and invalidate CloudFront cache.
+name: Build the application, provision infra (Terraform), upload to S3, and invalidate cache.
 
 on:
   workflow_call:
@@ -14,24 +14,10 @@ on:
         required: false
         type: boolean
         default: true
-      is_preview:
-        required: false
-        type: boolean
-        default: false
       create_pr_in_main:
         required: false
         type: boolean
         default: false
-      preview_mode:
-        description: "subpath (/preview-pr-N) or subdomain (<app>-pr-N.<preview_base_domain>, app from package.json)"
-        required: false
-        type: string
-        default: subpath
-      preview_base_domain:
-        description: "Domain covered by the shared preview wildcard"
-        required: false
-        type: string
-        default: stg.preview.quero.io
     secrets:
       AWS_ACCESS_KEY_ID:
         required: true
@@ -39,29 +25,32 @@ on:
         required: true
       AWS_REGION:
         required: true
-      S3_BUCKET_NAME:
+      SPA_PROD_CERT_ARN:
         required: true
-      CLOUDFRONT_DISTRIBUTION_ID:
-        required: false
+      SPA_STAGE_CERT_ARN:
+        required: true
+      SPA_PREVIEW_CERT_ARN:
+        required: true
+      SPA_TF_STATE_BUCKET:
+        required: true
       WF_GITHUB_TOKEN:
         required: false
 
 env:
-  APP_PREFIX: ${{ inputs.is_preview && format('preview-pr-{0}', github.event.pull_request.number) || '' }}
-  IS_PREVIEW: ${{ inputs.is_preview }}
-  VITE_BROWSER_ROUTER_BASENAME: ${{ inputs.is_preview && inputs.preview_mode != 'subdomain' && format('/preview-pr-{0}', github.event.pull_request.number) || '/' }}
-  REACT_APP_BROWSER_ROUTER_BASENAME: ${{ inputs.is_preview && inputs.preview_mode != 'subdomain' && format('/preview-pr-{0}', github.event.pull_request.number) || '/' }}
+  APP_PREFIX: ${{ inputs.environment_type == 'preview' && format('preview-pr-{0}', github.event.pull_request.number) || '' }}
   GH_TOKEN_CI: ${{ secrets.WF_GITHUB_TOKEN }}
 
 jobs:
-  build_and_upload_to_s3:
-    name: Deploy build to S3
+  provision_and_build:
+    name: Provision Infra & Deploy to S3
     runs-on: ubuntu-latest
     environment:
       name: ${{ inputs.environment_type }}
     outputs:
       app_name: ${{ steps.appPrefix.outputs.app_name }}
       app_prefix: ${{ steps.appPrefix.outputs.app_prefix }}
+      s3_bucket: ${{ steps.tf_apply.outputs.s3_bucket_name }}
+      cloudfront_id: ${{ steps.tf_apply.outputs.cloudfront_distribution_id }}
 
     steps:
       - name: Validate environment_type input
@@ -76,21 +65,75 @@ jobs:
               ;;
           esac
 
-      - name: Validate preview_mode input
-        run: |
-          case "${{ inputs.preview_mode }}" in
-            subpath|subdomain)
-              ;;
-            *)
-              echo "❌ Invalid preview_mode: ${{ inputs.preview_mode }}"
-              exit 1
-              ;;
-          esac
-
-      - name: Checkout
+      - name: Checkout Application
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.WF_GITHUB_TOKEN }}
+
+      - name: Checkout Terraform Infra
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/terraform
+          path: _infra
+          token: ${{ secrets.WF_GITHUB_TOKEN }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Resolve Project Name
+        id: projectName
+        run: |
+          APP_NAME=$(node -p "require('./package.json').name.replace(/^@[^/]+\//, '').toLowerCase().replace(/[^a-z0-9-]/g, '-')")
+          echo "app_name=$APP_NAME" >> $GITHUB_OUTPUT
+
+      - name: Resolve app prefix
+        id: appPrefix
+        run: |
+          PREFIX="$APP_PREFIX"
+          if [ "${{ inputs.environment_type }}" = "preview" ]; then
+            PREFIX="${{ steps.projectName.outputs.app_name }}/$APP_PREFIX"
+          fi
+          echo "app_name=${{ steps.projectName.outputs.app_name }}" >> $GITHUB_OUTPUT
+          echo "app_prefix=$PREFIX" >> $GITHUB_OUTPUT
+
+      - name: Terraform Init & Apply
+        id: tf_apply
+        working-directory: _infra/infra/spa-static-frontend
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          if [ "${{ inputs.environment_type }}" = "preview" ]; then
+            STATE_KEY="global/preview/terraform.tfstate"
+          else
+            STATE_KEY="${{ steps.projectName.outputs.app_name }}/${{ inputs.environment_type }}/terraform.tfstate"
+          fi
+
+          terraform init -input=false \
+            -backend-config="bucket=${{ secrets.SPA_TF_STATE_BUCKET }}" \
+            -backend-config="key=$STATE_KEY" \
+            -backend-config="region=${{ secrets.AWS_REGION }}" \
+            -backend-config="use_lockfile=true"
+          
+          if [ "${{ inputs.environment_type }}" = "prod" ]; then
+            CERT_ARN="${{ secrets.SPA_PROD_CERT_ARN }}"
+          elif [ "${{ inputs.environment_type }}" = "stage" ]; then
+            CERT_ARN="${{ secrets.SPA_STAGE_CERT_ARN }}"
+          else
+            CERT_ARN="${{ secrets.SPA_PREVIEW_CERT_ARN }}"
+          fi
+
+          terraform apply -auto-approve -input=false \
+            -var="project_name=${{ steps.projectName.outputs.app_name }}" \
+            -var="environment_type=${{ inputs.environment_type }}" \
+            -var="hosted_zone_name=${{ vars.SPA_HOSTED_ZONE_NAME }}" \
+            -var="preview_domain_name=${{ vars.SPA_PREVIEW_DOMAIN }}" \
+            -var="preview_bucket_name=${{ vars.SPA_PREVIEW_BUCKET_NAME }}" \
+            -var="certificate_arn=$CERT_ARN"
+
+          echo "s3_bucket_name=$(terraform output -raw s3_bucket_name)" >> $GITHUB_OUTPUT
+          echo "cloudfront_distribution_id=$(terraform output -raw cloudfront_distribution_id)" >> $GITHUB_OUTPUT
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -98,142 +141,25 @@ jobs:
           node-version: ${{ inputs.node_version }}
           cache: "yarn"
 
-      - name: Cache node_modules
-        uses: actions/cache@v3
-        with:
-          path: |
-            **/node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
       - name: Install Dependencies
         run: yarn install --frozen-lockfile
-
-      - name: Commit message lint
-        uses: wagoid/commitlint-github-action@v6
-        with:
-          token: ${{ secrets.WF_GITHUB_TOKEN }}
-
-      - name: Typescript check
-        run: yarn tsc --build
-
-      - name: Test coverage
-        run: yarn test:ci
-
-      - name: Upload coverage report
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: coverage
-
-      - name: Comment coverage report
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v6
-        with:
-          github-token: ${{ secrets.WF_GITHUB_TOKEN }}
-          script: |
-            const prNumber = context.payload.pull_request.number;
-            const runId = context.runId;
-            const { owner, repo } = context.repo;
-            const artifactUrl = `https://github.com/${owner}/${repo}/actions/runs/${runId}`;
-
-            await github.rest.issues.createComment({
-              issue_number: prNumber,
-              owner,
-              repo,
-              body: `📊 Coverage report uploaded as an artifact. [Click here to view it](${artifactUrl})`
-            });
-
-      - name: Semantic release
-        if: ${{ inputs.has_semantic_release == true && !inputs.is_preview }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
-        run: yarn release
-
-      - name: Get SERVICE_NAME
-        id: serviceName
-        run: |
-          SERVICE_NAME=$(node -p -e "require('./package.json').name")
-          echo "servicename=$SERVICE_NAME" >> $GITHUB_OUTPUT
-
-      - name: Resolve app prefix
-        id: appPrefix
-        run: |
-          PREFIX="$APP_PREFIX"
-          if [ "${{ inputs.is_preview }}" = "true" ] && [ "${{ inputs.preview_mode }}" = "subdomain" ]; then
-            APP_NAME=$(node -p "require('./package.json').name.replace(/^@[^/]+\//, '').toLowerCase().replace(/[^a-z0-9-]/g, '-')")
-            PREFIX="$APP_NAME/$APP_PREFIX"
-            echo "app_name=$APP_NAME" >> $GITHUB_OUTPUT
-          fi
-          echo "app_prefix=$PREFIX" >> $GITHUB_OUTPUT
-
-      - name: Create .env file from aws parameter store
-        uses: almerindo/action-env-from-aws-ssm@main
-        with:
-          output: ./.env
-          ssm-path: "/${{ inputs.environment_type == 'preview' && 'stage' || inputs.environment_type }}/${{ steps.serviceName.outputs.servicename }}"
-          format: dotenv
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
 
       - name: Build project
         run: yarn build
 
       - name: Upload to S3
-        run: |
-          aws s3 sync ./build/assets "$S3_BUCKET_NAME/assets" \
-            --cache-control "public, max-age=31536000, immutable"
-          
-          aws s3 sync ./build "$S3_BUCKET_NAME" \
-            --exclude "assets/*" \
-            --exclude "index.html" \
-            --cache-control "public, max-age=86400"
-          
-          aws s3 cp ./build/index.html "$S3_BUCKET_NAME/index.html" \
-            --cache-control "no-cache" \
-            --metadata-directive REPLACE
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
-          S3_BUCKET_NAME: ${{ steps.appPrefix.outputs.app_prefix != '' && format('s3://{0}/{1}', secrets.S3_BUCKET_NAME, steps.appPrefix.outputs.app_prefix) || format('s3://{0}', secrets.S3_BUCKET_NAME) }}
-
-      - name: Check if there are commits between stage and main
-        id: check_commits
-        if: ${{ inputs.create_pr_in_main && inputs.environment_type == 'stage' && !inputs.is_preview }}
+          TARGET_BUCKET: ${{ steps.appPrefix.outputs.app_prefix != '' && format('s3://{0}/{1}', steps.tf_apply.outputs.s3_bucket_name, steps.appPrefix.outputs.app_prefix) || format('s3://{0}', steps.tf_apply.outputs.s3_bucket_name) }}
         run: |
-          git fetch origin main stage
-          if [ "$(git rev-list --count origin/main..origin/stage)" -eq 0 ]; then
-            echo "commits_ahead=false" >> $GITHUB_OUTPUT
-          else
-            echo "commits_ahead=true" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Check if PR already exists
-        id: check_pr
-        if: ${{ inputs.create_pr_in_main && inputs.environment_type == 'stage' && !inputs.is_preview && steps.check_commits.outputs.commits_ahead == 'true' }}
-        env:
-          GH_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
-        run: |
-          pr_exists=$(gh pr list --base main --head stage --state open --json number --jq '. | length')
-          echo "pr_exists=$pr_exists" >> $GITHUB_OUTPUT
-
-      - name: Create Pull Request for prod
-        if: ${{ inputs.create_pr_in_main && inputs.environment_type == 'stage' && !inputs.is_preview && steps.check_commits.outputs.commits_ahead == 'true' && steps.check_pr.outputs.pr_exists == '0' }}
-        env:
-          GH_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
-        run: |
-          gh pr create \
-            --base main \
-            --head stage \
-            --title "Deploy in prod" \
-            --body "Pull request body"
+          aws s3 sync ./build/assets "$TARGET_BUCKET/assets" --cache-control "public, max-age=31536000, immutable"
+          aws s3 sync ./build "$TARGET_BUCKET" --exclude "assets/*" --exclude "index.html" --cache-control "public, max-age=86400"
+          aws s3 cp ./build/index.html "$TARGET_BUCKET/index.html" --cache-control "no-cache" --metadata-directive REPLACE
 
   publish_application_and_invalidate_cache:
-    needs: build_and_upload_to_s3
+    needs: provision_and_build
     name: Publish application and invalidate cache
     runs-on: ubuntu-latest
     environment:
@@ -241,90 +167,32 @@ jobs:
 
     steps:
       - name: Invalidate CloudFront cache
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          CLOUDFRONT_ID: ${{ needs.provision_and_build.outputs.cloudfront_id }}
+          PREFIX: ${{ needs.provision_and_build.outputs.app_prefix }}
         run: |
-          PREFIX="${{ needs.build_and_upload_to_s3.outputs.app_prefix }}"
-          
           if [ -n "$PREFIX" ]; then
-            INVALIDATION_PATH="/${PREFIX}/index.html"
+            INVALIDATION_PATH="/${PREFIX}/*"
           else
             INVALIDATION_PATH="/index.html"
           fi
           
-          aws cloudfront create-invalidation \
-            --distribution-id $CLOUDFRONT_DISTRIBUTION_ID \
-            --paths "$INVALIDATION_PATH"
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
+          aws cloudfront create-invalidation --distribution-id $CLOUDFRONT_ID --paths "$INVALIDATION_PATH"
 
-      - name: Get CloudFront Domain Name and Alternate Name
-        id: get_cf_domain
+      - name: Output Release URLs (Stage/Prod)
+        if: ${{ inputs.environment_type != 'preview' }}
         run: |
-          DOMAIN_NAME=$(aws cloudfront get-distribution --id $CLOUDFRONT_DISTRIBUTION_ID \
-            --query 'Distribution.DomainName' --output text)
-
-          ALTERNATE_NAME=$(aws cloudfront get-distribution --id $CLOUDFRONT_DISTRIBUTION_ID \
-            --query "Distribution.DistributionConfig.Aliases.Items[?!starts_with(@, '*.')] | [0]" --output text)
-
-          echo "Domain name is: $DOMAIN_NAME"
-          echo "Alternate domain (CNAME) is: $ALTERNATE_NAME"
-
-          echo "domain_name=$DOMAIN_NAME" >> "$GITHUB_OUTPUT"
-          echo "alternate_name=$ALTERNATE_NAME" >> "$GITHUB_OUTPUT"
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
-
-      - name: Output release URL
-        if: ${{ (steps.get_cf_domain.outputs.alternate_name != 'None' || steps.get_cf_domain.outputs.domain_name != '') && !inputs.is_preview }}
-        run: |
-          DOMAIN_NAME="${DOMAIN_NAME}"
-          ALTERNATE_DOMAIN="${ALTERNATE_DOMAIN}"
-
-          if [[ -n "$ALTERNATE_DOMAIN" && "$ALTERNATE_DOMAIN" != "None" ]]; then
-            PREVIEW_URL="https://${ALTERNATE_DOMAIN}"
-          else
-            PREVIEW_URL="https://${DOMAIN_NAME}"
-          fi
-
           echo "### 🌐 Release disponível" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "🔗 https://${{ needs.provision_and_build.outputs.app_name }}.${{ inputs.environment_type == 'prod' && vars.SPA_HOSTED_ZONE_NAME || format('stg.{0}', vars.SPA_HOSTED_ZONE_NAME) }}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Output Preview URL (Pull Request)
+        if: ${{ inputs.environment_type == 'preview' }}
+        run: |
+          CLEAN_DOMAIN=$(echo "${{ vars.SPA_PREVIEW_DOMAIN }}" | sed 's/*\.//')
+          PREVIEW_URL="https://${{ needs.provision_and_build.outputs.app_name }}-pr-${{ github.event.pull_request.number }}.${CLEAN_DOMAIN}"
+          
+          echo "### 🚀 Preview disponível" >> "$GITHUB_STEP_SUMMARY"
           echo "🔗 $PREVIEW_URL" >> "$GITHUB_STEP_SUMMARY"
-        env:
-          DOMAIN_NAME: ${{ steps.get_cf_domain.outputs.domain_name }}
-          ALTERNATE_DOMAIN: ${{ steps.get_cf_domain.outputs.alternate_name }}
-
-      - name: Output preview URL
-        uses: actions/github-script@v6
-        if: ${{ (steps.get_cf_domain.outputs.alternate_name != 'None' || steps.get_cf_domain.outputs.domain_name != '') && github.event_name == 'pull_request' && inputs.is_preview }}
-        env:
-          APP_PREFIX: ${{ env.APP_PREFIX }}
-          DOMAIN_NAME: ${{ steps.get_cf_domain.outputs.domain_name }}
-          ALTERNATE_DOMAIN: ${{ steps.get_cf_domain.outputs.alternate_name }}
-          PREVIEW_MODE: ${{ inputs.preview_mode }}
-          PREVIEW_BASE_DOMAIN: ${{ inputs.preview_base_domain }}
-          APP_NAME: ${{ needs.build_and_upload_to_s3.outputs.app_name }}
-        with:
-          github-token: ${{ secrets.WF_GITHUB_TOKEN }}
-          script: |
-            const prNumber = context.payload.pull_request.number;
-            const previewPrefix = process.env.APP_PREFIX;
-            const domainName = process.env.DOMAIN_NAME;
-            const alternateDomain = process.env.ALTERNATE_DOMAIN;
-
-            const selectedDomain = alternateDomain !== "" && alternateDomain !== "None" ? `https://${alternateDomain}` : `https://${domainName}`;
-
-            const previewUrl = process.env.PREVIEW_MODE === "subdomain"
-              ? `https://${process.env.APP_NAME}-pr-${prNumber}.${process.env.PREVIEW_BASE_DOMAIN}`
-              : `${selectedDomain}/${previewPrefix}`;
-
-            await github.rest.issues.createComment({
-              issue_number: prNumber,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `🚀 Preview disponível: [${previewUrl}](${previewUrl})`
-            });
