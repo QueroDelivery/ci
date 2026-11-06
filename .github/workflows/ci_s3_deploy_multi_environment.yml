@@ -129,7 +129,7 @@ jobs:
             -var="project_name=${{ steps.projectName.outputs.app_name }}" \
             -var="environment_type=${{ inputs.environment_type }}" \
             -var="hosted_zone_name=${{ vars.SPA_HOSTED_ZONE_NAME }}" \
-            -var="preview_domain_name=${{ vars.SPA_PREVIEW_DOMAIN }}" \
+            -var="preview_domain_name=${{ inputs.environment_type == 'preview' && vars.SPA_PREVIEW_DOMAIN || '' }}" \
             -var="preview_bucket_name=${{ vars.SPA_PREVIEW_BUCKET_NAME }}" \
             -var="certificate_arn=$CERT_ARN"
 
