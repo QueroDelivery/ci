@@ -1,3 +1,10 @@
+## [5.10.1](https://github.com/QueroDelivery/ci/compare/v5.10.0...v5.10.1) (2026-11-06)
+
+
+### Bug Fixes
+
+* **ci:** correct SSM .env step YAML in S3 multi-environment workflow ([af7a21d](https://github.com/QueroDelivery/ci/commit/af7a21d09d7f4a336d5996a495da86ecd617f6ad))
+
 # [5.10.0](https://github.com/QueroDelivery/ci/compare/v5.9.0...v5.10.0) (2026-11-06)
 
 
