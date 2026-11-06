@@ -1,3 +1,10 @@
+## [5.10.2](https://github.com/QueroDelivery/ci/compare/v5.10.1...v5.10.2) (2026-11-06)
+
+
+### Bug Fixes
+
+* **ci:** pin terraform infra checkout to v1.1.1 ([fdb8e70](https://github.com/QueroDelivery/ci/commit/fdb8e70206e83c5b79c5e97ba8f1dcfdbd0de1dc))
+
 ## [5.10.1](https://github.com/QueroDelivery/ci/compare/v5.10.0...v5.10.1) (2026-11-06)
 
 
