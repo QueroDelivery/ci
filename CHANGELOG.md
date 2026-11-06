@@ -1,3 +1,10 @@
+# [5.10.0](https://github.com/QueroDelivery/ci/compare/v5.9.0...v5.10.0) (2026-11-06)
+
+
+### Features
+
+* **ci:** pin terraform repo checkout to v1.0.1 ([6e638cc](https://github.com/QueroDelivery/ci/commit/6e638cc2bd719089f85fb21a8972f5cfccca1d00))
+
 # [5.9.0](https://github.com/QueroDelivery/ci/compare/v5.8.0...v5.9.0) (2026-10-27)
 
 
