@@ -52,6 +52,9 @@ Emits the list of workers declared in `.quero/workers/` of the calling repositor
 ### CI-LOCAL (`.github/workflows/ci_local.yml`)
 Runs semantic-release on the `main` branch. It is mainly used locally to generate releases.
 
+### CI-S3 (`.github/workflows/ci_s3_deploy_multi_environment.yml`)
+Builds a single-page application, provisions S3 and CloudFront with Terraform, uploads the build, and invalidates the cache. Caller workflows, the required release pin, inputs, and secrets are documented in [docs/s3-spa.md](docs/s3-spa.md). Preview cleanup lives in `.github/workflows/ci_s3_clear_preview.yml`.
+
 ## Workers convention (`.quero/workers/`)
 
 A service declares each worker in one file, `.quero/workers/<name>.yaml`:
