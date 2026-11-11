@@ -130,6 +130,45 @@ jobs:
             fi
           fi
 
+      # yarn audit sai com um bitmask das severidades (info 1, low 2, moderate 4,
+      # high 8, critical 16) que o --level nao filtra, e erro de rede tambem sai
+      # com 1. Por isso a decisao vem do auditSummary do --json: sem ele o audit
+      # nao rodou, e o step falha em vez de deixar passar.
+      # --registry fixo: o registry-url do setup-node pode nao ter endpoint de audit.
+      # Bloqueia em PR; em push so avisa, para uma advisory publicada depois do
+      # merge nao travar o deploy de codigo ja revisado.
+      - name: security audit (high and critical)
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.WF_NPM_TOKEN }}
+          LEVEL: ${{ github.event_name == 'push' && 'warning' || 'error' }}
+        run: |
+          set -euo pipefail
+          report="$(mktemp)"
+
+          yarn audit --json --registry https://registry.npmjs.org/ > "$report" || true
+
+          summary="$(jq -cR 'fromjson? | select(.type == "auditSummary") | .data.vulnerabilities' "$report")"
+          if [ -z "$summary" ]; then
+            echo "::error::yarn audit nao retornou resultado (erro ao consultar o registry?). Saida:"
+            cat "$report"
+            exit 1
+          fi
+          echo "yarn audit: $summary"
+
+          # Uma linha por advisory: o --json repete a advisory para cada caminho de dependencia.
+          jq -rR 'fromjson? | select(.type == "auditAdvisory") | .data.advisory
+            | select(.severity == "high" or .severity == "critical")
+            | "\(.severity) \(.module_name) \(.vulnerable_versions) (corrigido em \(.patched_versions)): \(.title) \(.url)"' \
+            "$report" | sort -u
+
+          found="$(jq -r '.high + .critical' <<< "$summary")"
+          if [ "$found" -eq 0 ]; then
+            exit 0
+          fi
+
+          echo "::$LEVEL::yarn audit encontrou $found ocorrencia(s) high/critical (lista acima). Atualize as dependencias antes do merge."
+          [ "$LEVEL" = warning ] || exit 1
+
       # Antes do Release de proposito: a validacao autoritativa depende da
       # imagem, que so existe depois do semantic-release.
       - name: Validating workers declaration
