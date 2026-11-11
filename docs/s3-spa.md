@@ -2,7 +2,7 @@
 
 Reusable GitHub Actions workflows that build a single-page application, provision its S3 and CloudFront infrastructure with Terraform, upload the build, and invalidate the cache.
 
-The Terraform module lives in [`QueroDelivery/terraform`](https://github.com/QueroDelivery/terraform) at `infra/spa-static-frontend`. Application repositories do not keep a copy of that module. The deploy workflow checks it out at tag `v1.1.1` and applies it.
+The Terraform module lives in [`QueroDelivery/terraform`](https://github.com/QueroDelivery/terraform) at `infra/spa-static-frontend`. Application repositories do not keep a copy of that module. The deploy workflow checks it out at tag `v1.2.0` and applies it.
 
 ## Architecture
 
@@ -176,6 +176,17 @@ jobs:
 
 Stage is published at `https://<app>.stg.<hosted-zone>`. Production is published at `https://<app>.<hosted-zone>`.
 
+`custom_aliases` and `custom_certificate_arn` are optional. Leave either one out and the workflow does not pass that variable. The module then keeps its default: no extra aliases, and the certificate from `certificate_arn`.
+
+In prod, `custom_aliases` is a Terraform list added next to `<app>.<hosted-zone>`. `custom_certificate_arn` replaces `certificate_arn` when it is set, so the extra domains can use their own ACM certificate in `us-east-1`. Stage and preview ignore both values. The certificate in use must cover every alias.
+
+```yaml
+      custom_aliases: '["qdplan.querodelivery.com"]'
+      custom_certificate_arn: ${{ secrets.SPA_CUSTOM_CERT_ARN }}
+```
+
+`custom_aliases` is a Terraform list. `custom_certificate_arn` is the certificate ARN. The workflow checks out Terraform `v1.2.0`, which declares both variables.
+
 ## Inputs
 
 | Input | Type | Required | Default | Description |
@@ -184,6 +195,8 @@ Stage is published at `https://<app>.stg.<hosted-zone>`. Production is published
 | `node_version` | `number` | No | `22` | Node.js version used to install, test, and build. |
 | `has_semantic_release` | `boolean` | No | `true` | Runs `yarn release` before the build. Skipped for `preview`. |
 | `create_pr_in_main` | `boolean` | No | `false` | On `stage`, opens a pull request from `stage` to `main` when one is not already open. |
+| `custom_aliases` | `string` | No | empty | Optional Terraform list of extra CloudFront aliases, for example `["qdplan.querodelivery.com"]`. Empty omits the variable and the module keeps its default `[]`. |
+| `custom_certificate_arn` | `string` | No | empty | Optional ACM certificate ARN in `us-east-1`. In prod it replaces `certificate_arn` when set. Empty omits the variable. |
 
 ## Secrets
 
