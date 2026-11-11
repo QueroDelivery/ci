@@ -1,3 +1,10 @@
+# [5.13.0](https://github.com/QueroDelivery/ci/compare/v5.12.0...v5.13.0) (2026-11-11)
+
+
+### Features
+
+* **ci:** cancel superseded PR builds and queue PR deploys ([6513998](https://github.com/QueroDelivery/ci/commit/6513998019531aec9b86db217d9bcf929a808cf1))
+
 # [5.12.0](https://github.com/QueroDelivery/ci/compare/v5.11.0...v5.12.0) (2026-11-11)
 
 
