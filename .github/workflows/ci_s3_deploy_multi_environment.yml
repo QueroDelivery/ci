@@ -23,11 +23,6 @@ on:
         required: false
         type: string
         default: ""
-      custom_certificate_arn:
-        description: "Optional ACM certificate ARN in us-east-1. In prod it replaces certificate_arn when set."
-        required: false
-        type: string
-        default: ""
     secrets:
       AWS_ACCESS_KEY_ID:
         required: true
@@ -41,6 +36,9 @@ on:
         required: true
       SPA_PREVIEW_CERT_ARN:
         required: true
+      SPA_CUSTOM_CERT_ARN:
+        description: "Optional ACM certificate ARN in us-east-1. In prod it replaces certificate_arn when set."
+        required: false
       SPA_TF_STATE_BUCKET:
         required: true
       WF_GITHUB_TOKEN:
@@ -115,7 +113,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
           CUSTOM_ALIASES: ${{ inputs.custom_aliases }}
-          CUSTOM_CERTIFICATE_ARN: ${{ inputs.custom_certificate_arn }}
+          CUSTOM_CERTIFICATE_ARN: ${{ secrets.SPA_CUSTOM_CERT_ARN }}
         run: |
           if [ "${{ inputs.environment_type }}" = "preview" ]; then
             STATE_KEY="global/preview/terraform.tfstate"
