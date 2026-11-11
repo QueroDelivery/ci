@@ -112,6 +112,13 @@ on:
       WF_WHITELIST_SOURCE_RANGE:
         required: false
 
+# Deploy nunca e cancelado no meio (deixaria o rollout pela metade): runs do
+# mesmo PR entram na fila e o mais novo roda depois do atual. Fora de PR o
+# grupo e o run_id, entao push em stage/main nao muda de comportamento.
+concurrency:
+  group: ci_k8_base-${{ github.repository }}-${{ inputs.WF_KUBE_NAME }}-${{ inputs.WF_ENV_TYPE_DEPLOY }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: false
+
 jobs:
   deploy:
     name: Deploy to Kubernetes

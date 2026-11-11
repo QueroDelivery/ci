@@ -24,6 +24,15 @@ on:
       WF_AWS_CODEARTIFACT_ROLE_ARN:
         required: false
 
+# Um run por PR: um push novo cancela o build anterior do mesmo PR. Fora de PR
+# o grupo e o run_id, entao push em stage/main segue sem cancelar nada (cancelar
+# no meio do semantic-release deixaria tag sem commit de release).
+# O nome do workflow entra no grupo porque, em workflow chamado, github.* e o
+# contexto do chamador: sem ele, os workflows do mesmo run se cancelariam.
+concurrency:
+  group: base_python_build-${{ github.repository }}-${{ inputs.WF_SERVICE_NAME }}-${{ inputs.WF_ENV_TYPE_DEPLOY }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   setup:
     environment: ${{ inputs.WF_ENV_TYPE_DEPLOY }}
