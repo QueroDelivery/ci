@@ -1,3 +1,10 @@
+# [5.11.0](https://github.com/QueroDelivery/ci/compare/v5.10.2...v5.11.0) (2026-11-11)
+
+
+### Features
+
+* **ci:** restore quality gates and release steps on S3 deploy ([8b78e65](https://github.com/QueroDelivery/ci/commit/8b78e651be98c8c79219ae0ccda810cac257157b))
+
 ## [5.10.2](https://github.com/QueroDelivery/ci/compare/v5.10.1...v5.10.2) (2026-11-06)
 
 
