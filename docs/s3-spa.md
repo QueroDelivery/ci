@@ -176,16 +176,18 @@ jobs:
 
 Stage is published at `https://<app>.stg.<hosted-zone>`. Production is published at `https://<app>.<hosted-zone>`.
 
-`custom_aliases` and `custom_certificate_arn` are optional. Leave either one out and the workflow does not pass that variable. The module then keeps its default: no extra aliases, and the certificate from `certificate_arn`.
+`custom_aliases` is an optional input and `SPA_CUSTOM_CERT_ARN` is an optional secret. Leave either one out and the workflow does not pass that variable. The module then keeps its default: no extra aliases, and the certificate from `certificate_arn`.
 
-In prod, `custom_aliases` is a Terraform list added next to `<app>.<hosted-zone>`. `custom_certificate_arn` replaces `certificate_arn` when it is set, so the extra domains can use their own ACM certificate in `us-east-1`. Stage and preview ignore both values. The certificate in use must cover every alias.
+In prod, `custom_aliases` is a Terraform list added next to `<app>.<hosted-zone>`. `SPA_CUSTOM_CERT_ARN` replaces `certificate_arn` when it is set, so the extra domains can use their own ACM certificate in `us-east-1`. The ARN stays a secret so GitHub Actions masks it in the logs. Stage and preview ignore both values. The certificate in use must cover every alias.
 
 ```yaml
+    with:
       custom_aliases: '["qdplan.querodelivery.com"]'
-      custom_certificate_arn: ${{ secrets.SPA_CUSTOM_CERT_ARN }}
+    secrets:
+      SPA_CUSTOM_CERT_ARN: ${{ secrets.SPA_CUSTOM_CERT_ARN }}
 ```
 
-`custom_aliases` is a Terraform list. `custom_certificate_arn` is the certificate ARN. The workflow checks out Terraform `v1.2.0`, which declares both variables.
+`custom_aliases` is a Terraform list. `SPA_CUSTOM_CERT_ARN` is the certificate ARN. The workflow checks out Terraform `v1.2.0`, which declares both variables.
 
 ## Inputs
 
@@ -196,7 +198,6 @@ In prod, `custom_aliases` is a Terraform list added next to `<app>.<hosted-zone>
 | `has_semantic_release` | `boolean` | No | `true` | Runs `yarn release` before the build. Skipped for `preview`. |
 | `create_pr_in_main` | `boolean` | No | `false` | On `stage`, opens a pull request from `stage` to `main` when one is not already open. |
 | `custom_aliases` | `string` | No | empty | Optional Terraform list of extra CloudFront aliases, for example `["qdplan.querodelivery.com"]`. Empty omits the variable and the module keeps its default `[]`. |
-| `custom_certificate_arn` | `string` | No | empty | Optional ACM certificate ARN in `us-east-1`. In prod it replaces `certificate_arn` when set. Empty omits the variable. |
 
 ## Secrets
 
@@ -206,6 +207,7 @@ Pass these secrets from the caller. `WF_GITHUB_TOKEN` is optional in the workflo
 - `AWS_REGION`: AWS region for those credentials.
 - `SPA_TF_STATE_BUCKET`: S3 bucket that stores the Terraform state.
 - `SPA_PROD_CERT_ARN`, `SPA_STAGE_CERT_ARN`, `SPA_PREVIEW_CERT_ARN`: ACM certificate ARNs in `us-east-1`, one per environment.
+- `SPA_CUSTOM_CERT_ARN`: optional ACM certificate ARN in `us-east-1`. In prod it replaces `certificate_arn` when set. Empty omits the variable. Pass it as a secret so the ARN stays masked in the logs.
 - `WF_GITHUB_TOKEN`: classic token with `repo` scope.
 
 `ci_s3_clear_preview.yml` only needs `NEW_AWS_ACCESS_KEY_ID`, `NEW_AWS_SECRET_ACCESS_KEY`, and `AWS_REGION`. It reads the preview bucket and the CloudFront distribution from organization variables.
