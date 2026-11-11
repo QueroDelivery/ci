@@ -145,6 +145,29 @@ jobs:
       - name: Install Dependencies
         run: yarn install --frozen-lockfile
 
+      - name: Commit message lint
+        uses: wagoid/commitlint-github-action@v6
+        with:
+          token: ${{ secrets.WF_GITHUB_TOKEN }}
+
+      - name: Typescript check
+        run: yarn tsc --build
+
+      - name: Test coverage
+        run: yarn test:ci
+
+      - name: Comment coverage report
+        if: github.event_name == 'pull_request'
+        uses: davelosert/vitest-coverage-report-action@v2
+        with:
+          github-token: ${{ secrets.WF_GITHUB_TOKEN }}
+
+      - name: Semantic release
+        if: ${{ inputs.has_semantic_release == true && inputs.environment_type != 'preview' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
+        run: yarn release
+
       - name: Create .env file from aws parameter store
         uses: almerindo/action-env-from-aws-ssm@main
         with:
@@ -169,6 +192,37 @@ jobs:
           aws s3 sync ./build/assets "$TARGET_BUCKET/assets" --cache-control "public, max-age=31536000, immutable"
           aws s3 sync ./build "$TARGET_BUCKET" --exclude "assets/*" --exclude "index.html" --cache-control "public, max-age=86400"
           aws s3 cp ./build/index.html "$TARGET_BUCKET/index.html" --cache-control "no-cache" --metadata-directive REPLACE
+
+      - name: Check if there are commits between stage and main
+        id: check_commits
+        if: ${{ inputs.create_pr_in_main && inputs.environment_type == 'stage' }}
+        run: |
+          git fetch origin main stage
+          if [ "$(git rev-list --count origin/main..origin/stage)" -eq 0 ]; then
+            echo "commits_ahead=false" >> $GITHUB_OUTPUT
+          else
+            echo "commits_ahead=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check if PR already exists
+        id: check_pr
+        if: ${{ inputs.create_pr_in_main && inputs.environment_type == 'stage' && steps.check_commits.outputs.commits_ahead == 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
+        run: |
+          pr_exists=$(gh pr list --base main --head stage --state open --json number --jq '. | length')
+          echo "pr_exists=$pr_exists" >> $GITHUB_OUTPUT
+
+      - name: Create Pull Request for prod
+        if: ${{ inputs.create_pr_in_main && inputs.environment_type == 'stage' && steps.check_commits.outputs.commits_ahead == 'true' && steps.check_pr.outputs.pr_exists == '0' }}
+        env:
+          GH_TOKEN: ${{ secrets.WF_GITHUB_TOKEN }}
+        run: |
+          gh pr create \
+            --base main \
+            --head stage \
+            --title "Deploy in prod" \
+            --body "Pull request body"
 
   publish_application_and_invalidate_cache:
     needs: provision_and_build
