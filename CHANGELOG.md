@@ -1,3 +1,15 @@
+# [5.14.0](https://github.com/QueroDelivery/ci/compare/v5.13.0...v5.14.0) (2026-11-11)
+
+
+### Bug Fixes
+
+* **ci:** read the custom ACM certificate ARN from a secret ([86247f8](https://github.com/QueroDelivery/ci/commit/86247f8965f4f8be917dd9393bb97b41f88e5a4f))
+
+
+### Features
+
+* **ci:** allow extra CloudFront aliases on production SPA deploys ([a3e298d](https://github.com/QueroDelivery/ci/commit/a3e298d66376a5d2f8f8a601d3dec320281bfa96))
+
 # [5.13.0](https://github.com/QueroDelivery/ci/compare/v5.12.0...v5.13.0) (2026-11-11)
 
 
