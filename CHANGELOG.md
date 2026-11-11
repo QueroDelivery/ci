@@ -1,3 +1,10 @@
+# [5.12.0](https://github.com/QueroDelivery/ci/compare/v5.11.0...v5.12.0) (2026-11-11)
+
+
+### Features
+
+* **ci:** Fail pull requests on high or critical yarn audit findings ([22b03f2](https://github.com/QueroDelivery/ci/commit/22b03f286872f2d4c49f556e48338b671c7f0a19))
+
 # [5.11.0](https://github.com/QueroDelivery/ci/compare/v5.10.2...v5.11.0) (2026-11-11)
 
 
