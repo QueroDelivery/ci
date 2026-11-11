@@ -18,6 +18,16 @@ on:
         required: false
         type: boolean
         default: false
+      custom_aliases:
+        description: "Optional Terraform list of extra CloudFront aliases, for example [\"qdplan.querodelivery.com\"]. Empty uses the module default."
+        required: false
+        type: string
+        default: ""
+      custom_certificate_arn:
+        description: "Optional ACM certificate ARN in us-east-1. In prod it replaces certificate_arn when set."
+        required: false
+        type: string
+        default: ""
     secrets:
       AWS_ACCESS_KEY_ID:
         required: true
@@ -74,7 +84,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ${{ github.repository_owner }}/terraform
-          ref: v1.1.1
+          ref: v1.2.0
           path: _infra
           token: ${{ secrets.WF_GITHUB_TOKEN }}
 
@@ -104,6 +114,8 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
+          CUSTOM_ALIASES: ${{ inputs.custom_aliases }}
+          CUSTOM_CERTIFICATE_ARN: ${{ inputs.custom_certificate_arn }}
         run: |
           if [ "${{ inputs.environment_type }}" = "preview" ]; then
             STATE_KEY="global/preview/terraform.tfstate"
@@ -125,13 +137,22 @@ jobs:
             CERT_ARN="${{ secrets.SPA_PREVIEW_CERT_ARN }}"
           fi
 
-          terraform apply -auto-approve -input=false \
-            -var="project_name=${{ steps.projectName.outputs.app_name }}" \
-            -var="environment_type=${{ inputs.environment_type }}" \
-            -var="hosted_zone_name=${{ vars.SPA_HOSTED_ZONE_NAME }}" \
-            -var="preview_domain_name=${{ vars.SPA_PREVIEW_DOMAIN }}" \
-            -var="preview_bucket_name=${{ vars.SPA_PREVIEW_BUCKET_NAME }}" \
+          TF_VARS=(
+            -var="project_name=${{ steps.projectName.outputs.app_name }}"
+            -var="environment_type=${{ inputs.environment_type }}"
+            -var="hosted_zone_name=${{ vars.SPA_HOSTED_ZONE_NAME }}"
+            -var="preview_domain_name=${{ vars.SPA_PREVIEW_DOMAIN }}"
+            -var="preview_bucket_name=${{ vars.SPA_PREVIEW_BUCKET_NAME }}"
             -var="certificate_arn=$CERT_ARN"
+          )
+          if [ -n "$CUSTOM_ALIASES" ]; then
+            TF_VARS+=(-var="custom_aliases=${CUSTOM_ALIASES}")
+          fi
+          if [ -n "$CUSTOM_CERTIFICATE_ARN" ]; then
+            TF_VARS+=(-var="custom_certificate_arn=${CUSTOM_CERTIFICATE_ARN}")
+          fi
+
+          terraform apply -auto-approve -input=false "${TF_VARS[@]}"
 
           echo "s3_bucket_name=$(terraform output -raw s3_bucket_name)" >> $GITHUB_OUTPUT
           echo "cloudfront_distribution_id=$(terraform output -raw cloudfront_distribution_id)" >> $GITHUB_OUTPUT
