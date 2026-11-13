@@ -1,3 +1,10 @@
+# [5.15.0](https://github.com/QueroDelivery/ci/compare/v5.14.0...v5.15.0) (2026-11-13)
+
+
+### Features
+
+* **ci:** run related tests on preview and skip them in production ([c9dee37](https://github.com/QueroDelivery/ci/commit/c9dee37899af342503f03b52286cc1c9c89b8626))
+
 # [5.14.0](https://github.com/QueroDelivery/ci/compare/v5.13.0...v5.14.0) (2026-11-11)
 
 
