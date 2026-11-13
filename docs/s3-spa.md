@@ -23,12 +23,13 @@ The Terraform module lives in [`QueroDelivery/terraform`](https://github.com/Que
 }
 ```
 
-The deploy workflow always runs, after `yarn install --frozen-lockfile`:
+After `yarn install --frozen-lockfile`, the checks depend on the environment:
 
-- commit message lint
-- `yarn tsc --build`
-- `yarn test:ci`
-- on a pull request, a Vitest coverage comment
+- **Preview.** Commit message lint and `yarn tsc --build`. On a pull request, Vitest runs the test files that import a changed file (`yarn test:ci --changed <base> --passWithNoTests`). The full `yarn test:ci` runs when the diff touches `package.json`, a lockfile, Vite or Vitest config, a `tsconfig`, or a test setup file (`setupTests`, `setup-tests`, `vitest.setup`, `test/setup`, `tests/setup`), and whenever preview starts outside a pull request. The coverage comment is posted only after that full run.
+- **Stage.** Commit message lint, `yarn tsc --build`, and the full `yarn test:ci`.
+- **Production.** Those checks are skipped. The job installs dependencies, releases, builds, and uploads the commit that already passed on stage.
+
+`test:ci` must be Vitest and must forward the extra arguments. `yarn test:ci --changed <base> --passWithNoTests` has to reach Vitest unchanged. A pull request that only changes files no test imports succeeds because of `--passWithNoTests`.
 
 The coverage comment reads `coverage/coverage-summary.json` and `coverage/coverage-final.json`. Configure Vitest with those reporters:
 
@@ -84,6 +85,8 @@ jobs:
 ```
 
 The preview URL is `https://<app>-pr-<N>.<preview-domain>`, with the `*.` prefix removed from `SPA_PREVIEW_DOMAIN`.
+
+On a pull request, preview runs the tests related to the diff. Vitest compares the branch with the pull request base and runs each test file that imports a changed file. Dependencies, Vite, Vitest, TypeScript, and test setup still run the full suite. The coverage comment is posted only after a full suite.
 
 ### Clear preview (`.github/workflows/clear-preview.yml`)
 
@@ -175,6 +178,8 @@ jobs:
 ```
 
 Stage is published at `https://<app>.stg.<hosted-zone>`. Production is published at `https://<app>.<hosted-zone>`.
+
+Production does not repeat commit lint, the typecheck, or tests. Preview and stage already ran those checks on the same commit.
 
 `custom_aliases` is an optional input and `SPA_CUSTOM_CERT_ARN` is an optional secret. Leave either one out and the workflow does not pass that variable. The module then keeps its default: no extra aliases, and the certificate from `certificate_arn`.
 
