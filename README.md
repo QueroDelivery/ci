@@ -8,7 +8,7 @@ This repository contains example GitHub Actions workflows that build, publish an
 This workflow prepares the Node.js project, runs tests and builds a Docker image.
 - Sets up the Node environment and caches dependencies
 - Runs lint and tests (optionally publishing coverage)
-- Runs `yarn audit`: a high or critical vulnerability fails the build on pull requests and only warns on `push`; an audit that cannot reach the registry fails the build as well
+- Runs `yarn audit` for every dependency group and prints high and critical findings. A pull request fails only when a high or critical finding comes from `dependencies`. Findings that exist only in `devDependencies` stay in the log as a warning. On `push`, production findings warn and do not block the deploy. An audit that cannot reach the registry fails the build
 - Publishes a release using semantic-release
 - Builds a Docker image and uploads it as an artifact
 - Outputs the service name so other workflows can use it

@@ -144,38 +144,62 @@ jobs:
       # com 1. Por isso a decisao vem do auditSummary do --json: sem ele o audit
       # nao rodou, e o step falha em vez de deixar passar.
       # --registry fixo: o registry-url do setup-node pode nao ter endpoint de audit.
-      # Bloqueia em PR; em push so avisa, para uma advisory publicada depois do
-      # merge nao travar o deploy de codigo ja revisado.
+      # O relatorio completo sempre aparece no log. O PR so falha quando o
+      # high/critical esta em dependencies. devDependencies seguem como aviso:
+      # jest, eslint e semantic-release puxam advisories sem correcao publicada
+      # que nao entram na imagem de producao. Em push, nem dependencies bloqueia,
+      # para uma advisory publicada depois do merge nao travar o deploy.
       - name: security audit (high and critical)
         env:
           NODE_AUTH_TOKEN: ${{ secrets.WF_NPM_TOKEN }}
           LEVEL: ${{ github.event_name == 'push' && 'warning' || 'error' }}
         run: |
           set -euo pipefail
-          report="$(mktemp)"
 
-          yarn audit --json --registry https://registry.npmjs.org/ > "$report" || true
+          audit_summary() {
+            jq -cR 'fromjson? | select(.type == "auditSummary") | .data.vulnerabilities' "$1"
+          }
 
-          summary="$(jq -cR 'fromjson? | select(.type == "auditSummary") | .data.vulnerabilities' "$report")"
-          if [ -z "$summary" ]; then
+          # Uma linha por advisory: o --json repete a advisory para cada caminho.
+          print_high() {
+            jq -rR 'fromjson? | select(.type == "auditAdvisory") | .data.advisory
+              | select(.severity == "high" or .severity == "critical")
+              | "\(.severity) \(.module_name) \(.vulnerable_versions) (corrigido em \(.patched_versions)): \(.title) \(.url)"' \
+              "$1" | sort -u
+          }
+
+          full="$(mktemp)"
+          prod="$(mktemp)"
+
+          yarn audit --json --registry https://registry.npmjs.org/ > "$full" || true
+          yarn audit --groups dependencies --json --registry https://registry.npmjs.org/ > "$prod" || true
+
+          full_summary="$(audit_summary "$full")"
+          prod_summary="$(audit_summary "$prod")"
+          if [ -z "$full_summary" ] || [ -z "$prod_summary" ]; then
             echo "::error::yarn audit nao retornou resultado (erro ao consultar o registry?). Saida:"
-            cat "$report"
+            cat "$full"
+            echo "--- dependencies ---"
+            cat "$prod"
             exit 1
           fi
-          echo "yarn audit: $summary"
 
-          # Uma linha por advisory: o --json repete a advisory para cada caminho de dependencia.
-          jq -rR 'fromjson? | select(.type == "auditAdvisory") | .data.advisory
-            | select(.severity == "high" or .severity == "critical")
-            | "\(.severity) \(.module_name) \(.vulnerable_versions) (corrigido em \(.patched_versions)): \(.title) \(.url)"' \
-            "$report" | sort -u
+          echo "yarn audit (todos os grupos): $full_summary"
+          print_high "$full"
 
-          found="$(jq -r '.high + .critical' <<< "$summary")"
-          if [ "$found" -eq 0 ]; then
+          echo "yarn audit (dependencies): $prod_summary"
+
+          dev_found="$(jq -r '.high + .critical' <<< "$full_summary")"
+          prod_found="$(jq -r '.high + .critical' <<< "$prod_summary")"
+          if [ "$prod_found" -eq 0 ]; then
+            if [ "$dev_found" -gt 0 ]; then
+              echo "::warning::yarn audit encontrou $dev_found ocorrencia(s) high/critical fora de dependencies. O build nao e bloqueado por elas."
+            fi
             exit 0
           fi
 
-          echo "::$LEVEL::yarn audit encontrou $found ocorrencia(s) high/critical (lista acima). Atualize as dependencias antes do merge."
+          print_high "$prod"
+          echo "::$LEVEL::yarn audit encontrou $prod_found ocorrencia(s) high/critical em dependencies (lista acima). Atualize as dependencias antes do merge."
           [ "$LEVEL" = warning ] || exit 1
 
       # Antes do Release de proposito: a validacao autoritativa depende da
