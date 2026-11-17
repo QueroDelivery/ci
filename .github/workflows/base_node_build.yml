@@ -145,10 +145,8 @@ jobs:
       # nao rodou, e o step falha em vez de deixar passar.
       # --registry fixo: o registry-url do setup-node pode nao ter endpoint de audit.
       # O relatorio completo sempre aparece no log. O PR so falha quando o
-      # high/critical esta em dependencies. devDependencies seguem como aviso:
-      # jest, eslint e semantic-release puxam advisories sem correcao publicada
-      # que nao entram na imagem de producao. Em push, nem dependencies bloqueia,
-      # para uma advisory publicada depois do merge nao travar o deploy.
+      # high/critical esta em dependencies. devDependencies seguem como aviso
+      # já que nao entram na imagem de producao. Em push, nem dependencies bloqueia.
       - name: security audit (high and critical)
         env:
           NODE_AUTH_TOKEN: ${{ secrets.WF_NPM_TOKEN }}
@@ -193,7 +191,7 @@ jobs:
           prod_found="$(jq -r '.high + .critical' <<< "$prod_summary")"
           if [ "$prod_found" -eq 0 ]; then
             if [ "$dev_found" -gt 0 ]; then
-              echo "::warning::yarn audit encontrou $dev_found ocorrencia(s) high/critical fora de dependencies. O build nao e bloqueado por elas."
+              echo "::warning::yarn audit encontrou $dev_found ocorrencia(s) high/critical fora de dependencies."
             fi
             exit 0
           fi
