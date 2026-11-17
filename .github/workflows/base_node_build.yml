@@ -145,8 +145,11 @@ jobs:
       # nao rodou, e o step falha em vez de deixar passar.
       # --registry fixo: o registry-url do setup-node pode nao ter endpoint de audit.
       # O relatorio completo sempre aparece no log. O PR so falha quando o
-      # high/critical esta em dependencies. devDependencies seguem como aviso
-      # já que nao entram na imagem de producao. Em push, nem dependencies bloqueia.
+      # high/critical esta em dependencies ou optionalDependencies: o
+      # yarn --production instala as duas. devDependencies seguem como aviso,
+      # ja que nao entram na imagem de producao. Em push, nem as de producao
+      # bloqueiam.
+      # --groups repetido de proposito: "yarn audit --groups a b" descarta b.
       - name: security audit (high and critical)
         env:
           NODE_AUTH_TOKEN: ${{ secrets.WF_NPM_TOKEN }}
@@ -170,34 +173,47 @@ jobs:
           prod="$(mktemp)"
 
           yarn audit --json --registry https://registry.npmjs.org/ > "$full" || true
-          yarn audit --groups dependencies --json --registry https://registry.npmjs.org/ > "$prod" || true
+          yarn audit --groups dependencies --groups optionalDependencies --json --registry https://registry.npmjs.org/ > "$prod" || true
 
           full_summary="$(audit_summary "$full")"
           prod_summary="$(audit_summary "$prod")"
           if [ -z "$full_summary" ] || [ -z "$prod_summary" ]; then
             echo "::error::yarn audit nao retornou resultado (erro ao consultar o registry?). Saida:"
             cat "$full"
-            echo "--- dependencies ---"
+            echo "--- dependencies e optionalDependencies ---"
             cat "$prod"
             exit 1
           fi
 
           echo "yarn audit (todos os grupos): $full_summary"
-          print_high "$full"
+          echo "yarn audit (dependencies e optionalDependencies): $prod_summary"
 
-          echo "yarn audit (dependencies): $prod_summary"
-
-          dev_found="$(jq -r '.high + .critical' <<< "$full_summary")"
+          all_found="$(jq -r '.high + .critical' <<< "$full_summary")"
           prod_found="$(jq -r '.high + .critical' <<< "$prod_summary")"
-          if [ "$prod_found" -eq 0 ]; then
-            if [ "$dev_found" -gt 0 ]; then
-              echo "::warning::yarn audit encontrou $dev_found ocorrencia(s) high/critical fora de dependencies."
+          outside_found=$((all_found - prod_found))
+
+          prod_lines="$(mktemp)"
+          full_lines="$(mktemp)"
+          print_high "$prod" > "$prod_lines"
+          print_high "$full" > "$full_lines"
+
+          if [ "$outside_found" -gt 0 ]; then
+            # Mesma advisory nos dois relatorios ja sai na lista de producao.
+            outside_lines="$(comm -23 "$full_lines" "$prod_lines")"
+            if [ -n "$outside_lines" ]; then
+              echo "high/critical fora de dependencies e optionalDependencies:"
+              printf '%s\n' "$outside_lines"
             fi
+            echo "::warning::yarn audit encontrou $outside_found ocorrencia(s) high/critical fora de dependencies e optionalDependencies."
+          fi
+
+          if [ "$prod_found" -eq 0 ]; then
             exit 0
           fi
 
-          print_high "$prod"
-          echo "::$LEVEL::yarn audit encontrou $prod_found ocorrencia(s) high/critical em dependencies (lista acima). Atualize as dependencias antes do merge."
+          echo "high/critical em dependencies e optionalDependencies:"
+          cat "$prod_lines"
+          echo "::$LEVEL::yarn audit encontrou $prod_found ocorrencia(s) high/critical em dependencies ou optionalDependencies (lista acima). Atualize as dependencias antes do merge."
           [ "$LEVEL" = warning ] || exit 1
 
       # Antes do Release de proposito: a validacao autoritativa depende da
