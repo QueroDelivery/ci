@@ -43,10 +43,14 @@ on:
         required: true
       WF_GITHUB_TOKEN:
         required: false
+      FONT_AWESOME_TOKEN:
+        description: "Optional Font Awesome npm token, exported as FONT_AWESOME_TOKEN for the .npmrc of the application."
+        required: false
 
 env:
   APP_PREFIX: ${{ inputs.environment_type == 'preview' && format('preview-pr-{0}', github.event.pull_request.number) || '' }}
   GH_TOKEN_CI: ${{ secrets.WF_GITHUB_TOKEN }}
+  FONT_AWESOME_TOKEN: ${{ secrets.FONT_AWESOME_TOKEN }}
 
 jobs:
   provision_and_build:
