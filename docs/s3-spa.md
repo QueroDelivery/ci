@@ -25,9 +25,15 @@ The Terraform module lives in [`QueroDelivery/terraform`](https://github.com/Que
 
 After `yarn install --frozen-lockfile`, the checks depend on the environment:
 
-- **Preview.** Commit message lint and `yarn tsc --build`. On a pull request, Vitest runs the test files that import a changed file (`yarn test:ci --changed <base> --passWithNoTests`). The full `yarn test:ci` runs when the diff touches `package.json`, a lockfile, Vite or Vitest config, a `tsconfig`, or a test setup file (`setupTests`, `setup-tests`, `vitest.setup`, `test/setup`, `tests/setup`), and whenever preview starts outside a pull request. The coverage comment is posted only after that full run.
-- **Stage.** Commit message lint, `yarn tsc --build`, and the full `yarn test:ci`.
+- **Preview.** Commit message lint, `yarn tsc --build`, and `yarn lint`. On a pull request, Vitest runs the test files that import a changed file (`yarn test:ci --changed <base> --passWithNoTests`). The full `yarn test:ci` runs when the diff touches `package.json`, a lockfile, Vite or Vitest config, a `tsconfig`, or a test setup file (`setupTests`, `setup-tests`, `vitest.setup`, `test/setup`, `tests/setup`), and whenever preview starts outside a pull request. The coverage comment is posted only after that full run.
+- **Stage.** Commit message lint, `yarn tsc --build`, `yarn lint`, and the full `yarn test:ci`.
 - **Production.** Those checks are skipped. The job installs dependencies, releases, builds, and uploads the commit that already passed on stage.
+
+`yarn lint` runs only when `package.json` declares a `lint` script. Without one, the step is skipped.
+
+When the `lint` script is a single ESLint command, such as `eslint ./src/**/*.{ts,tsx}`, the workflow adds `--cache --cache-strategy content` and keeps the cache file in the GitHub Actions cache. ESLint then re-lints only the files whose content changed since the cached run. The cache key includes `yarn.lock`, the ESLint config, `.eslintignore`, and the `tsconfig` files, so a change to any of them starts from an empty cache. A pull request reads the cache saved by its own earlier runs or by its base branch, which stage keeps warm. A script that chains other commands (`&&`, `||`, `;`, `|`) or does not start with `eslint` runs without the cache.
+
+Rules that read other files, such as `import/named`, are not re-checked on a file that did not change. The `yarn tsc --build` step, which runs before lint, reports the same broken imports.
 
 `test:ci` must be Vitest and must forward the extra arguments. `yarn test:ci --changed <base> --passWithNoTests` has to reach Vitest unchanged. A pull request that only changes files no test imports succeeds because of `--passWithNoTests`.
 
@@ -85,6 +91,8 @@ jobs:
 ```
 
 The preview URL is `https://<app>-pr-<N>.<preview-domain>`, with the `*.` prefix removed from `SPA_PREVIEW_DOMAIN`.
+
+After the cache invalidation, the workflow comments that URL on the pull request, with the commit, the branch, and a link to the run. The comment starts with `<!-- preview-url -->`, and every later push edits that same comment instead of adding a new one. It is posted with `WF_GITHUB_TOKEN`, or with the caller's `GITHUB_TOKEN` when that secret is absent, which then needs `pull-requests: write`.
 
 On a pull request, preview runs the tests related to the diff. Vitest compares the branch with the pull request base and runs each test file that imports a changed file. Dependencies, Vite, Vitest, TypeScript, and test setup still run the full suite. The coverage comment is posted only after a full suite.
 
@@ -179,7 +187,7 @@ jobs:
 
 Stage is published at `https://<app>.stg.<hosted-zone>`. Production is published at `https://<app>.<hosted-zone>`.
 
-Production does not repeat commit lint, the typecheck, or tests. Preview and stage already ran those checks on the same commit.
+Production does not repeat commit lint, the typecheck, ESLint, or tests. Preview and stage already ran those checks on the same commit.
 
 `custom_aliases` is an optional input and `SPA_CUSTOM_CERT_ARN` is an optional secret. Leave either one out and the workflow does not pass that variable. The module then keeps its default: no extra aliases, and the certificate from `certificate_arn`.
 
@@ -206,7 +214,7 @@ In prod, `custom_aliases` is a Terraform list added next to `<app>.<hosted-zone>
 
 ## Secrets
 
-Pass these secrets from the caller. `WF_GITHUB_TOKEN` is optional in the workflow contract and required in practice: the job uses it to check out the Terraform repository, lint commits, comment coverage, run semantic-release, and open the production pull request.
+Pass these secrets from the caller. `WF_GITHUB_TOKEN` is optional in the workflow contract and required in practice: the job uses it to check out the Terraform repository, lint commits, comment coverage and the preview URL, run semantic-release, and open the production pull request.
 
 - `NEW_AWS_ACCESS_KEY_ID` and `NEW_AWS_SECRET_ACCESS_KEY`: credentials that can apply the Terraform module, sync S3, and invalidate CloudFront. These are the secrets callers must use. Pass them into the workflow inputs `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`. Do not use the older `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` repository secrets.
 - `AWS_REGION`: AWS region for those credentials.
