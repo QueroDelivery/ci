@@ -240,6 +240,54 @@ jobs:
         if: inputs.environment_type != 'prod'
         run: yarn tsc --build
 
+      - name: Resolve lint command
+        id: lint_command
+        if: inputs.environment_type != 'prod'
+        shell: bash
+        run: |
+          LINT_SCRIPT=$(node -p "require('./package.json').scripts?.lint ?? ''")
+
+          if [ -z "$LINT_SCRIPT" ]; then
+            echo "Skipped: package.json has no lint script"
+            echo "mode=none" >> "$GITHUB_OUTPUT"
+          elif [[ "$LINT_SCRIPT" =~ ^eslint[[:space:]] ]] && [[ ! "$LINT_SCRIPT" =~ (\&\&|\|\||;|\|) ]]; then
+            echo "Cached ESLint: $LINT_SCRIPT"
+            echo "mode=cached" >> "$GITHUB_OUTPUT"
+          else
+            echo "Uncached: lint script is not a single ESLint command: $LINT_SCRIPT"
+            echo "mode=plain" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Restore ESLint cache
+        id: eslint_cache
+        if: steps.lint_command.outputs.mode == 'cached'
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/eslint/.eslintcache
+          key: eslint-${{ runner.os }}-${{ hashFiles('yarn.lock', '.eslintrc*', 'eslint.config.*', '.eslintignore', 'tsconfig*.json') }}-${{ github.sha }}
+          restore-keys: |
+            eslint-${{ runner.os }}-${{ hashFiles('yarn.lock', '.eslintrc*', 'eslint.config.*', '.eslintignore', 'tsconfig*.json') }}-
+
+      - name: Lint
+        if: steps.lint_command.outputs.mode == 'cached' || steps.lint_command.outputs.mode == 'plain'
+        shell: bash
+        env:
+          LINT_MODE: ${{ steps.lint_command.outputs.mode }}
+          ESLINT_CACHE_FILE: ${{ runner.temp }}/eslint/.eslintcache
+        run: |
+          if [ "$LINT_MODE" = "cached" ]; then
+            yarn lint --cache --cache-strategy content --cache-location "$ESLINT_CACHE_FILE"
+          else
+            yarn lint
+          fi
+
+      - name: Save ESLint cache
+        if: ${{ !cancelled() && steps.lint_command.outputs.mode == 'cached' && steps.eslint_cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/eslint/.eslintcache
+          key: ${{ steps.eslint_cache.outputs.cache-primary-key }}
+
       - name: Test coverage
         if: inputs.environment_type == 'stage' || (inputs.environment_type == 'preview' && steps.select_tests.outputs.mode == 'all')
         run: yarn test:ci
@@ -354,3 +402,44 @@ jobs:
 
           echo "### 🚀 Preview disponível" >> "$GITHUB_STEP_SUMMARY"
           echo "🔗 $PREVIEW_URL" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comment preview URL on the pull request
+        if: ${{ inputs.environment_type == 'preview' && github.event_name == 'pull_request' }}
+        env:
+          GH_TOKEN: ${{ secrets.WF_GITHUB_TOKEN || github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          APP_NAME: ${{ needs.provision_and_build.outputs.app_name }}
+          PREVIEW_DOMAIN: ${{ vars.SPA_PREVIEW_DOMAIN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          COMMIT_URL: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          MARKER='<!-- preview-url -->'
+          HOST="${APP_NAME}-pr-${PR_NUMBER}.${PREVIEW_DOMAIN#\*.}"
+          UPDATED_AT=$(TZ=America/Sao_Paulo date '+%d/%m/%Y %H:%M')
+
+          BODY=$(cat <<MD
+          ${MARKER}
+          > [!TIP]
+          > ### 🚀 Preview pronto
+          > **[${HOST}](https://${HOST})**
+          >
+          > 📦 [\`${HEAD_SHA:0:7}\`](${COMMIT_URL}) · 🌿 \`${HEAD_REF}\` · 🕒 ${UPDATED_AT} (BRT) · [Ver execução](${RUN_URL})
+
+          <sub>🔄 Atualizado a cada push · 🧹 Removido ao fechar a PR</sub>
+          MD
+          )
+
+          COMMENT_ID=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" --paginate \
+            --jq ".[] | select(.body | startswith(\"${MARKER}\")) | .id" | head -n1)
+
+          if [ -n "$COMMENT_ID" ]; then
+            gh api -X PATCH "repos/${REPO}/issues/comments/${COMMENT_ID}" -f body="$BODY" > /dev/null
+            echo "Updated comment ${COMMENT_ID}"
+          else
+            gh pr comment "$PR_NUMBER" --repo "$REPO" --body "$BODY"
+          fi
