@@ -187,6 +187,8 @@ jobs:
 
 Stage is published at `https://<app>.stg.<hosted-zone>`. Production is published at `https://<app>.<hosted-zone>`.
 
+The publish job sets that URL on its GitHub environment (`preview`, `stage`, or `prod`). The deployment then shows a **View deployment** button on the pull request and in the repository's **Deployments** page.
+
 Production does not repeat commit lint, the typecheck, ESLint, or tests. Preview and stage already ran those checks on the same commit.
 
 `custom_aliases` is an optional input and `SPA_CUSTOM_CERT_ARN` is an optional secret. Leave either one out and the workflow does not pass that variable. The module then keeps its default: no extra aliases, and the certificate from `certificate_arn`.
