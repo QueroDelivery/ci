@@ -1,3 +1,11 @@
+## [5.15.2](https://github.com/QueroDelivery/ci/compare/v5.15.1...v5.15.2) (2026-11-19)
+
+
+### Bug Fixes
+
+* **ci:** accept an optional font awesome token in the s3 workflow ([3a9dfea](https://github.com/QueroDelivery/ci/commit/3a9dfea7ca80f73c617249073458d0d38e909423))
+* **ci:** show the deploy url in the github deployments ([6f0ddb0](https://github.com/QueroDelivery/ci/commit/6f0ddb048958287098a674d242af780649b4768f))
+
 ## [5.15.1](https://github.com/QueroDelivery/ci/compare/v5.15.0...v5.15.1) (2026-11-18)
 
 
