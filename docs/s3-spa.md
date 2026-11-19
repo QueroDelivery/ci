@@ -187,6 +187,8 @@ jobs:
 
 Stage is published at `https://<app>.stg.<hosted-zone>`. Production is published at `https://<app>.<hosted-zone>`.
 
+The publish job sets that URL on its GitHub environment (`preview`, `stage`, or `prod`). The deployment then shows a **View deployment** button on the pull request and in the repository's **Deployments** page.
+
 Production does not repeat commit lint, the typecheck, ESLint, or tests. Preview and stage already ran those checks on the same commit.
 
 `custom_aliases` is an optional input and `SPA_CUSTOM_CERT_ARN` is an optional secret. Leave either one out and the workflow does not pass that variable. The module then keeps its default: no extra aliases, and the certificate from `certificate_arn`.
@@ -222,6 +224,14 @@ Pass these secrets from the caller. `WF_GITHUB_TOKEN` is optional in the workflo
 - `SPA_PROD_CERT_ARN`, `SPA_STAGE_CERT_ARN`, `SPA_PREVIEW_CERT_ARN`: ACM certificate ARNs in `us-east-1`, one per environment.
 - `SPA_CUSTOM_CERT_ARN`: optional ACM certificate ARN in `us-east-1`. In prod it replaces `certificate_arn` when set. Empty omits the variable. Pass it as a secret so the ARN stays masked in the logs.
 - `WF_GITHUB_TOKEN`: classic token with `repo` scope.
+- `FONT_AWESOME_TOKEN`: optional Font Awesome npm token. The workflow exports it as the `FONT_AWESOME_TOKEN` environment variable, so the application's `.npmrc` can read it during `yarn install`:
+
+  ```ini
+  @fortawesome:registry=https://npm.fontawesome.com/
+  //npm.fontawesome.com/:_authToken=${FONT_AWESOME_TOKEN}
+  ```
+
+  The variable is always exported, empty when the caller does not pass the secret, so a `.npmrc` that references it does not fail with `Failed to replace env in config`. Pass it from the caller with `FONT_AWESOME_TOKEN: ${{ secrets.FONT_AWESOME_TOKEN }}`.
 
 `ci_s3_clear_preview.yml` only needs `NEW_AWS_ACCESS_KEY_ID`, `NEW_AWS_SECRET_ACCESS_KEY`, and `AWS_REGION`. It reads the preview bucket and the CloudFront distribution from organization variables.
 

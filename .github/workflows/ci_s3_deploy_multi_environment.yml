@@ -43,10 +43,14 @@ on:
         required: true
       WF_GITHUB_TOKEN:
         required: false
+      FONT_AWESOME_TOKEN:
+        description: "Optional Font Awesome npm token, exported as FONT_AWESOME_TOKEN for the .npmrc of the application."
+        required: false
 
 env:
   APP_PREFIX: ${{ inputs.environment_type == 'preview' && format('preview-pr-{0}', github.event.pull_request.number) || '' }}
   GH_TOKEN_CI: ${{ secrets.WF_GITHUB_TOKEN }}
+  FONT_AWESOME_TOKEN: ${{ secrets.FONT_AWESOME_TOKEN }}
 
 jobs:
   provision_and_build:
@@ -370,8 +374,25 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: ${{ inputs.environment_type }}
+      url: ${{ steps.deployment_url.outputs.url }}
 
     steps:
+      - name: Resolve deployment URL
+        id: deployment_url
+        env:
+          ENVIRONMENT_TYPE: ${{ inputs.environment_type }}
+          APP_NAME: ${{ needs.provision_and_build.outputs.app_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HOSTED_ZONE: ${{ vars.SPA_HOSTED_ZONE_NAME }}
+          PREVIEW_DOMAIN: ${{ vars.SPA_PREVIEW_DOMAIN }}
+        run: |
+          case "$ENVIRONMENT_TYPE" in
+            prod) URL="https://${APP_NAME}.${HOSTED_ZONE}" ;;
+            stage) URL="https://${APP_NAME}.stg.${HOSTED_ZONE}" ;;
+            preview) URL="https://${APP_NAME}-pr-${PR_NUMBER}.${PREVIEW_DOMAIN#\*.}" ;;
+          esac
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
       - name: Invalidate CloudFront cache
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -388,20 +409,13 @@ jobs:
 
           aws cloudfront create-invalidation --distribution-id $CLOUDFRONT_ID --paths "$INVALIDATION_PATH"
 
-      - name: Output Release URLs (Stage/Prod)
-        if: ${{ inputs.environment_type != 'preview' }}
+      - name: Output deployment URL
+        env:
+          TITLE: ${{ inputs.environment_type == 'preview' && '🚀 Preview disponível' || '🌐 Release disponível' }}
+          URL: ${{ steps.deployment_url.outputs.url }}
         run: |
-          echo "### 🌐 Release disponível" >> "$GITHUB_STEP_SUMMARY"
-          echo "🔗 https://${{ needs.provision_and_build.outputs.app_name }}.${{ inputs.environment_type == 'prod' && vars.SPA_HOSTED_ZONE_NAME || format('stg.{0}', vars.SPA_HOSTED_ZONE_NAME) }}" >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Output Preview URL (Pull Request)
-        if: ${{ inputs.environment_type == 'preview' }}
-        run: |
-          CLEAN_DOMAIN=$(echo "${{ vars.SPA_PREVIEW_DOMAIN }}" | sed 's/*\.//')
-          PREVIEW_URL="https://${{ needs.provision_and_build.outputs.app_name }}-pr-${{ github.event.pull_request.number }}.${CLEAN_DOMAIN}"
-
-          echo "### 🚀 Preview disponível" >> "$GITHUB_STEP_SUMMARY"
-          echo "🔗 $PREVIEW_URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "### $TITLE" >> "$GITHUB_STEP_SUMMARY"
+          echo "🔗 $URL" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Comment preview URL on the pull request
         if: ${{ inputs.environment_type == 'preview' && github.event_name == 'pull_request' }}
