@@ -224,14 +224,24 @@ Pass these secrets from the caller. `WF_GITHUB_TOKEN` is optional in the workflo
 - `SPA_PROD_CERT_ARN`, `SPA_STAGE_CERT_ARN`, `SPA_PREVIEW_CERT_ARN`: ACM certificate ARNs in `us-east-1`, one per environment.
 - `SPA_CUSTOM_CERT_ARN`: optional ACM certificate ARN in `us-east-1`. In prod it replaces `certificate_arn` when set. Empty omits the variable. Pass it as a secret so the ARN stays masked in the logs.
 - `WF_GITHUB_TOKEN`: classic token with `repo` scope.
-- `FONT_AWESOME_TOKEN`: optional Font Awesome npm token. The workflow exports it as the `FONT_AWESOME_TOKEN` environment variable, so the application's `.npmrc` can read it during `yarn install`:
+- `PACKAGE_REGISTRY_ENV`: optional variables for private package registries, one `KEY=value` per line. A step before `Setup Node.js` exports each line to the rest of the build job, so the application's `.npmrc` can read it in every Yarn command, `yarn run` included. A new registry needs no change in this repository. Pass it from the caller:
+
+  ```yaml
+  secrets:
+    PACKAGE_REGISTRY_ENV: |
+      FONT_AWESOME_TOKEN=${{ secrets.FONT_AWESOME_TOKEN }}
+  ```
+
+  And reference the variable in the `.npmrc`:
 
   ```ini
   @fortawesome:registry=https://npm.fontawesome.com/
   //npm.fontawesome.com/:_authToken=${FONT_AWESOME_TOKEN}
   ```
 
-  The variable is always exported, empty when the caller does not pass the secret, so a `.npmrc` that references it does not fail with `Failed to replace env in config`. Pass it from the caller with `FONT_AWESOME_TOKEN: ${{ secrets.FONT_AWESOME_TOKEN }}`.
+  The step masks every value in the logs. It fails the job when a non-blank line is not in the `KEY=value` format, or when a name starts with `VITE_`, `REACT_APP_`, or `NEXT_PUBLIC_`, so no secret ends up in the public bundle. Build variables still come from the Parameter Store.
+
+  Nothing is exported when the caller does not pass the secret. An application whose `.npmrc` references `${FONT_AWESOME_TOKEN}` must pass that line, or Yarn fails with `Failed to replace env in config`.
 
 `ci_s3_clear_preview.yml` only needs `NEW_AWS_ACCESS_KEY_ID`, `NEW_AWS_SECRET_ACCESS_KEY`, and `AWS_REGION`. It reads the preview bucket and the CloudFront distribution from organization variables.
 

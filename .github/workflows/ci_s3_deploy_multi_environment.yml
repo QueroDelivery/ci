@@ -43,14 +43,13 @@ on:
         required: true
       WF_GITHUB_TOKEN:
         required: false
-      FONT_AWESOME_TOKEN:
-        description: "Optional Font Awesome npm token, exported as FONT_AWESOME_TOKEN for the .npmrc of the application."
+      PACKAGE_REGISTRY_ENV:
+        description: "Optional private registry variables, one KEY=value per line, exported to the build job for the .npmrc of the application."
         required: false
 
 env:
   APP_PREFIX: ${{ inputs.environment_type == 'preview' && format('preview-pr-{0}', github.event.pull_request.number) || '' }}
   GH_TOKEN_CI: ${{ secrets.WF_GITHUB_TOKEN }}
-  FONT_AWESOME_TOKEN: ${{ secrets.FONT_AWESOME_TOKEN }}
 
 jobs:
   provision_and_build:
@@ -159,6 +158,46 @@ jobs:
 
           echo "s3_bucket_name=$(terraform output -raw s3_bucket_name)" >> $GITHUB_OUTPUT
           echo "cloudfront_distribution_id=$(terraform output -raw cloudfront_distribution_id)" >> $GITHUB_OUTPUT
+
+      - name: Export package registry variables
+        shell: bash
+        env:
+          PACKAGE_REGISTRY_ENV: ${{ secrets.PACKAGE_REGISTRY_ENV }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "$PACKAGE_REGISTRY_ENV" ]; then
+            echo "Skipped: PACKAGE_REGISTRY_ENV is empty"
+            exit 0
+          fi
+
+          line_number=0
+          while IFS= read -r line || [ -n "$line" ]; do
+            line_number=$((line_number + 1))
+            line="${line%$'\r'}"
+            [ -z "${line//[[:space:]]/}" ] && continue
+
+            if [[ ! "$line" =~ ^([A-Za-z_][A-Za-z0-9_]*)=(.*)$ ]]; then
+              echo "::error::PACKAGE_REGISTRY_ENV line ${line_number} is not in the KEY=value format"
+              exit 1
+            fi
+
+            key="${BASH_REMATCH[1]}"
+            value="${BASH_REMATCH[2]}"
+
+            case "$key" in
+              VITE_*|REACT_APP_*|NEXT_PUBLIC_*)
+                echo "::error::PACKAGE_REGISTRY_ENV line ${line_number} uses ${key}, a prefix that is bundled into the public build. Use the Parameter Store for build variables."
+                exit 1
+                ;;
+            esac
+
+            if [ -n "$value" ]; then
+              echo "::add-mask::${value}"
+            fi
+            echo "${key}=${value}" >> "$GITHUB_ENV"
+            echo "Exported ${key}"
+          done <<< "$PACKAGE_REGISTRY_ENV"
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
