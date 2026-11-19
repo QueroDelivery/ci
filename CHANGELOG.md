@@ -1,3 +1,10 @@
+## [5.15.3](https://github.com/QueroDelivery/ci/compare/v5.15.2...v5.15.3) (2026-11-19)
+
+
+### Bug Fixes
+
+* **ci:** read private registry variables from PACKAGE_REGISTRY_ENV in the s3 workflow ([4b67d46](https://github.com/QueroDelivery/ci/commit/4b67d4601713cad2b05f924f7d78e58d283b40e6))
+
 ## [5.15.2](https://github.com/QueroDelivery/ci/compare/v5.15.1...v5.15.2) (2026-11-19)
 
 
