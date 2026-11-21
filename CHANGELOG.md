@@ -1,3 +1,10 @@
+# [5.16.0](https://github.com/QueroDelivery/ci/compare/v5.15.3...v5.16.0) (2026-11-21)
+
+
+### Features
+
+* **ci:** optional irsa serviceaccount for ci_k8_base deployments ([0a53978](https://github.com/QueroDelivery/ci/commit/0a539783fa8482177dd98d111cc1776343749b00)), closes [QueroDelivery/kube#15](https://github.com/QueroDelivery/kube/issues/15)
+
 ## [5.15.3](https://github.com/QueroDelivery/ci/compare/v5.15.2...v5.15.3) (2026-11-19)
 
 
