@@ -28,6 +28,11 @@ Deploys the previously built image to Kubernetes.
 - Renders manifests with `envsubst` and applies them with `kubectl`
 - Manages deployment metadata in `.deploys/service.json`
 - Optionally comments on the pull request with the deployed image
+- Optionally gives the pod an AWS identity through IRSA with `WF_KUBE_SERVICE_ACCOUNT_ROLE_ARN`, an IAM role ARN:
+  - it creates a ServiceAccount named after the service (`WF_SERVICE_NAME`) in the deployment's namespace, annotated with `eks.amazonaws.com/role-arn`, and the Deployment runs with it;
+  - the role's trust policy must allow `system:serviceaccount:<namespace>:<service name>`. For PR previews, use a wildcard on the namespace, e.g. `<service>-pr-*`;
+  - without the input, the manifests are the same as before, and the pod keeps the namespace's `default` ServiceAccount;
+  - a deployment template overridden in `setup/.kube/` must keep the `serviceAccountName: ${KUBE_SERVICE_ACCOUNT}` line of the `kube` templates (v1.12.0+), or the step fails.
 
 ### CI-K8-BASE-UNDEPLOY (`.github/workflows/ci_k8_undeploy_base.yml`)
 Removes preview environments created for pull requests by deleting the Kubernetes namespace.

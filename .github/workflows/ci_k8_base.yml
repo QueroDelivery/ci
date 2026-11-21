@@ -68,6 +68,16 @@ on:
         type: string
         required: false
         default: new
+      WF_KUBE_SERVICE_ACCOUNT_ROLE_ARN:
+        description: >
+          IAM role ARN for the pod (IRSA). When set, the namespace gets a ServiceAccount
+          named after the service, annotated with eks.amazonaws.com/role-arn, and the
+          Deployment runs with it. The role's trust policy must allow
+          system:serviceaccount:<namespace>:<service name>. Empty (default) keeps the
+          namespace's default ServiceAccount, as before. Only used in non-gitops mode.
+        type: string
+        required: false
+        default: ""
 
       # ── Kubernetes name (optional in gitops mode) ─────────────────────────
       WF_KUBE_NAME:
@@ -137,7 +147,7 @@ jobs:
         if: ${{ !inputs.WF_GITOPS_MODE }}
         uses: actions/checkout@v4
         with:
-          ref: v1.11.1
+          ref: v1.12.0
           token: ${{ secrets.WF_GITHUB_TOKEN }}
           repository: QueroDelivery/kube
           path: .kube
@@ -199,6 +209,36 @@ jobs:
         run: |
           sed -i '/KUBE_CPU_LIMIT/d' ./.kube/deployment-new.yaml
 
+      - name: Prepare the ServiceAccount (WF_KUBE_SERVICE_ACCOUNT_ROLE_ARN)
+        if: ${{ !inputs.WF_GITOPS_MODE }}
+        env:
+          KUBE_SERVICE_ACCOUNT_ROLE_ARN: ${{ inputs.WF_KUBE_SERVICE_ACCOUNT_ROLE_ARN }}
+          KUBEDEPLOYMENT: .kube/deployment-${{ inputs.WF_KUBE_DEPLOYMENT }}.yaml
+        run: |
+          if [ -z "${KUBE_SERVICE_ACCOUNT_ROLE_ARN}" ]; then
+            # No role: same manifests as before, and the pod keeps the default ServiceAccount.
+            sed -i '/KUBE_SERVICE_ACCOUNT/d' ./.kube/deployment-*.yaml
+            rm -f ./.kube/serviceaccount.yaml
+            exit 0
+          fi
+
+          if ! printf '%s' "${KUBE_SERVICE_ACCOUNT_ROLE_ARN}" | grep -Eq '^arn:aws:iam::[0-9]{12}:role/[A-Za-z0-9+=,.@_/-]+$'; then
+            echo "ERROR: WF_KUBE_SERVICE_ACCOUNT_ROLE_ARN is not an IAM role ARN"
+            exit 1
+          fi
+
+          if [ ! -f ./.kube/serviceaccount.yaml ]; then
+            echo "ERROR: serviceaccount.yaml is missing from the kube templates"
+            exit 1
+          fi
+
+          # A deployment overridden in setup/.kube must keep the line, or the role is never used.
+          # shellcheck disable=SC2016 # the template placeholder is matched literally
+          if ! grep -qF 'serviceAccountName: ${KUBE_SERVICE_ACCOUNT}' "${KUBEDEPLOYMENT}"; then
+            echo "ERROR: ${KUBEDEPLOYMENT} has no 'serviceAccountName: \${KUBE_SERVICE_ACCOUNT}' line"
+            exit 1
+          fi
+
       - name: Render manifests with envsubst
         if: ${{ !inputs.WF_GITOPS_MODE }}
         env:
@@ -218,11 +258,14 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: "${{ secrets.WF_SERVICE_NAME }}"
           VERSION_TAG: ${{ inputs.WF_IMAGE_VERSION_TAG }}
+          KUBE_SERVICE_ACCOUNT: "${{ secrets.WF_SERVICE_NAME }}"
+          KUBE_SERVICE_ACCOUNT_ROLE_ARN: ${{ inputs.WF_KUBE_SERVICE_ACCOUNT_ROLE_ARN }}
         run: |
           mkdir -p rendered
           export KUBE_NAME KUBE_DOMAIN KUBE_DOMAIN_INTERNAL KUBE_MIN_REPLICAS PUBLIC_HOST
           export KUBE_MAX_REPLICAS KUBE_MEMORY_LIMIT KUBE_MEMORY_REQUEST KUBE_CPU_LIMIT KUBE_CPU_REQUEST
           export KUBE_NODE_GROUP ECR_REGISTRY ECR_REPOSITORY VERSION_TAG
+          export KUBE_SERVICE_ACCOUNT KUBE_SERVICE_ACCOUNT_ROLE_ARN
 
           for file in .kube/*.yaml; do
             if [ -f "$file" ]; then
@@ -238,6 +281,7 @@ jobs:
           ECR_REPOSITORY: "${{ secrets.WF_SERVICE_NAME }}"
           VERSION_TAG: ${{ inputs.WF_IMAGE_VERSION_TAG }}
           KUBE_NAME: ${{ inputs.WF_KUBE_NAME }}
+          KUBE_SERVICE_ACCOUNT_ROLE_ARN: ${{ inputs.WF_KUBE_SERVICE_ACCOUNT_ROLE_ARN }}
         run: |
           export PATH=$PATH:$PWD
           export KUBE_NAME
@@ -262,6 +306,12 @@ jobs:
           if ! kubectl get namespace ${KUBE_NAME} &>/dev/null; then
             echo "ERROR: Namespace ${KUBE_NAME} still does not exist after creation attempt"
             exit 1
+          fi
+
+          # Before the deployment: the EKS webhook injects the role only into pods created
+          # after their ServiceAccount carries the annotation.
+          if [ -n "${KUBE_SERVICE_ACCOUNT_ROLE_ARN}" ]; then
+            kubectl apply -f rendered/serviceaccount.yaml -n "${KUBE_NAME}"
           fi
 
           kubectl apply -f rendered/${KUBE_NAME}-env-cm.yaml -n ${KUBE_NAME}
