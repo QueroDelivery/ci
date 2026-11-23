@@ -14,6 +14,24 @@ This workflow prepares the Node.js project, runs tests and builds a Docker image
 - Outputs the service name so other workflows can use it
 - Validates the workers declared in `.quero/workers/`, when the service has any (see below)
 
+Lint, tests and the image build are separate jobs:
+- **on pull requests** the three run at the same time (`linting`, `testing`, `building the image`);
+- **on any other event** lint and tests run at the same time, and `releasing and building the image` waits for both: semantic-release runs first, and the image is built from the workspace it just versioned.
+
+The jobs that follow in the caller (push to ECR, deploy) still wait for all of them and only run when all passed. The `preparing` check is kept as the last job and fails when any other job fails, so a branch protection rule that requires it keeps working.
+
+**Registry token in the image.** The workflow writes `.npmrc`, with the registry token, to the workspace, and also passes it to the build as the BuildKit secret `npmrc`. A Dockerfile that copies the workspace (`COPY . .`) before installing leaves the token in a layer of the published image, even if a later `RUN` deletes the file. Mount the secret instead, and keep `.npmrc` out of the build context with `.dockerignore`:
+
+```dockerfile
+COPY package.json yarn.lock ./
+RUN --mount=type=secret,id=npmrc,target=/app/.npmrc yarn install --frozen-lockfile
+COPY . .
+```
+
+(`target` is `<WORKDIR>/.npmrc`.)
+
+**Layer cache (`WF_DOCKER_LAYER_CACHE: true`).** Builds with Buildx and keeps the layers in the GitHub Actions cache, so a commit that does not touch `yarn.lock` reuses the install layer. It only helps a Dockerfile shaped like the one above; with `COPY . .` first, nothing is reused and every build still pays for exporting the layers. Off by default.
+
 ### CI-ECR-BASE (`.github/workflows/base_build_push_ecr.yml`)
 Loads the Docker image artifact produced by `CI-BASE` and pushes it to Amazon ECR.
 - Configures AWS credentials and logs in to ECR
