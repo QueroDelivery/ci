@@ -38,10 +38,12 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ inputs.WF_ENV_TYPE_DEPLOY }}
     steps:
+      # Sem o conteudo dos arquivos antigos: nada aqui le o historico do servico.
       - name: Checkout source
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          filter: blob:none
       - name: Checkout definitions repo
         uses: actions/checkout@v4
         with:
