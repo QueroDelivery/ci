@@ -274,6 +274,7 @@ Common failures:
 | `node_version` | `number` | No | `22` | Node.js version used to install, test, and build. |
 | `has_semantic_release` | `boolean` | No | `true` | Runs `yarn release` before the build. Skipped for `preview`. |
 | `create_pr_in_main` | `boolean` | No | `false` | On `stage`, opens a pull request from `stage` to `main` when one is not already open. |
+| `build_node_options` | `string` | No | empty | `NODE_OPTIONS` for the build step only, for example `--max-old-space-size=2048` when the build runs out of memory. Install, tests and release keep the Node.js defaults. |
 | `custom_aliases` | `string` | No | empty | Optional Terraform list of extra CloudFront aliases, for example `["qdplan.querodelivery.com"]`. Empty omits the variable and the module keeps its default `[]`. |
 
 ## Secrets
