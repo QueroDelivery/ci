@@ -62,11 +62,12 @@ concurrency:
   group: base_node_build-${{ github.repository }}-${{ inputs.WF_ENV_TYPE_DEPLOY }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-# Lint, testes e imagem eram passos de um job so, um depois do outro. Agora sao
-# jobs: em PR os tres rodam ao mesmo tempo; fora de PR a imagem espera lint e
-# testes, porque o release vem antes dela e nao pode sair de codigo que falhou.
-# Os passos repetidos entre jobs sao ancoras YAML (&nome / *nome): edite o passo
-# onde a ancora e definida e todos os jobs que a usam mudam juntos.
+# Lint, tests and the image used to be steps of a single job, one after the
+# other. Now they are jobs: on a pull request the three run at the same time;
+# on any other event the image waits for lint and tests, because the release
+# comes before it and must not come out of code that failed.
+# Steps repeated across jobs are YAML anchors (&name / *name): edit the step
+# where the anchor is defined and every job that uses it changes with it.
 jobs:
   declaration:
     name: reading the declaration
@@ -83,9 +84,9 @@ jobs:
         with:
           persist-credentials: false
 
-      # Roda antes do release (build-release depende deste job): uma declaracao
-      # quebrada falha o run antes de uma versao ser publicada. A validacao
-      # autoritativa depende da imagem e fica em validate-workers.
+      # Runs before the release (build-release depends on this job): a broken
+      # declaration fails the run before a version is published. The
+      # authoritative validation needs the image and lives in validate-workers.
       - name: Validating workers declaration
         id: workers
         run: |
@@ -179,18 +180,19 @@ jobs:
     steps:
       - *checkout
 
-      # Sem `cache: yarn`: a chave dele e o hash do yarn.lock, a mesma do cache
-      # de node_modules abaixo. Quando o lockfile nao muda, node_modules vem do
-      # cache e o yarn nem roda; quando muda, os dois caches erram juntos. O
-      # cache do yarn so custava o tempo de restaurar e salvar.
+      # No `cache: yarn`: its key is the yarn.lock hash, the same as the
+      # node_modules cache below. When the lockfile does not change,
+      # node_modules comes from the cache and yarn does not even run; when it
+      # changes, both caches miss together. The yarn cache only cost the time
+      # to restore and save it.
       - &setup_node
         uses: actions/setup-node@v4
         with:
           node-version: ${{ inputs.WF_NODE_VERSION }}
           registry-url: ${{ secrets.WF_REGISTRY }}
 
-      # Em lockfile novo, lint e test instalam em paralelo e os dois tentam
-      # salvar a mesma chave: um salva, o outro so registra um aviso.
+      # On a new lockfile, lint and test install in parallel and both try to
+      # save the same key: one saves, the other only logs a warning.
       - &node_modules_cache
         name: Cache NPM dependencies
         id: node-modules-cache
@@ -225,17 +227,19 @@ jobs:
       - name: linting
         run: yarn lint
 
-      # yarn audit sai com um bitmask das severidades (info 1, low 2, moderate 4,
-      # high 8, critical 16) que o --level nao filtra, e erro de rede tambem sai
-      # com 1. Por isso a decisao vem do auditSummary do --json: sem ele o audit
-      # nao rodou, e o step falha em vez de deixar passar.
-      # --registry fixo: o registry-url do setup-node pode nao ter endpoint de audit.
-      # Bloqueia em PR; em push so avisa, para uma advisory publicada depois do
-      # merge nao travar o deploy de codigo ja revisado.
-      # So bloqueia advisory que tem versao corrigida: sem ela nao ha para onde
-      # atualizar, e o PR ficaria barrado ate o pacote ser trocado ou removido.
-      # Essas continuam listadas, com um aviso. O registry marca "sem versao
-      # corrigida" com patched_versions "<0.0.0".
+      # yarn audit exits with a bitmask of the severities (info 1, low 2,
+      # moderate 4, high 8, critical 16) that --level does not filter, and a
+      # network error also exits with 1. So the decision comes from the
+      # auditSummary of --json: without it the audit did not run, and the step
+      # fails instead of letting it pass.
+      # Fixed --registry: the registry-url of setup-node may have no audit
+      # endpoint.
+      # Blocks on pull requests; on push it only warns, so an advisory published
+      # after the merge does not stop the deploy of code already reviewed.
+      # Only an advisory that has a fixed version blocks: without one there is
+      # nothing to upgrade to, and the pull request would stay blocked until the
+      # package is replaced or removed. Those are still listed, with a warning.
+      # The registry marks "no fixed version" with patched_versions "<0.0.0".
       - name: security audit (high and critical)
         env:
           NODE_AUTH_TOKEN: ${{ secrets.WF_NPM_TOKEN }}
@@ -248,42 +252,43 @@ jobs:
 
           summary="$(jq -cR 'fromjson? | select(.type == "auditSummary") | .data.vulnerabilities' "$report")"
           if [ -z "$summary" ]; then
-            echo "::error::yarn audit nao retornou resultado (erro ao consultar o registry?). Saida:"
+            echo "::error::yarn audit returned no result (error reaching the registry?). Output:"
             cat "$report"
             exit 1
           fi
           echo "yarn audit: $summary"
 
-          # Uma linha por advisory: o --json repete a advisory para cada caminho de dependencia.
+          # One line per advisory: --json repeats the advisory for each dependency path.
           advisories="$(jq -rR 'fromjson? | select(.type == "auditAdvisory") | .data.advisory
             | select(.severity == "high" or .severity == "critical")
-            | "\(if .patched_versions == "<0.0.0" then "sem-correcao" else "com-correcao" end) \(.severity) \(.module_name) \(.vulnerable_versions) (corrigido em \(.patched_versions)): \(.title) \(.url)"' \
+            | "\(if .patched_versions == "<0.0.0" then "no-fix" else "has-fix" end) \(.severity) \(.module_name) \(.vulnerable_versions) (fixed in \(.patched_versions)): \(.title) \(.url)"' \
             "$report" | sort -u)"
 
-          fixable="$(grep -c '^com-correcao ' <<< "$advisories" || true)"
-          unfixable="$(grep -c '^sem-correcao ' <<< "$advisories" || true)"
+          fixable="$(grep -c '^has-fix ' <<< "$advisories" || true)"
+          unfixable="$(grep -c '^no-fix ' <<< "$advisories" || true)"
 
-          # O resumo diz que ha high/critical mas nenhuma advisory foi lida: o
-          # formato mudou ou a saida veio truncada. Falha em vez de deixar passar.
+          # The summary reports high/critical but no advisory was read: the
+          # format changed or the output was cut short. Fail instead of letting
+          # it pass.
           found="$(jq -r '.high + .critical' <<< "$summary")"
           if [ "$found" -gt 0 ] && [ "$((fixable + unfixable))" -eq 0 ]; then
-            echo "::error::yarn audit conta $found ocorrencia(s) high/critical, mas nenhuma advisory veio na saida."
+            echo "::error::yarn audit counts $found high/critical occurrence(s), but no advisory came in the output."
             exit 1
           fi
 
           if [ "$unfixable" -gt 0 ]; then
-            echo "Sem versao corrigida (nao bloqueiam):"
-            grep '^sem-correcao ' <<< "$advisories" | cut -d' ' -f2-
-            echo "::warning::yarn audit: $unfixable advisory(ies) high/critical sem versao corrigida (lista acima). Nao bloqueiam; a saida e trocar ou remover o pacote."
+            echo "No fixed version (these do not block):"
+            grep '^no-fix ' <<< "$advisories" | cut -d' ' -f2-
+            echo "::warning::yarn audit: $unfixable high/critical advisory(ies) with no fixed version (listed above). They do not block; the way out is to replace or remove the package."
           fi
 
           if [ "$fixable" -eq 0 ]; then
             exit 0
           fi
 
-          echo "Com versao corrigida:"
-          grep '^com-correcao ' <<< "$advisories" | cut -d' ' -f2-
-          echo "::$LEVEL::yarn audit encontrou $fixable advisory(ies) high/critical com versao corrigida (lista acima). Atualize as dependencias antes do merge."
+          echo "With a fixed version:"
+          grep '^has-fix ' <<< "$advisories" | cut -d' ' -f2-
+          echo "::$LEVEL::yarn audit found $fixable high/critical advisory(ies) with a fixed version (listed above). Upgrade the dependencies before merging."
           [ "$LEVEL" = warning ] || exit 1
 
   test:
@@ -319,9 +324,10 @@ jobs:
             fi
           fi
 
-  # Em PR o semantic-release nao publica nada, entao a imagem nao precisa
-  # esperar lint e testes. O deploy do PR continua esperando: o job chamador so
-  # termina quando todos os jobs daqui terminam, e so segue se todos passaram.
+  # On a pull request semantic-release publishes nothing, so the image does not
+  # have to wait for lint and tests. The pull request's deploy still waits: the
+  # calling job only ends when every job here has ended, and only goes on if
+  # all of them passed.
   build-pr:
     name: building the image
     if: github.event_name == 'pull_request'
@@ -347,12 +353,12 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.WF_AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ${{ secrets.WF_AWS_REGION }}
 
-      # O .npmrc tambem vai como secret do BuildKit (id npmrc), para o Dockerfile
-      # poder instalar com
+      # The .npmrc also goes in as a BuildKit secret (id npmrc), so the
+      # Dockerfile can install with
       #   RUN --mount=type=secret,id=npmrc,target=<workdir>/.npmrc yarn install ...
-      # em vez de copiar o arquivo: copiado, o token fica numa camada da imagem
-      # publicada, mesmo que um RUN posterior apague o arquivo. Quem ainda usa
-      # COPY continua funcionando, o .npmrc segue no workspace.
+      # instead of copying the file: once copied, the token stays in a layer of
+      # the published image, even if a later RUN deletes the file. A Dockerfile
+      # that still uses COPY keeps working: the .npmrc is still in the workspace.
       - &docker_build
         name: Build Docker image
         run: |
@@ -371,9 +377,9 @@ jobs:
           path: image.tar.gz
           retention-days: 1
 
-  # Fora de PR o release e a imagem ficam no mesmo job, nesta ordem: o
-  # semantic-release grava a versao nova no workspace (package.json,
-  # version.json) e a imagem tem que ser construida com ela.
+  # Outside pull requests the release and the image are in the same job, in
+  # this order: semantic-release writes the new version to the workspace
+  # (package.json, version.json) and the image has to be built with it.
   build-release:
     name: releasing and building the image
     if: github.event_name != 'pull_request'
@@ -406,8 +412,8 @@ jobs:
   validate-workers:
     name: validating workers against the built image
     needs: [declaration, build-pr, build-release]
-    # Sem !cancelled() o job seria pulado sempre: um dos dois builds e pulado
-    # em todo run, e um needs pulado pula quem depende dele.
+    # Without !cancelled() the job would always be skipped: one of the two
+    # builds is skipped on every run, and a skipped need skips its dependents.
     if: ${{ !cancelled() && needs.declaration.outputs.has_workers == 'true' && (needs.build-pr.result == 'success' || needs.build-release.result == 'success') }}
     runs-on: ubuntu-latest
     steps:
@@ -488,9 +494,9 @@ jobs:
             exit 1
           fi
 
-  # Mantem o check "preparing" que este workflow sempre publicou, agora como o
-  # resultado de todos os jobs: um repositorio que exige esse check na protecao
-  # de branch continua barrado por lint, teste ou imagem que falhe.
+  # Keeps the "preparing" check this workflow has always published, now as the
+  # result of every job: a repository that requires this check in its branch
+  # protection is still blocked by a lint, test or image that fails.
   preparing:
     name: preparing
     needs:
@@ -512,14 +518,14 @@ jobs:
 
           jq -r 'to_entries[] | "\(.key): \(.value.result)"' <<< "$RESULTS"
 
-          # skipped e esperado: so um dos dois builds roda por run, e os
-          # validate-workers so rodam em servico com workers.
+          # skipped is expected: only one of the two builds runs per run, and
+          # the validate-workers jobs only run for a service with workers.
           if jq -e 'any(.[]; .result != "success" and .result != "skipped")' <<< "$RESULTS" > /dev/null; then
-            echo "::error::um ou mais jobs falharam (lista acima)."
+            echo "::error::one or more jobs failed (listed above)."
             exit 1
           fi
 
           if ! jq -e '."build-pr".result == "success" or ."build-release".result == "success"' <<< "$RESULTS" > /dev/null; then
-            echo "::error::nenhum job construiu a imagem."
+            echo "::error::no job built the image."
             exit 1
           fi
