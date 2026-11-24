@@ -1,3 +1,10 @@
+## [5.18.1](https://github.com/QueroDelivery/ci/compare/v5.18.0...v5.18.1) (2026-11-24)
+
+
+### Bug Fixes
+
+* **s3-spa:** allow custom aliases and certificate in stage ([d32707e](https://github.com/QueroDelivery/ci/commit/d32707eeb88874776370a55e734f84a4e51df40d))
+
 # [5.18.0](https://github.com/QueroDelivery/ci/compare/v5.17.0...v5.18.0) (2026-11-24)
 
 
