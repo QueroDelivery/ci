@@ -1,3 +1,10 @@
+# [5.19.0](https://github.com/QueroDelivery/ci/compare/v5.18.1...v5.19.0) (2026-11-24)
+
+
+### Features
+
+* **s3-spa:** add build_node_options input for the build step ([51bb7a9](https://github.com/QueroDelivery/ci/commit/51bb7a9d03aa073defcbeae032317f7c1ccdc8a6))
+
 ## [5.18.1](https://github.com/QueroDelivery/ci/compare/v5.18.0...v5.18.1) (2026-11-24)
 
 
