@@ -30,8 +30,6 @@ COPY . .
 
 (`target` is `<WORKDIR>/.npmrc`.)
 
-**Layer cache (`WF_DOCKER_LAYER_CACHE: true`).** Builds with Buildx and keeps the layers in the GitHub Actions cache, so a commit that does not touch `yarn.lock` reuses the install layer. It only helps a Dockerfile shaped like the one above; with `COPY . .` first, nothing is reused and every build still pays for exporting the layers. Off by default.
-
 ### CI-ECR-BASE (`.github/workflows/base_build_push_ecr.yml`)
 Loads the Docker image artifact produced by `CI-BASE` and pushes it to Amazon ECR.
 - Configures AWS credentials and logs in to ECR
