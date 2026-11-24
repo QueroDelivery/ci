@@ -13,7 +13,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          # So refs e commits importam aqui; os blobs antigos nao sao baixados.
+          # Only refs and commits matter here; old blobs are not downloaded.
           fetch-depth: 0
           filter: blob:none
           token: ${{ secrets.WF_GITHUB_TOKEN }}

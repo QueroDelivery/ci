@@ -38,7 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ inputs.WF_ENV_TYPE_DEPLOY }}
     steps:
-      # Sem o conteudo dos arquivos antigos: nada aqui le o historico do servico.
+      # Without the content of old files: nothing here reads the service's history.
       - name: Checkout source
         uses: actions/checkout@v4
         with:

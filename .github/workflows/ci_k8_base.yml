@@ -137,9 +137,9 @@ jobs:
 
     steps:
       # ── Always ──────────────────────────────────────────────────────────────
-      # Historico completo (commits e arvores) sem o conteudo dos arquivos
-      # antigos: o worktree do deploy-state so baixa os blobs que fizer checkout.
-      # Num repositorio grande o clone completo custa dezenas de segundos.
+      # Full history (commits and trees) without the content of old files: the
+      # deploy-state worktree only downloads the blobs it checks out. In a
+      # large repository the full clone costs tens of seconds.
       - name: Checkout source
         uses: actions/checkout@v4
         with:
