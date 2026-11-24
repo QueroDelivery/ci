@@ -2,7 +2,7 @@
 
 Reusable GitHub Actions workflows that build a single-page application, provision its S3 and CloudFront infrastructure with Terraform, upload the build, and invalidate the cache.
 
-The Terraform module lives in [`QueroDelivery/terraform`](https://github.com/QueroDelivery/terraform) at `infra/spa-static-frontend`. Application repositories do not keep a copy of that module. The deploy workflow checks it out at tag `v1.2.0` and applies it.
+The Terraform module lives in [`QueroDelivery/terraform`](https://github.com/QueroDelivery/terraform) at `infra/spa-static-frontend`. Application repositories do not keep a copy of that module. The deploy workflow checks it out at tag `v1.3.0` and applies it.
 
 ## Architecture
 
@@ -195,16 +195,18 @@ Production does not repeat commit lint, the typecheck, ESLint, or tests. Preview
 
 ## Custom domains (`custom_aliases`)
 
-Use this when a production application must also answer on a domain outside the hosted zone, for example `manager.querodelivery.com` next to `qd-manager.app.quero.io`.
+Use this when a stage or production application must also answer on a domain outside the hosted zone, for example `manager.querodelivery.com` next to `qd-manager.app.quero.io` in prod, or `stage-manager.querodelivery.com` next to `qd-manager.stg.app.quero.io` in stage.
 
 How it works:
 
-- `custom_aliases` is a Terraform list added next to `<app>.<hosted-zone>` in the production distribution.
+- `custom_aliases` is a Terraform list added next to the generated domain of the environment: `<app>.<hosted-zone>` in prod, `<app>.stg.<hosted-zone>` in stage.
 - `SPA_CUSTOM_CERT_ARN` replaces `certificate_arn` when it is set. The certificate must be in `us-east-1` and cover **every** alias, the generated one included.
-- Stage and preview ignore both values. A custom domain is a production-only feature.
-- The workflow checks out Terraform `v1.2.0`, which declares both variables. Every production deploy applies them again, so the aliases and the certificate in the caller are the source of truth.
+- Stage and prod each use their own values, passed by their own caller. Preview ignores both, because it uses one distribution shared by every application.
+- The workflow checks out Terraform `v1.3.0`, which applies both variables in stage and prod. Every deploy applies them again, so the aliases and the certificate in the caller are the source of truth.
 
 Steps:
+
+The steps below use prod as the example. For stage, use the stage generated domain (`<app>.stg.<hosted-zone>`), the `stage` environment and the stage caller, and request a separate certificate.
 
 1. **List the names.** The generated domain `<app>.<hosted-zone>` and each custom domain. Example for `qd-manager`: `qd-manager.app.quero.io` and `manager.querodelivery.com`.
 
@@ -227,9 +229,9 @@ Steps:
 
    Create each CNAME in the DNS zone that owns that name: the generated domain in the hosted zone (Route 53), each custom domain wherever it is hosted (for example Cloudflare). In Cloudflare, leave the record as **DNS only** (no proxy). Wait until the certificate status is `ISSUED`.
 
-4. **Save the ARN as a secret.** In the application repository, add `SPA_CUSTOM_CERT_ARN` to the `prod` environment secrets. The certificate belongs to one application, so do not use an organization secret.
+4. **Save the ARN as a secret.** In the application repository, add `SPA_CUSTOM_CERT_ARN` to the `prod` environment secrets (or `stage`, for stage). The certificate belongs to one application and one environment, so do not use an organization secret.
 
-5. **Update the production caller** (`deploy-prod.yml`):
+5. **Update the production caller** (`deploy-prod.yml`, or `deploy-stage.yml` with `environment_type: stage`):
 
    ```yaml
        with:
@@ -239,9 +241,9 @@ Steps:
          SPA_CUSTOM_CERT_ARN: ${{ secrets.SPA_CUSTOM_CERT_ARN }}
    ```
 
-   Keep both lines in the caller from now on. Because every production deploy applies these values again, removing `custom_aliases` removes the alias from the distribution, and removing the secret puts `certificate_arn` back.
+   Keep both lines in the caller from now on. Because every deploy of that environment applies these values again, removing `custom_aliases` removes the alias from the distribution, and removing the secret puts `certificate_arn` back.
 
-6. **Deploy.** Push to `main`, or re-run the production workflow. The apply adds the alias and the certificate to the distribution, which works on a distribution that already exists. Wait until the distribution status is `Deployed`.
+6. **Deploy.** Push to `main` (or `stage`), or re-run the deploy workflow. The apply adds the alias and the certificate to the distribution, which works on a distribution that already exists. Wait until the distribution status is `Deployed`.
 
 7. **Test before changing DNS.** Call the custom host against the CloudFront name:
 
@@ -285,7 +287,7 @@ Pass these secrets from the caller. `WF_GITHUB_TOKEN` is optional in the workflo
 - `AWS_REGION`: AWS region for those credentials.
 - `SPA_TF_STATE_BUCKET`: S3 bucket that stores the Terraform state.
 - `SPA_PROD_CERT_ARN`, `SPA_STAGE_CERT_ARN`, `SPA_PREVIEW_CERT_ARN`: ACM certificate ARNs in `us-east-1`, one per environment.
-- `SPA_CUSTOM_CERT_ARN`: optional ACM certificate ARN in `us-east-1`. In prod it replaces `certificate_arn` when set. Empty omits the variable. Pass it as a secret so the ARN stays masked in the logs.
+- `SPA_CUSTOM_CERT_ARN`: optional ACM certificate ARN in `us-east-1`. In stage and prod it replaces `certificate_arn` when set. Ignored in preview. Empty omits the variable. Pass it as a secret so the ARN stays masked in the logs.
 - `WF_GITHUB_TOKEN`: classic token with `repo` scope.
 - `PACKAGE_REGISTRY_ENV`: optional variables for private package registries, one `KEY=value` per line. A step before `Setup Node.js` exports each line to the rest of the build job, so the application's `.npmrc` can read it in every Yarn command, `yarn run` included. A new registry needs no change in this repository. Pass it from the caller:
 
