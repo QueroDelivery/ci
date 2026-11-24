@@ -1,3 +1,10 @@
+# [5.18.0](https://github.com/QueroDelivery/ci/compare/v5.17.0...v5.18.0) (2026-11-24)
+
+
+### Features
+
+* **ci:** let the audit pass advisories that have no fixed version ([26812b2](https://github.com/QueroDelivery/ci/commit/26812b21af12c32036242870ff55a3d4507617cf))
+
 # [5.17.0](https://github.com/QueroDelivery/ci/compare/v5.16.0...v5.17.0) (2026-11-24)
 
 
