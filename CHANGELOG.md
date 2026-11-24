@@ -1,3 +1,15 @@
+# [5.17.0](https://github.com/QueroDelivery/ci/compare/v5.16.0...v5.17.0) (2026-11-24)
+
+
+### Features
+
+* **ci:** run lint, tests and the image build as parallel jobs in CI-BASE ([c00392f](https://github.com/QueroDelivery/ci/commit/c00392f49dea9bd14a5195f0911372ec7615f7bd))
+
+
+### Performance Improvements
+
+* **ci:** clone without old blobs where the full history is fetched ([be30199](https://github.com/QueroDelivery/ci/commit/be301997e497a08e1109ffaa33c880f9c8ed5d17))
+
 # [5.16.0](https://github.com/QueroDelivery/ci/compare/v5.15.3...v5.16.0) (2026-11-21)
 
 
