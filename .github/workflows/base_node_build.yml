@@ -232,6 +232,10 @@ jobs:
       # --registry fixo: o registry-url do setup-node pode nao ter endpoint de audit.
       # Bloqueia em PR; em push so avisa, para uma advisory publicada depois do
       # merge nao travar o deploy de codigo ja revisado.
+      # So bloqueia advisory que tem versao corrigida: sem ela nao ha para onde
+      # atualizar, e o PR ficaria barrado ate o pacote ser trocado ou removido.
+      # Essas continuam listadas, com um aviso. O registry marca "sem versao
+      # corrigida" com patched_versions "<0.0.0".
       - name: security audit (high and critical)
         env:
           NODE_AUTH_TOKEN: ${{ secrets.WF_NPM_TOKEN }}
@@ -251,17 +255,35 @@ jobs:
           echo "yarn audit: $summary"
 
           # Uma linha por advisory: o --json repete a advisory para cada caminho de dependencia.
-          jq -rR 'fromjson? | select(.type == "auditAdvisory") | .data.advisory
+          advisories="$(jq -rR 'fromjson? | select(.type == "auditAdvisory") | .data.advisory
             | select(.severity == "high" or .severity == "critical")
-            | "\(.severity) \(.module_name) \(.vulnerable_versions) (corrigido em \(.patched_versions)): \(.title) \(.url)"' \
-            "$report" | sort -u
+            | "\(if .patched_versions == "<0.0.0" then "sem-correcao" else "com-correcao" end) \(.severity) \(.module_name) \(.vulnerable_versions) (corrigido em \(.patched_versions)): \(.title) \(.url)"' \
+            "$report" | sort -u)"
 
+          fixable="$(grep -c '^com-correcao ' <<< "$advisories" || true)"
+          unfixable="$(grep -c '^sem-correcao ' <<< "$advisories" || true)"
+
+          # O resumo diz que ha high/critical mas nenhuma advisory foi lida: o
+          # formato mudou ou a saida veio truncada. Falha em vez de deixar passar.
           found="$(jq -r '.high + .critical' <<< "$summary")"
-          if [ "$found" -eq 0 ]; then
+          if [ "$found" -gt 0 ] && [ "$((fixable + unfixable))" -eq 0 ]; then
+            echo "::error::yarn audit conta $found ocorrencia(s) high/critical, mas nenhuma advisory veio na saida."
+            exit 1
+          fi
+
+          if [ "$unfixable" -gt 0 ]; then
+            echo "Sem versao corrigida (nao bloqueiam):"
+            grep '^sem-correcao ' <<< "$advisories" | cut -d' ' -f2-
+            echo "::warning::yarn audit: $unfixable advisory(ies) high/critical sem versao corrigida (lista acima). Nao bloqueiam; a saida e trocar ou remover o pacote."
+          fi
+
+          if [ "$fixable" -eq 0 ]; then
             exit 0
           fi
 
-          echo "::$LEVEL::yarn audit encontrou $found ocorrencia(s) high/critical (lista acima). Atualize as dependencias antes do merge."
+          echo "Com versao corrigida:"
+          grep '^com-correcao ' <<< "$advisories" | cut -d' ' -f2-
+          echo "::$LEVEL::yarn audit encontrou $fixable advisory(ies) high/critical com versao corrigida (lista acima). Atualize as dependencias antes do merge."
           [ "$LEVEL" = warning ] || exit 1
 
   test:
