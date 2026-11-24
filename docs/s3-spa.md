@@ -191,18 +191,80 @@ The publish job sets that URL on its GitHub environment (`preview`, `stage`, or 
 
 Production does not repeat commit lint, the typecheck, ESLint, or tests. Preview and stage already ran those checks on the same commit.
 
-`custom_aliases` is an optional input and `SPA_CUSTOM_CERT_ARN` is an optional secret. Leave either one out and the workflow does not pass that variable. The module then keeps its default: no extra aliases, and the certificate from `certificate_arn`.
+`custom_aliases` is an optional input and `SPA_CUSTOM_CERT_ARN` is an optional secret. Leave either one out and the workflow does not pass that variable. The module then keeps its default: no extra aliases, and the certificate from `certificate_arn`. To serve a domain outside the hosted zone, follow [Custom domains](#custom-domains-custom_aliases).
 
-In prod, `custom_aliases` is a Terraform list added next to `<app>.<hosted-zone>`. `SPA_CUSTOM_CERT_ARN` replaces `certificate_arn` when it is set, so the extra domains can use their own ACM certificate in `us-east-1`. The ARN stays a secret so GitHub Actions masks it in the logs. Stage and preview ignore both values. The certificate in use must cover every alias.
+## Custom domains (`custom_aliases`)
 
-```yaml
-    with:
-      custom_aliases: '["qdplan.querodelivery.com"]'
-    secrets:
-      SPA_CUSTOM_CERT_ARN: ${{ secrets.SPA_CUSTOM_CERT_ARN }}
-```
+Use this when a production application must also answer on a domain outside the hosted zone, for example `manager.querodelivery.com` next to `qd-manager.app.quero.io`.
 
-`custom_aliases` is a Terraform list. `SPA_CUSTOM_CERT_ARN` is the certificate ARN. The workflow checks out Terraform `v1.2.0`, which declares both variables.
+How it works:
+
+- `custom_aliases` is a Terraform list added next to `<app>.<hosted-zone>` in the production distribution.
+- `SPA_CUSTOM_CERT_ARN` replaces `certificate_arn` when it is set. The certificate must be in `us-east-1` and cover **every** alias, the generated one included.
+- Stage and preview ignore both values. A custom domain is a production-only feature.
+- The workflow checks out Terraform `v1.2.0`, which declares both variables. Every production deploy applies them again, so the aliases and the certificate in the caller are the source of truth.
+
+Steps:
+
+1. **List the names.** The generated domain `<app>.<hosted-zone>` and each custom domain. Example for `qd-manager`: `qd-manager.app.quero.io` and `manager.querodelivery.com`.
+
+2. **Request one ACM certificate** in `us-east-1`, with the generated domain as the main name and the custom domains as alternative names:
+
+   ```bash
+   aws acm request-certificate --region us-east-1 --validation-method DNS \
+     --domain-name qd-manager.app.quero.io \
+     --subject-alternative-names manager.querodelivery.com
+   ```
+
+   Use one certificate per application. The command prints the certificate ARN.
+
+3. **Create the DNS validation records.** Get them with:
+
+   ```bash
+   aws acm describe-certificate --region us-east-1 --certificate-arn <arn> \
+     --query 'Certificate.DomainValidationOptions[].[DomainName,ResourceRecord.Name,ResourceRecord.Value]' --output text
+   ```
+
+   Create each CNAME in the DNS zone that owns that name: the generated domain in the hosted zone (Route 53), each custom domain wherever it is hosted (for example Cloudflare). In Cloudflare, leave the record as **DNS only** (no proxy). Wait until the certificate status is `ISSUED`.
+
+4. **Save the ARN as a secret.** In the application repository, add `SPA_CUSTOM_CERT_ARN` to the `prod` environment secrets. The certificate belongs to one application, so do not use an organization secret.
+
+5. **Update the production caller** (`deploy-prod.yml`):
+
+   ```yaml
+       with:
+         environment_type: prod
+         custom_aliases: '["manager.querodelivery.com"]'
+       secrets:
+         SPA_CUSTOM_CERT_ARN: ${{ secrets.SPA_CUSTOM_CERT_ARN }}
+   ```
+
+   Keep both lines in the caller from now on. Because every production deploy applies these values again, removing `custom_aliases` removes the alias from the distribution, and removing the secret puts `certificate_arn` back.
+
+6. **Deploy.** Push to `main`, or re-run the production workflow. The apply adds the alias and the certificate to the distribution, which works on a distribution that already exists. Wait until the distribution status is `Deployed`.
+
+7. **Test before changing DNS.** Call the custom host against the CloudFront name:
+
+   ```bash
+   curl -sI --connect-to manager.querodelivery.com:443:<distribution>.cloudfront.net:443 \
+     https://manager.querodelivery.com/
+   ```
+
+   Expect `200` and no certificate error.
+
+8. **Point the DNS to the application.** Lower the record TTL a few hours before. Then change the custom domain record to a CNAME to the generated domain (`qd-manager.app.quero.io`). In Cloudflare, keep it **DNS only**. Keep the previous target written down: restoring it is the rollback.
+
+9. **Verify** the custom URL in a browser, including a refresh on a deep route.
+
+Common failures:
+
+| Error | Cause |
+|---|---|
+| `InvalidViewerCertificate` on apply | The certificate does not cover every alias, or is not `ISSUED`, or is not in `us-east-1`. |
+| `CNAMEAlreadyExists` on apply | Another CloudFront distribution already has that alias. Remove it there first. |
+| Alias disappears after a deploy | The caller no longer passes `custom_aliases` or `SPA_CUSTOM_CERT_ARN`. |
+
+`qd-plan` is the reference: its production distribution serves `qd-plan.app.quero.io` and `qdplan.querodelivery.com` with one certificate that names both.
 
 ## Inputs
 
