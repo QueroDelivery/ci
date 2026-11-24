@@ -13,7 +13,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          # So refs e commits importam aqui; os blobs antigos nao sao baixados.
           fetch-depth: 0
+          filter: blob:none
           token: ${{ secrets.WF_GITHUB_TOKEN }}
 
       - name: Criar branch main se não existir

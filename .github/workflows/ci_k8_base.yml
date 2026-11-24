@@ -137,10 +137,14 @@ jobs:
 
     steps:
       # ── Always ──────────────────────────────────────────────────────────────
+      # Historico completo (commits e arvores) sem o conteudo dos arquivos
+      # antigos: o worktree do deploy-state so baixa os blobs que fizer checkout.
+      # Num repositorio grande o clone completo custa dezenas de segundos.
       - name: Checkout source
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          filter: blob:none
 
       # ── kubectl mode only ────────────────────────────────────────────────────
       - name: Checkout kube manifests
